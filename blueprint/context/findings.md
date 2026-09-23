@@ -7,4 +7,10 @@
 > finding is `open` or `fixed`, then archives resolved findings with the work
 > and resets this file.
 
-_No findings recorded. `/audit` appends findings here when it finds them._
+### F-02 [P2] open - Darken muted workspace text for readable contrast
+
+**File:** resources/css/app.css:97
+**Found:** 2026-09-23 by /audit independent current (scope: current; lenses: quality, security, performance, tests)
+**Why it matters:** The new light-mode muted text token `#718076` is applied to normal-size instructions, supporting copy, site counts, and blank-card text in Dashboard.vue and Sites/Show.vue. Calculated relative-luminance contrast is 4.16:1 against white, 3.86:1 against the page background `#f5f7f4`, and 3.97:1 against `#f9faf7`. All fall below the 4.5:1 minimum for normal-size text, reducing readability for users with low vision. This is a color calculation from source tokens, not a browser measurement.
+**Suggested fix:** Darken the existing light-mode `--workspace-muted` token until it reaches at least 4.5:1 against all three backgrounds. Keep the existing token and layout; no new styling machinery is needed.
+**Resolution:**

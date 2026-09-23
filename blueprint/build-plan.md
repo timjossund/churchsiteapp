@@ -4,7 +4,7 @@ The first seven features lead to the single-page launch. Multi-page support is t
 
 ## Single-page launch
 
-- [ ] 1. **Site workspace** - Let signed-in users create and manage multiple blank sites, with one account owning and editing each site.
+- [x] 1. **Site workspace** - Let signed-in users create and manage multiple blank sites, with one account owning and editing each site.
 - [ ] 2. **Block page editor** - Let users add, edit in a side panel, remove, and freely reorder the agreed landing-page blocks, including structured service times, hero links, and YouTube/Vimeo video embeds.
 - [ ] 3. **Themes and site shell** - Add the initial theme choices plus editable header, footer, logo or church name, and section navigation without changing block content or order.
 - [ ] 4. **Image uploads** - Let users upload images for the relevant blocks and store them in IONOS buckets.

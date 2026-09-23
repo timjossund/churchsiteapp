@@ -9,7 +9,7 @@
 
 @theme inline {
     --font-sans:
-        Instrument Sans, ui-sans-serif, system-ui, sans-serif,
+        'Avenir Next', Avenir, 'Segoe UI', ui-sans-serif, system-ui, sans-serif,
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
 
@@ -83,20 +83,30 @@
     body,
     html {
         --font-sans:
-            'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
-            'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
-            'Noto Color Emoji';
+            'Avenir Next', Avenir, 'Segoe UI', ui-sans-serif, system-ui,
+            sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+            'Segoe UI Symbol', 'Noto Color Emoji';
     }
 }
 
 :root {
-    --background: hsl(0 0% 100%);
-    --foreground: hsl(0 0% 3.9%);
+    --workspace-surface: #ffffff;
+    --workspace-soft: #f9faf7;
+    --workspace-line: #e2e8e0;
+    --workspace-ink: #202923;
+    --workspace-muted: #718076;
+    --workspace-green: #2c6749;
+    --workspace-green-dark: #21563c;
+    --workspace-green-soft: #e5f1e7;
+    --workspace-green-ink: #17492f;
+    --workspace-shadow: 0 6px 24px rgb(31 50 35 / 6%);
+    --background: #f5f7f4;
+    --foreground: var(--workspace-ink);
     --card: hsl(0 0% 100%);
     --card-foreground: hsl(0 0% 3.9%);
     --popover: hsl(0 0% 100%);
     --popover-foreground: hsl(0 0% 3.9%);
-    --primary: hsl(0 0% 9%);
+    --primary: var(--workspace-green);
     --primary-foreground: hsl(0 0% 98%);
     --secondary: hsl(0 0% 92.1%);
     --secondary-foreground: hsl(0 0% 9%);
@@ -115,18 +125,28 @@
     --chart-4: hsl(43 74% 66%);
     --chart-5: hsl(27 87% 67%);
     --radius: 0.5rem;
-    --sidebar-background: hsl(0 0% 98%);
-    --sidebar-foreground: hsl(240 5.3% 26.1%);
-    --sidebar-primary: hsl(0 0% 10%);
+    --sidebar-background: var(--workspace-surface);
+    --sidebar-foreground: var(--workspace-ink);
+    --sidebar-primary: var(--workspace-green);
     --sidebar-primary-foreground: hsl(0 0% 98%);
-    --sidebar-accent: hsl(0 0% 94%);
-    --sidebar-accent-foreground: hsl(0 0% 30%);
-    --sidebar-border: hsl(0 0% 91%);
+    --sidebar-accent: var(--workspace-green-soft);
+    --sidebar-accent-foreground: var(--workspace-green-ink);
+    --sidebar-border: var(--workspace-line);
     --sidebar-ring: hsl(217.2 91.2% 59.8%);
-    --sidebar: hsl(0 0% 98%);
+    --sidebar: var(--workspace-surface);
 }
 
 .dark {
+    --workspace-surface: #202923;
+    --workspace-soft: #28332b;
+    --workspace-line: #3b4b3e;
+    --workspace-ink: #f2f6f0;
+    --workspace-muted: #b2c2b5;
+    --workspace-green: #a7d5ae;
+    --workspace-green-dark: #c1e4c6;
+    --workspace-green-soft: #2b4833;
+    --workspace-green-ink: #d7f0db;
+    --workspace-shadow: 0 6px 24px rgb(0 0 0 / 15%);
     --background: hsl(0 0% 3.9%);
     --foreground: hsl(0 0% 98%);
     --card: hsl(0 0% 3.9%);
@@ -154,7 +174,7 @@
     --sidebar-background: hsl(0 0% 7%);
     --sidebar-foreground: hsl(0 0% 95.9%);
     --sidebar-primary: hsl(360, 100%, 100%);
-    --sidebar-primary-foreground: hsl(0 0% 100%);
+    --sidebar-primary-foreground: var(--workspace-surface);
     --sidebar-accent: hsl(0 0% 15.9%);
     --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
     --sidebar-border: hsl(0 0% 15.9%);

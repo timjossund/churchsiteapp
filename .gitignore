@@ -1,0 +1,32 @@
+# Dependencies
+/vendor/
+/node_modules/
+
+# Laravel generated and local files
+/.env
+/.env.*
+!/.env.example
+/database/*.sqlite
+/bootstrap/cache/*.php
+/storage/app/private/
+/storage/framework/cache/
+/storage/framework/sessions/
+/storage/framework/testing/
+/storage/framework/views/
+/storage/logs/*.log
+/public/storage
+/public/hot
+/public/build/
+/bootstrap/ssr/
+
+# Tool output
+/.phpunit.cache/
+/.phpunit.result.cache
+/coverage/
+/.pest/
+/.phpactor.json
+/.vite/
+*.log
+.DS_Store
+.idea/
+.vscode/

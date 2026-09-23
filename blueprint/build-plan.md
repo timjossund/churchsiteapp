@@ -1,22 +1,23 @@
 # Build Plan
 
-List the features that make up your project, high level and in rough build order.
-Keep each item to one line; the details come later in `/feature`.
+The first seven features lead to the single-page launch. Multi-page support is the first feature afterward. Each item is a high-level outcome; implementation steps belong in its later feature spec.
 
-Plain bullets are fine. When both planning docs are ready, run `/overview`.
-It adds tracking numbers and checkboxes to your feature list before generating
-the project overview.
+## Single-page launch
 
-Run `/feature` to spec the next unchecked item, or `/feature 2` to pick one.
-Keep completed items checked and append new features as the project grows.
-Do not renumber completed features; their archived specs refer to those IDs.
+- [ ] 1. **Site workspace** - Let signed-in users create and manage multiple blank sites, with one account owning and editing each site.
+- [ ] 2. **Block page editor** - Let users add, edit in a side panel, remove, and freely reorder the agreed landing-page blocks, including structured service times, hero links, and YouTube/Vimeo video embeds.
+- [ ] 3. **Themes and site shell** - Add the initial theme choices plus editable header, footer, logo or church name, and section navigation without changing block content or order.
+- [ ] 4. **Image uploads** - Let users upload images for the relevant blocks and store them in IONOS buckets.
+- [ ] 5. **Drafts, publishing, and preview** - Publish a stable Blade-rendered version to a shareable, non-indexed `churchsite.app` subdirectory page while later edits remain drafts; add page title, description, and social preview image.
+- [ ] 6. **Per-site subscriptions** - Integrate Spark with Stripe so each site can have its own monthly or annual subscription and billing status.
+- [ ] 7. **Custom domains and SSL** - Let a subscribed site connect a BYO `www` hostname through Cloudflare for SaaS, show DNS instructions and connection status, serve its published Blade page over HTTPS, and remove custom-domain access when the subscription becomes inactive.
 
-Scaffolding the app and prototyping its look are pre-build steps, not features.
-Start with your first real slice of functionality.
+## First feature after launch
 
-## Your features
+- [ ] 8. **Multi-page sites** - Let users add and manage pages within a site, with navigation and page-specific published content.
 
-Replace these examples with your own features:
+## Planning TODOs
 
-- [ ] 1. **Feature one** - description
-- [ ] 2. **Feature two** - description
+- Set monthly and annual prices.
+- Prove the xCloud origin and Cloudflare for SaaS workflow for many customer hostnames and SSL certificates on one shared Laravel app.
+- Choose the MySQL hosting arrangement and final deployment setup.

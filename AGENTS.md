@@ -13,7 +13,7 @@ for optional tool settings.
 
 ## What this is
 
-A description of your project and the problem it solves.
+Church Site App is a Laravel and Vue application. Its product purpose and feature plan are still being defined in the project planning documents.
 
 This project is built with the **AI Blueprint**, a workflow layer, not an
 app skeleton. To start a new project, scaffold the app first in an empty folder
@@ -291,19 +291,18 @@ checks do not make the Blueprint unusable.
 
 ## Commands
 
-<!-- blueprint:onboarding-required -->
-For a standard Next.js project. Change or remove if you're using something else.
-
-- Dev server: `npm run dev` (http://localhost:3000)
+- Dev stack: `composer dev`
+- Frontend dev server: `npm run dev`
 - Build: `npm run build`
-- Production server: `npm run start`
-- Lint: `npm run lint`
+- Frontend lint and format check: `npm run check`
+- Frontend lint and format fix: `npm run check:fix`
+- Frontend typecheck: `npm run types:check`
+- PHP format check: `composer lint:check`
+- PHP format fix: `composer lint`
+- PHP typecheck: `composer types:check`
+- Test: `composer test` (PHP format check, typecheck, and Pest suite)
+- Combined local check: `composer ci:check` (frontend checks plus `composer test`)
 
-Testing is opt-in. If this project does not already have a unit test runner, run
-`/tests` or `$tests` to add one and update this section with the real test
-commands.
-
-Browser testing is also opt-in. Run `/tests browser` or `$tests browser` to add
-or normalize a browser harness and document its exact command as `Browser
-tests`. Check and Continuous Mode can then reuse it without installing tooling
-mid-feature.
+Pest tests are configured and are a gate for logic-bearing work. Browser tests
+are not configured. There is no GitHub Actions workflow yet; run `/ci` or `$ci`
+when automatic GitHub checks are wanted.

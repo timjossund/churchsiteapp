@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Grace Harbor Church is a welcoming community in the heart of the city. Join us on Sundays at 9:00 or 11:00 AM.">
+  <title>Grace Harbor Church - A place to belong</title>
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    body { background: var(--site-bg); }
+    .site-header { border-bottom: var(--border-width) solid var(--site-line); background: var(--site-surface); }
+    .site-header .church-nav { padding-top: var(--space-6); padding-bottom: var(--space-6); }
+    .church-hero { padding-top: var(--space-16); padding-bottom: var(--space-20); }
+    .church-hero h1 { max-width: var(--site-hero-width); }
+    .welcome-line { margin-top: var(--space-3); color: var(--site-muted); font-size: var(--text-sm); }
+    .story { display: grid; grid-template-columns: 0.7fr 1.3fr; gap: var(--space-16); border-bottom: var(--border-width) solid var(--site-line); }
+    .story > p { font-family: var(--site-font-display); font-size: var(--text-2xl); line-height: var(--leading-editorial); color: var(--site-ink); }
+    .about-copy { max-width: var(--content-copy-width); margin-top: var(--space-5); line-height: var(--leading-relaxed); }
+    .photo-frame { position: relative; min-height: var(--site-photo-height); overflow: hidden; border-radius: var(--radius-xl); background: linear-gradient(135deg, var(--site-photo-dark), var(--site-photo-light)); }
+    .photo-frame::before { content: ""; position: absolute; width: 52%; height: 125%; top: -25%; right: 13%; border-radius: 50%; background: var(--site-cream); transform: rotate(23deg); opacity: 0.75; }
+    .photo-frame::after { content: ""; position: absolute; width: 70%; height: 75%; bottom: -20%; left: -12%; border-radius: 50%; background: var(--site-photo-shadow); opacity: 0.65; }
+    .photo-caption { position: absolute; z-index: 1; left: var(--space-5); bottom: var(--space-5); display: inline-block; padding: var(--space-2) var(--space-3); border-radius: var(--radius-pill); color: var(--site-ink); background: var(--site-surface); font-size: var(--text-xs); font-weight: 750; }
+    .text-image-copy { max-width: var(--content-copy-width); }
+    .text-image-copy p { margin-top: var(--space-5); line-height: var(--leading-relaxed); }
+    .text-image-copy .church-btn { margin-top: var(--space-7); }
+    .video-section { background: var(--site-green-dark); color: var(--white); }
+    .video-section .church-section { display: grid; grid-template-columns: 0.8fr 1.2fr; align-items: center; gap: var(--space-12); }
+    .video-section h2 { margin-top: var(--space-4); }
+    .video-section p { margin-top: var(--space-5); color: var(--site-sage); line-height: var(--leading-relaxed); }
+    .video-section .church-kicker { color: var(--site-gold); }
+    .contact-section { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-16); }
+    .contact-section p { max-width: var(--contact-copy-width); margin-top: var(--space-5); line-height: var(--leading-relaxed); }
+    .contact-links { display: grid; gap: var(--space-4); align-content: center; }
+    .contact-links a { display: block; padding: var(--space-5) var(--space-6); border-radius: var(--radius-md); border: var(--border-width) solid var(--site-line); background: var(--site-surface); font-weight: 700; }
+    .contact-links a span { float: right; color: var(--site-green); }
+    footer { border-top: var(--border-width) solid var(--site-line); background: var(--site-surface); }
+    .footer-inner { max-width: var(--site-max); margin: auto; padding: var(--space-10) var(--space-8); display: flex; align-items: end; justify-content: space-between; gap: var(--space-5); }
+    .footer-inner p { margin-top: var(--space-3); color: var(--site-muted); font-size: var(--text-sm); }
+    .footer-inner nav { display: flex; gap: var(--space-6); color: var(--site-muted); font-size: var(--text-sm); }
+    @media (max-width: 700px) { .story, .video-section .church-section, .contact-section { grid-template-columns: 1fr; gap: var(--space-7); } .footer-inner { align-items: start; flex-direction: column; } .photo-frame { min-height: var(--mobile-media-height); } }
+  </style>
+</head>
+<body class="site-theme-warm church-page">
+  <header class="site-header">
+    <div class="church-nav"><a class="church-logo" href="#top">Grace Harbor <small>Church</small></a><nav class="church-links" aria-label="Site navigation"><a href="#about">About us</a><a href="#services">Service times</a><a href="#message">Watch a message</a><a href="#contact">Contact</a><a class="church-btn" href="#services">Plan a visit</a></nav></div>
+  </header>
+  <main id="top">
+    <section class="church-hero"><div><span class="church-kicker">Welcome to Grace Harbor</span><h1>A place to belong.</h1><p>Come as you are. Discover faith, friendship, and a place to call home in the heart of our city.</p><a class="church-btn" href="#services">Plan your visit</a><div class="welcome-line">Sundays at 9:00 &amp; 11:00 AM · Everyone is welcome</div></div><div class="church-art" role="img" aria-label="Abstract artwork suggesting a warm, welcoming church gathering"><span class="church-art-note">Life together, every week</span></div></section>
+    <section class="church-service" id="services"><div class="church-service-inner"><div><span class="church-kicker">Join us this week</span><h2>Sunday gatherings</h2></div><div class="church-service-time"><strong>9:00 AM</strong><span>Morning service</span></div><div class="church-service-time"><strong>11:00 AM</strong><span>Family service</span></div></div></section>
+    <section class="church-section story" aria-label="A simple message"><span class="church-kicker">A simple invitation</span><p>You do not have to have it all figured out to find your place here. We would love to meet you.</p></section>
+    <section class="church-section church-section-grid" id="about"><div class="text-image-copy"><span class="church-kicker">Who we are</span><h2>Real people. Real community.</h2><p>Grace Harbor is a neighborhood church learning to love God and one another. We gather to worship, share life, serve our neighbors, and make room for everyone who walks through the door.</p><a class="church-btn" href="#contact">Get in touch</a></div><div class="photo-frame" role="img" aria-label="Abstract image placeholder representing community life"><span class="photo-caption">Community happens here</span></div></section>
+    <section class="video-section" id="message"><div class="church-section"><div><span class="church-kicker">Watch a message</span><h2>See what a Sunday feels like.</h2><p>Explore a recent message before you visit. There is always room for one more person at the table.</p></div><div class="church-video" role="img" aria-label="Video embed preview for a recent Sunday message"><span class="church-video-play">▶</span><span class="church-video-tag">Recent message · YouTube or Vimeo embed</span></div></div></section>
+    <section class="church-section contact-section" id="contact"><div><span class="church-kicker">Reach out</span><h2>We would love to hear from you.</h2><p>Have a question about visiting or finding your place? Send a note or give us a call.</p></div><div class="contact-links"><a href="mailto:hello@graceharbor.org">hello@graceharbor.org <span>↗</span></a><a href="tel:+15550140270">(555) 014-0270 <span>↗</span></a></div></section>
+  </main>
+  <footer><div class="footer-inner"><div><div class="church-logo">Grace Harbor <small>Church</small></div><p>A place to belong. Sundays at 9:00 and 11:00 AM.</p></div><nav aria-label="Footer navigation"><a href="#about">About</a><a href="#services">Visit</a><a href="#contact">Contact</a></nav></div></footer>
+</body>
+</html>

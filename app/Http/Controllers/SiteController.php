@@ -32,6 +32,10 @@ class SiteController extends Controller
 
         return Inertia::render('Sites/Show', [
             'site' => $ownedSite->only('id', 'name'),
+            'blocks' => $ownedSite->blocks()
+                ->orderBy('position')
+                ->orderBy('id')
+                ->get(['id', 'type', 'position', 'content']),
         ]);
     }
 

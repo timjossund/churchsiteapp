@@ -1,4 +1,5 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition, applyUrlDefaults } from './../../wayfinder'
+import blocks from './blocks'
 /**
 * @see \App\Http\Controllers\SiteController::store
 * @see app/Http/Controllers/SiteController.php:22
@@ -156,7 +157,7 @@ show.form = showForm
 
 /**
 * @see \App\Http\Controllers\SiteController::update
-* @see app/Http/Controllers/SiteController.php:38
+* @see app/Http/Controllers/SiteController.php:42
 * @route '/sites/{site}'
 */
 export const update = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
@@ -171,7 +172,7 @@ update.definition = {
 
 /**
 * @see \App\Http\Controllers\SiteController::update
-* @see app/Http/Controllers/SiteController.php:38
+* @see app/Http/Controllers/SiteController.php:42
 * @route '/sites/{site}'
 */
 update.url = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions) => {
@@ -198,7 +199,7 @@ update.url = (args: { site: string | number } | [site: string | number ] | strin
 
 /**
 * @see \App\Http\Controllers\SiteController::update
-* @see app/Http/Controllers/SiteController.php:38
+* @see app/Http/Controllers/SiteController.php:42
 * @route '/sites/{site}'
 */
 update.patch = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
@@ -208,7 +209,7 @@ update.patch = (args: { site: string | number } | [site: string | number ] | str
 
 /**
 * @see \App\Http\Controllers\SiteController::update
-* @see app/Http/Controllers/SiteController.php:38
+* @see app/Http/Controllers/SiteController.php:42
 * @route '/sites/{site}'
 */
 const updateForm = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -223,7 +224,7 @@ const updateForm = (args: { site: string | number } | [site: string | number ] |
 
 /**
 * @see \App\Http\Controllers\SiteController::update
-* @see app/Http/Controllers/SiteController.php:38
+* @see app/Http/Controllers/SiteController.php:42
 * @route '/sites/{site}'
 */
 updateForm.patch = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -242,6 +243,7 @@ const sites = {
     store: Object.assign(store, store),
     show: Object.assign(show, show),
     update: Object.assign(update, update),
+    blocks: Object.assign(blocks, blocks),
 }
 
 export default sites

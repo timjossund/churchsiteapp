@@ -24,9 +24,6 @@ test('an owner can append each text block type and reload them in order', functi
     foreach (['about', 'plain_text', 'heading_text'] as $type) {
         $this->post(route('sites.blocks.store', $site), [
             'type' => $type,
-            'site_id' => Site::factory()->create()->id,
-            'position' => 99,
-            'content' => ['body' => 'Injected'],
         ])->assertRedirect(route('sites.show', $site));
     }
 

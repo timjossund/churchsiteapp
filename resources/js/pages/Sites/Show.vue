@@ -3,12 +3,31 @@ import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { dashboard } from '@/routes';
 
-type BlockType = 'about' | 'plain_text' | 'heading_text';
+type BlockType =
+    | 'about'
+    | 'plain_text'
+    | 'heading_text'
+    | 'hero'
+    | 'service_times'
+    | 'contact';
+type HeroLinkType = 'none' | 'section' | 'external';
+type ServiceTimeEntry = { day: string; time: string; label: string };
+type BlockContent = {
+    heading?: string;
+    body?: string;
+    button_label?: string;
+    link_type?: HeroLinkType;
+    target_block_id?: number | null;
+    external_url?: string;
+    entries?: ServiceTimeEntry[];
+    email?: string;
+    phone?: string;
+};
 type SiteBlock = {
     id: number;
     type: BlockType;
     position: number;
-    content: { heading?: string; body: string };
+    content: BlockContent;
 };
 
 const props = defineProps<{
@@ -17,6 +36,11 @@ const props = defineProps<{
 }>();
 
 const blockTypes: { type: BlockType; label: string; description: string }[] = [
+    {
+        type: 'hero',
+        label: 'Hero',
+        description: 'Welcome visitors with a clear next step',
+    },
     { type: 'about', label: 'About', description: 'Introduce your church' },
     {
         type: 'plain_text',
@@ -28,6 +52,26 @@ const blockTypes: { type: BlockType; label: string; description: string }[] = [
         label: 'Heading and text',
         description: 'Make a point with a heading',
     },
+    {
+        type: 'service_times',
+        label: 'Service times',
+        description: 'List your weekly gatherings',
+    },
+    {
+        type: 'contact',
+        label: 'Contact',
+        description: 'Help visitors call or email you',
+    },
+];
+
+const weekdays = [
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+    'saturday',
+    'sunday',
 ];
 
 const selectedBlockId = ref<number | null>(props.blocks[0]?.id ?? null);
@@ -41,19 +85,52 @@ const draftHeading = ref('');
 const draftBody = ref('');
 const savedHeading = ref('');
 const savedBody = ref('');
+const draftButtonLabel = ref('');
+const draftLinkType = ref<HeroLinkType>('none');
+const draftTargetBlockId = ref<number | null>(null);
+const draftExternalUrl = ref('');
+const savedButtonLabel = ref('');
+const savedLinkType = ref<HeroLinkType>('none');
+const savedTargetBlockId = ref<number | null>(null);
+const savedExternalUrl = ref('');
+const draftEntries = ref<ServiceTimeEntry[]>([]);
+const savedEntries = ref<ServiceTimeEntry[]>([]);
+const draftEmail = ref('');
+const draftPhone = ref('');
+const savedEmail = ref('');
+const savedPhone = ref('');
 const isDirty = computed(
     () =>
         !!selectedBlock.value &&
         (draftHeading.value !== savedHeading.value ||
-            draftBody.value !== savedBody.value),
+            draftBody.value !== savedBody.value ||
+            (selectedBlock.value?.type === 'hero' &&
+                (draftButtonLabel.value !== savedButtonLabel.value ||
+                    draftLinkType.value !== savedLinkType.value ||
+                    draftTargetBlockId.value !== savedTargetBlockId.value ||
+                    draftExternalUrl.value !== savedExternalUrl.value)) ||
+            (selectedBlock.value?.type === 'service_times' &&
+                JSON.stringify(draftEntries.value) !==
+                    JSON.stringify(savedEntries.value)) ||
+            (selectedBlock.value?.type === 'contact' &&
+                (draftEmail.value !== savedEmail.value ||
+                    draftPhone.value !== savedPhone.value))),
 );
-const saveForm = useForm<{ content: { heading?: string; body: string } }>({
+const saveForm = useForm<{ content: BlockContent }>({
     content: { body: '' },
 });
 const saveError = ref('');
 const contentSaved = ref(false);
 const headingInput = ref<HTMLInputElement | null>(null);
 const bodyInput = ref<HTMLTextAreaElement | null>(null);
+const buttonLabelInput = ref<HTMLInputElement | null>(null);
+const linkTypeInput = ref<HTMLSelectElement | null>(null);
+const targetBlockInput = ref<HTMLSelectElement | null>(null);
+const externalUrlInput = ref<HTMLInputElement | null>(null);
+const addServiceTimeButton = ref<HTMLButtonElement | null>(null);
+const serviceTimeStatus = ref('');
+const emailInput = ref<HTMLInputElement | null>(null);
+const phoneInput = ref<HTMLInputElement | null>(null);
 let ownVisit = false;
 let stopBeforeListener: (() => void) | undefined;
 let stopNavigateListener: (() => void) | undefined;
@@ -66,8 +143,25 @@ watch(
         if (block?.id === previous?.id) return;
         draftHeading.value = block?.content.heading ?? '';
         draftBody.value = block?.content.body ?? '';
+        draftButtonLabel.value = block?.content.button_label ?? '';
+        draftLinkType.value = block?.content.link_type ?? 'none';
+        draftTargetBlockId.value = block?.content.target_block_id ?? null;
+        draftExternalUrl.value = block?.content.external_url ?? '';
+        draftEntries.value = (block?.content.entries ?? []).map((entry) => ({
+            ...entry,
+        }));
+        draftEmail.value = block?.content.email ?? '';
+        draftPhone.value = block?.content.phone ?? '';
         savedHeading.value = draftHeading.value;
         savedBody.value = draftBody.value;
+        savedButtonLabel.value = draftButtonLabel.value;
+        savedLinkType.value = draftLinkType.value;
+        savedTargetBlockId.value = draftTargetBlockId.value;
+        savedExternalUrl.value = draftExternalUrl.value;
+        savedEntries.value = draftEntries.value.map((entry) => ({ ...entry }));
+        savedEmail.value = draftEmail.value;
+        savedPhone.value = draftPhone.value;
+        serviceTimeStatus.value = '';
         saveForm.clearErrors();
         saveError.value = '';
         contentSaved.value = false;
@@ -83,6 +177,14 @@ function discardDraft(): boolean {
 function resetDraft() {
     draftHeading.value = savedHeading.value;
     draftBody.value = savedBody.value;
+    draftButtonLabel.value = savedButtonLabel.value;
+    draftLinkType.value = savedLinkType.value;
+    draftTargetBlockId.value = savedTargetBlockId.value;
+    draftExternalUrl.value = savedExternalUrl.value;
+    draftEntries.value = savedEntries.value.map((entry) => ({ ...entry }));
+    draftEmail.value = savedEmail.value;
+    draftPhone.value = savedPhone.value;
+    serviceTimeStatus.value = '';
     saveForm.clearErrors();
     saveError.value = '';
 }
@@ -153,7 +255,121 @@ function clearContentError() {
 
 function contentFor(block: SiteBlock) {
     if (block.id !== selectedBlockId.value) return block.content;
+    if (block.type === 'hero') {
+        return {
+            heading: draftHeading.value,
+            body: draftBody.value,
+            button_label: draftButtonLabel.value,
+            link_type: draftLinkType.value,
+            target_block_id: draftTargetBlockId.value,
+            external_url: draftExternalUrl.value,
+        };
+    }
+    if (block.type === 'service_times') {
+        return { heading: draftHeading.value, entries: draftEntries.value };
+    }
+    if (block.type === 'contact') {
+        return {
+            heading: draftHeading.value,
+            email: draftEmail.value,
+            phone: draftPhone.value,
+        };
+    }
     return { heading: draftHeading.value, body: draftBody.value };
+}
+
+function emailHref(block: SiteBlock): string | null {
+    const email = contentFor(block).email ?? '';
+    // Draft addresses stay plain text until the server's RFC validation accepts them.
+    if (block.id === selectedBlockId.value && email !== savedEmail.value)
+        return null;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null;
+    return `mailto:${encodeURIComponent(email).replace('%40', '@')}`;
+}
+
+function phoneHref(block: SiteBlock): string | null {
+    const phone = contentFor(block).phone ?? '';
+    if (!/^\+?[0-9().\- ]+$/.test(phone) || !/[0-9]/.test(phone)) return null;
+    return `tel:${phone.replace(/[().\- ]/g, '')}`;
+}
+
+function entryError(index: number, field: keyof ServiceTimeEntry): string {
+    return (
+        (saveForm.errors as Record<string, string | undefined>)[
+            `content.entries.${index}.${field}`
+        ] ?? ''
+    );
+}
+
+function entryRowError(index: number): string {
+    return (
+        (saveForm.errors as Record<string, string | undefined>)[
+            `content.entries.${index}`
+        ] ?? ''
+    );
+}
+
+function formatServiceTime(time: string): string {
+    const match = /^(\d{2}):(\d{2})$/.exec(time);
+    if (!match) return time || 'Time to be added';
+    const hour = Number(match[1]);
+    if (hour > 23 || Number(match[2]) > 59) return time;
+    return `${hour % 12 || 12}:${match[2]} ${hour < 12 ? 'AM' : 'PM'}`;
+}
+
+function addServiceTime() {
+    draftEntries.value.push({ day: '', time: '', label: '' });
+    serviceTimeStatus.value = 'Gathering added.';
+    clearContentError();
+    nextTick(() =>
+        document
+            .getElementById(`service-time-${draftEntries.value.length - 1}`)
+            ?.focus(),
+    );
+}
+
+function moveServiceTime(index: number, offset: number) {
+    const next = index + offset;
+    if (next < 0 || next >= draftEntries.value.length) return;
+    draftEntries.value.splice(next, 0, draftEntries.value.splice(index, 1)[0]);
+    serviceTimeStatus.value = `Gathering moved to position ${next + 1}.`;
+    clearContentError();
+}
+
+function removeServiceTime(index: number) {
+    draftEntries.value.splice(index, 1);
+    serviceTimeStatus.value = 'Gathering removed.';
+    clearContentError();
+    nextTick(() => addServiceTimeButton.value?.focus());
+}
+
+function heroHref(block: SiteBlock): string | null {
+    const content = contentFor(block);
+    if (!content.button_label?.trim()) return null;
+    if (content.link_type === 'section') {
+        const target = content.target_block_id;
+        return typeof target === 'number' &&
+            target !== block.id &&
+            props.blocks.some((candidate) => candidate.id === target)
+            ? `#block-${target}`
+            : null;
+    }
+    if (content.link_type === 'external' && content.external_url) {
+        try {
+            const url = new URL(content.external_url);
+            return ['http:', 'https:'].includes(url.protocol) ? url.href : null;
+        } catch {
+            return null;
+        }
+    }
+    return null;
+}
+
+function changeHeroLinkType() {
+    if (draftLinkType.value !== 'section') draftTargetBlockId.value = null;
+    if (draftLinkType.value !== 'external') draftExternalUrl.value = '';
+    if (draftLinkType.value === 'none') draftButtonLabel.value = '';
+    clearContentError();
 }
 
 function saveBlock() {
@@ -161,6 +377,7 @@ function saveBlock() {
     if (
         !block ||
         saveForm.processing ||
+        addForm.processing ||
         orderForm.processing ||
         deleteForm.processing ||
         !isDirty.value
@@ -170,9 +387,31 @@ function saveBlock() {
     saveError.value = '';
     contentSaved.value = false;
     saveForm.content =
-        block.type === 'plain_text'
-            ? { body: draftBody.value }
-            : { heading: draftHeading.value, body: draftBody.value };
+        block.type === 'hero'
+            ? {
+                  heading: draftHeading.value,
+                  body: draftBody.value,
+                  button_label: draftButtonLabel.value,
+                  link_type: draftLinkType.value,
+                  target_block_id: draftTargetBlockId.value,
+                  external_url: draftExternalUrl.value,
+              }
+            : block.type === 'contact'
+              ? {
+                    heading: draftHeading.value,
+                    email: draftEmail.value,
+                    phone: draftPhone.value,
+                }
+              : block.type === 'service_times'
+                ? {
+                      heading: draftHeading.value,
+                      entries: draftEntries.value.map((entry) => ({
+                          ...entry,
+                      })),
+                  }
+                : block.type === 'plain_text'
+                  ? { body: draftBody.value }
+                  : { heading: draftHeading.value, body: draftBody.value };
 
     runOwnVisit(() =>
         saveForm.patch('/sites/' + props.site.id + '/blocks/' + block.id, {
@@ -180,12 +419,30 @@ function saveBlock() {
             onSuccess: () => {
                 savedHeading.value = draftHeading.value;
                 savedBody.value = draftBody.value;
+                savedButtonLabel.value = draftButtonLabel.value;
+                savedLinkType.value = draftLinkType.value;
+                savedTargetBlockId.value = draftTargetBlockId.value;
+                savedExternalUrl.value = draftExternalUrl.value;
+                savedEntries.value = draftEntries.value.map((entry) => ({
+                    ...entry,
+                }));
+                savedEmail.value = draftEmail.value;
+                savedPhone.value = draftPhone.value;
                 contentSaved.value = true;
             },
             onError: (errors) => {
                 if (
                     !errors['content.heading'] &&
                     !errors['content.body'] &&
+                    !errors['content.button_label'] &&
+                    !errors['content.link_type'] &&
+                    !errors['content.target_block_id'] &&
+                    !errors['content.external_url'] &&
+                    !errors['content.email'] &&
+                    !errors['content.phone'] &&
+                    !Object.keys(errors).some((key) =>
+                        key.startsWith('content.entries'),
+                    ) &&
                     !errors.content
                 ) {
                     saveError.value =
@@ -193,6 +450,38 @@ function saveBlock() {
                 }
                 nextTick(() => {
                     if (errors['content.heading']) headingInput.value?.focus();
+                    else if (errors['content.body']) bodyInput.value?.focus();
+                    else if (errors['content.button_label'])
+                        buttonLabelInput.value?.focus();
+                    else if (errors['content.link_type'])
+                        linkTypeInput.value?.focus();
+                    else if (errors['content.target_block_id'])
+                        targetBlockInput.value?.focus();
+                    else if (errors['content.external_url'])
+                        externalUrlInput.value?.focus();
+                    else if (errors['content.email']) emailInput.value?.focus();
+                    else if (errors['content.phone']) phoneInput.value?.focus();
+                    else if (
+                        Object.keys(errors).some((key) =>
+                            key.startsWith('content.entries.'),
+                        )
+                    ) {
+                        const key = Object.keys(errors).find((item) =>
+                            item.startsWith('content.entries.'),
+                        );
+                        const match =
+                            /^content\.entries\.(\d+)(?:\.(day|time|label))?$/.exec(
+                                key ?? '',
+                            );
+                        if (match)
+                            document
+                                .getElementById(
+                                    `service-${match[2] ?? 'day'}-${match[1]}`,
+                                )
+                                ?.focus();
+                        else addServiceTimeButton.value?.focus();
+                    } else if (errors['content.entries'])
+                        addServiceTimeButton.value?.focus();
                     else bodyInput.value?.focus();
                 });
             },
@@ -779,6 +1068,7 @@ defineOptions({
                     <section
                         v-for="block in props.blocks"
                         :key="block.id"
+                        :id="`block-${block.id}`"
                         class="border-b border-[var(--workspace-line)] px-6 py-12 last:border-b-0 sm:px-10"
                         :class="
                             block.type === 'about'
@@ -786,7 +1076,47 @@ defineOptions({
                                 : ''
                         "
                     >
-                        <template v-if="block.type === 'about'">
+                        <template v-if="block.type === 'hero'">
+                            <p
+                                class="text-xs font-bold tracking-[0.14em] text-[var(--workspace-green)] uppercase"
+                            >
+                                Welcome
+                            </p>
+                            <h3
+                                class="mt-4 max-w-xl font-serif text-4xl leading-tight sm:text-5xl"
+                            >
+                                {{
+                                    contentFor(block).heading ||
+                                    'Welcome to our church'
+                                }}
+                            </h3>
+                            <p
+                                class="mt-5 max-w-prose whitespace-pre-line text-[var(--workspace-muted)]"
+                            >
+                                {{
+                                    contentFor(block).body ||
+                                    'Share a warm invitation with your visitors.'
+                                }}
+                            </p>
+                            <a
+                                v-if="heroHref(block)"
+                                :href="heroHref(block) ?? undefined"
+                                :target="
+                                    contentFor(block).link_type === 'external'
+                                        ? '_blank'
+                                        : undefined
+                                "
+                                :rel="
+                                    contentFor(block).link_type === 'external'
+                                        ? 'noopener noreferrer'
+                                        : undefined
+                                "
+                                class="mt-7 inline-flex min-h-11 items-center rounded-lg bg-[var(--workspace-green)] px-5 py-2 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] dark:text-[var(--workspace-surface)]"
+                            >
+                                {{ contentFor(block).button_label }}
+                            </a>
+                        </template>
+                        <template v-else-if="block.type === 'about'">
                             <p
                                 class="text-xs font-bold tracking-[0.14em] text-[var(--workspace-green)] uppercase"
                             >
@@ -822,14 +1152,98 @@ defineOptions({
                                 }}
                             </p>
                         </template>
+                        <template v-else-if="block.type === 'service_times'">
+                            <h3 class="font-serif text-2xl">
+                                {{
+                                    contentFor(block).heading || 'Service times'
+                                }}
+                            </h3>
+                            <ul
+                                v-if="contentFor(block).entries?.length"
+                                class="mt-6 divide-y divide-[var(--workspace-line)]"
+                            >
+                                <li
+                                    v-for="(entry, index) in contentFor(block)
+                                        .entries"
+                                    :key="index"
+                                    class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3"
+                                >
+                                    <span class="font-semibold">{{
+                                        entry.day.charAt(0).toUpperCase() +
+                                        entry.day.slice(1)
+                                    }}</span>
+                                    <span
+                                        class="text-[var(--workspace-muted)]"
+                                        >{{
+                                            formatServiceTime(entry.time)
+                                        }}</span
+                                    >
+                                    <span
+                                        v-if="entry.label"
+                                        class="w-full text-sm text-[var(--workspace-muted)]"
+                                        >{{ entry.label }}</span
+                                    >
+                                </li>
+                            </ul>
+                            <p
+                                v-else
+                                class="mt-4 text-[var(--workspace-muted)]"
+                            >
+                                Add your weekly gatherings in the editor.
+                            </p>
+                        </template>
+                        <template v-else-if="block.type === 'contact'">
+                            <h3 class="font-serif text-2xl">
+                                {{ contentFor(block).heading || 'Contact us' }}
+                            </h3>
+                            <div
+                                v-if="
+                                    contentFor(block).email ||
+                                    contentFor(block).phone
+                                "
+                                class="mt-5 flex flex-col items-start gap-3"
+                            >
+                                <a
+                                    v-if="emailHref(block)"
+                                    :href="emailHref(block) ?? undefined"
+                                    class="text-[var(--workspace-green)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)]"
+                                    >{{ contentFor(block).email }}</a
+                                >
+                                <span
+                                    v-else-if="contentFor(block).email"
+                                    class="text-[var(--workspace-muted)]"
+                                    >{{ contentFor(block).email }}</span
+                                >
+                                <a
+                                    v-if="phoneHref(block)"
+                                    :href="phoneHref(block) ?? undefined"
+                                    class="text-[var(--workspace-green)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)]"
+                                    >{{ contentFor(block).phone }}</a
+                                >
+                                <span
+                                    v-else-if="contentFor(block).phone"
+                                    class="text-[var(--workspace-muted)]"
+                                    >{{ contentFor(block).phone }}</span
+                                >
+                            </div>
+                            <p
+                                v-else
+                                class="mt-4 text-[var(--workspace-muted)]"
+                            >
+                                Add an email or phone number in the editor.
+                            </p>
+                        </template>
                         <p
-                            v-else
+                            v-else-if="block.type === 'plain_text'"
                             class="max-w-prose text-lg leading-relaxed whitespace-pre-line"
                         >
                             {{
                                 contentFor(block).body ||
                                 'Your message will appear here.'
                             }}
+                        </p>
+                        <p v-else class="text-[var(--workspace-muted)]">
+                            {{ labelFor(block.type) }} block
                         </p>
                     </section>
                 </div>
@@ -896,7 +1310,12 @@ defineOptions({
                                 {{ saveForm.errors['content.heading'] }}
                             </p>
                         </div>
-                        <div>
+                        <div
+                            v-if="
+                                selectedBlock.type !== 'service_times' &&
+                                selectedBlock.type !== 'contact'
+                            "
+                        >
                             <label
                                 for="block-body"
                                 class="mb-2 block text-sm font-semibold"
@@ -933,6 +1352,560 @@ defineOptions({
                                 {{ saveForm.errors['content.body'] }}
                             </p>
                         </div>
+                        <template v-if="selectedBlock.type === 'hero'">
+                            <div
+                                class="border-t border-[var(--workspace-line)] pt-5"
+                            >
+                                <label
+                                    for="hero-link-type"
+                                    class="mb-2 block text-sm font-semibold"
+                                    >Button link</label
+                                >
+                                <select
+                                    id="hero-link-type"
+                                    ref="linkTypeInput"
+                                    v-model="draftLinkType"
+                                    :disabled="
+                                        saveForm.processing ||
+                                        addForm.processing ||
+                                        deleteForm.processing ||
+                                        orderForm.processing
+                                    "
+                                    :aria-invalid="
+                                        Boolean(
+                                            saveForm.errors[
+                                                'content.link_type'
+                                            ],
+                                        )
+                                    "
+                                    :aria-describedby="
+                                        saveForm.errors['content.link_type']
+                                            ? 'hero-link-type-error'
+                                            : undefined
+                                    "
+                                    class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 focus:outline-none disabled:opacity-60"
+                                    @change="changeHeroLinkType"
+                                >
+                                    <option value="none">No button</option>
+                                    <option value="section">
+                                        A section on this page
+                                    </option>
+                                    <option value="external">
+                                        An external website
+                                    </option>
+                                </select>
+                                <p
+                                    v-if="saveForm.errors['content.link_type']"
+                                    id="hero-link-type-error"
+                                    role="alert"
+                                    class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                >
+                                    {{ saveForm.errors['content.link_type'] }}
+                                </p>
+                            </div>
+                            <div v-if="draftLinkType !== 'none'">
+                                <label
+                                    for="hero-button-label"
+                                    class="mb-2 block text-sm font-semibold"
+                                    >Button text</label
+                                >
+                                <input
+                                    id="hero-button-label"
+                                    ref="buttonLabelInput"
+                                    v-model="draftButtonLabel"
+                                    type="text"
+                                    :disabled="
+                                        saveForm.processing ||
+                                        addForm.processing ||
+                                        deleteForm.processing ||
+                                        orderForm.processing
+                                    "
+                                    :aria-invalid="
+                                        Boolean(
+                                            saveForm.errors[
+                                                'content.button_label'
+                                            ],
+                                        )
+                                    "
+                                    :aria-describedby="
+                                        saveForm.errors['content.button_label']
+                                            ? 'hero-button-label-error'
+                                            : undefined
+                                    "
+                                    class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                    @input="clearContentError"
+                                />
+                                <p
+                                    v-if="
+                                        saveForm.errors['content.button_label']
+                                    "
+                                    id="hero-button-label-error"
+                                    role="alert"
+                                    class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                >
+                                    {{
+                                        saveForm.errors['content.button_label']
+                                    }}
+                                </p>
+                            </div>
+                            <div v-if="draftLinkType === 'section'">
+                                <label
+                                    for="hero-section-target"
+                                    class="mb-2 block text-sm font-semibold"
+                                    >Link to block</label
+                                >
+                                <select
+                                    id="hero-section-target"
+                                    ref="targetBlockInput"
+                                    v-model.number="draftTargetBlockId"
+                                    :disabled="
+                                        saveForm.processing ||
+                                        addForm.processing ||
+                                        deleteForm.processing ||
+                                        orderForm.processing
+                                    "
+                                    :aria-invalid="
+                                        Boolean(
+                                            saveForm.errors[
+                                                'content.target_block_id'
+                                            ],
+                                        )
+                                    "
+                                    :aria-describedby="
+                                        saveForm.errors[
+                                            'content.target_block_id'
+                                        ]
+                                            ? 'hero-section-target-error'
+                                            : undefined
+                                    "
+                                    class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 focus:outline-none disabled:opacity-60"
+                                    @change="clearContentError"
+                                >
+                                    <option :value="null">
+                                        Choose a block
+                                    </option>
+                                    <option
+                                        v-for="target in props.blocks.filter(
+                                            (item) =>
+                                                item.id !== selectedBlock?.id,
+                                        )"
+                                        :key="target.id"
+                                        :value="target.id"
+                                    >
+                                        {{ target.position + 1 }}.
+                                        {{ labelFor(target.type) }}
+                                    </option>
+                                </select>
+                                <p
+                                    v-if="props.blocks.length === 1"
+                                    class="mt-2 text-xs text-[var(--workspace-muted)]"
+                                >
+                                    Add another block to link to a section.
+                                </p>
+                                <p
+                                    v-if="
+                                        saveForm.errors[
+                                            'content.target_block_id'
+                                        ]
+                                    "
+                                    id="hero-section-target-error"
+                                    role="alert"
+                                    class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                >
+                                    {{
+                                        saveForm.errors[
+                                            'content.target_block_id'
+                                        ]
+                                    }}
+                                </p>
+                            </div>
+                            <div v-if="draftLinkType === 'external'">
+                                <label
+                                    for="hero-external-url"
+                                    class="mb-2 block text-sm font-semibold"
+                                    >Website URL</label
+                                >
+                                <input
+                                    id="hero-external-url"
+                                    ref="externalUrlInput"
+                                    v-model="draftExternalUrl"
+                                    type="url"
+                                    inputmode="url"
+                                    placeholder="https://example.org"
+                                    :disabled="
+                                        saveForm.processing ||
+                                        addForm.processing ||
+                                        deleteForm.processing ||
+                                        orderForm.processing
+                                    "
+                                    :aria-invalid="
+                                        Boolean(
+                                            saveForm.errors[
+                                                'content.external_url'
+                                            ],
+                                        )
+                                    "
+                                    :aria-describedby="
+                                        saveForm.errors['content.external_url']
+                                            ? 'hero-external-url-error'
+                                            : undefined
+                                    "
+                                    class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                    @input="clearContentError"
+                                />
+                                <p
+                                    v-if="
+                                        saveForm.errors['content.external_url']
+                                    "
+                                    id="hero-external-url-error"
+                                    role="alert"
+                                    class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                >
+                                    {{
+                                        saveForm.errors['content.external_url']
+                                    }}
+                                </p>
+                            </div>
+                        </template>
+                        <div
+                            v-if="selectedBlock.type === 'service_times'"
+                            class="border-t border-[var(--workspace-line)] pt-5"
+                        >
+                            <h3 class="text-sm font-semibold">
+                                Weekly gatherings
+                            </h3>
+                            <p
+                                class="mt-1 text-xs text-[var(--workspace-muted)]"
+                            >
+                                Times are local to your church. Add them in the
+                                order you want visitors to see.
+                            </p>
+                            <p
+                                v-if="!draftEntries.length"
+                                class="mt-4 text-sm text-[var(--workspace-muted)]"
+                            >
+                                No times yet. Add a weekly gathering below.
+                            </p>
+                            <ol v-else class="mt-4 space-y-4">
+                                <li
+                                    v-for="(entry, index) in draftEntries"
+                                    :key="index"
+                                    class="space-y-3 rounded-lg border border-[var(--workspace-line)] p-3"
+                                >
+                                    <div
+                                        class="flex items-center justify-between gap-2"
+                                    >
+                                        <span class="text-sm font-semibold"
+                                            >Gathering {{ index + 1 }}</span
+                                        >
+                                        <div class="flex gap-1">
+                                            <button
+                                                type="button"
+                                                :aria-label="`Move gathering ${index + 1} up`"
+                                                :disabled="
+                                                    index === 0 ||
+                                                    saveForm.processing ||
+                                                    addForm.processing ||
+                                                    deleteForm.processing ||
+                                                    orderForm.processing
+                                                "
+                                                class="grid size-9 place-items-center rounded-md border border-[var(--workspace-line)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-40"
+                                                @click="
+                                                    moveServiceTime(index, -1)
+                                                "
+                                            >
+                                                ↑
+                                            </button>
+                                            <button
+                                                type="button"
+                                                :aria-label="`Move gathering ${index + 1} down`"
+                                                :disabled="
+                                                    index ===
+                                                        draftEntries.length -
+                                                            1 ||
+                                                    saveForm.processing ||
+                                                    addForm.processing ||
+                                                    deleteForm.processing ||
+                                                    orderForm.processing
+                                                "
+                                                class="grid size-9 place-items-center rounded-md border border-[var(--workspace-line)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-40"
+                                                @click="
+                                                    moveServiceTime(index, 1)
+                                                "
+                                            >
+                                                ↓
+                                            </button>
+                                            <button
+                                                type="button"
+                                                :aria-label="`Remove gathering ${index + 1}`"
+                                                :disabled="
+                                                    saveForm.processing ||
+                                                    addForm.processing ||
+                                                    deleteForm.processing ||
+                                                    orderForm.processing
+                                                "
+                                                class="min-h-9 rounded-md border border-red-300 px-2 text-xs font-semibold text-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:opacity-40 dark:text-red-300"
+                                                @click="
+                                                    removeServiceTime(index)
+                                                "
+                                            >
+                                                Remove
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <p
+                                        v-if="entryRowError(index)"
+                                        role="alert"
+                                        class="text-sm text-red-700 dark:text-red-300"
+                                    >
+                                        {{ entryRowError(index) }}
+                                    </p>
+                                    <div>
+                                        <label
+                                            :for="`service-day-${index}`"
+                                            class="mb-1 block text-sm font-semibold"
+                                            >Day</label
+                                        >
+                                        <select
+                                            :id="`service-day-${index}`"
+                                            v-model="entry.day"
+                                            :disabled="
+                                                saveForm.processing ||
+                                                addForm.processing ||
+                                                deleteForm.processing ||
+                                                orderForm.processing
+                                            "
+                                            :aria-invalid="
+                                                Boolean(
+                                                    entryError(index, 'day'),
+                                                )
+                                            "
+                                            :aria-describedby="
+                                                entryError(index, 'day')
+                                                    ? `service-day-error-${index}`
+                                                    : undefined
+                                            "
+                                            class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-60"
+                                            @change="clearContentError"
+                                        >
+                                            <option value="" disabled>
+                                                Choose a day
+                                            </option>
+                                            <option
+                                                v-for="day in weekdays"
+                                                :key="day"
+                                                :value="day"
+                                            >
+                                                {{
+                                                    day
+                                                        .charAt(0)
+                                                        .toUpperCase() +
+                                                    day.slice(1)
+                                                }}
+                                            </option>
+                                        </select>
+                                        <p
+                                            v-if="entryError(index, 'day')"
+                                            :id="`service-day-error-${index}`"
+                                            role="alert"
+                                            class="mt-1 text-sm text-red-700 dark:text-red-300"
+                                        >
+                                            {{ entryError(index, 'day') }}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <label
+                                            :for="`service-time-${index}`"
+                                            class="mb-1 block text-sm font-semibold"
+                                            >Local time</label
+                                        >
+                                        <input
+                                            :id="`service-time-${index}`"
+                                            v-model="entry.time"
+                                            type="time"
+                                            :disabled="
+                                                saveForm.processing ||
+                                                addForm.processing ||
+                                                deleteForm.processing ||
+                                                orderForm.processing
+                                            "
+                                            :aria-invalid="
+                                                Boolean(
+                                                    entryError(index, 'time'),
+                                                )
+                                            "
+                                            :aria-describedby="
+                                                entryError(index, 'time')
+                                                    ? `service-time-error-${index}`
+                                                    : undefined
+                                            "
+                                            class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-60"
+                                            @input="clearContentError"
+                                        />
+                                        <p
+                                            v-if="entryError(index, 'time')"
+                                            :id="`service-time-error-${index}`"
+                                            role="alert"
+                                            class="mt-1 text-sm text-red-700 dark:text-red-300"
+                                        >
+                                            {{ entryError(index, 'time') }}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <label
+                                            :for="`service-label-${index}`"
+                                            class="mb-1 block text-sm font-semibold"
+                                            >Label (optional)</label
+                                        >
+                                        <input
+                                            :id="`service-label-${index}`"
+                                            v-model="entry.label"
+                                            type="text"
+                                            placeholder="Traditional service"
+                                            :disabled="
+                                                saveForm.processing ||
+                                                addForm.processing ||
+                                                deleteForm.processing ||
+                                                orderForm.processing
+                                            "
+                                            :aria-invalid="
+                                                Boolean(
+                                                    entryError(index, 'label'),
+                                                )
+                                            "
+                                            :aria-describedby="
+                                                entryError(index, 'label')
+                                                    ? `service-label-error-${index}`
+                                                    : undefined
+                                            "
+                                            class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-60"
+                                            @input="clearContentError"
+                                        />
+                                        <p
+                                            v-if="entryError(index, 'label')"
+                                            :id="`service-label-error-${index}`"
+                                            role="alert"
+                                            class="mt-1 text-sm text-red-700 dark:text-red-300"
+                                        >
+                                            {{ entryError(index, 'label') }}
+                                        </p>
+                                    </div>
+                                </li>
+                            </ol>
+                            <button
+                                ref="addServiceTimeButton"
+                                type="button"
+                                :disabled="
+                                    saveForm.processing ||
+                                    addForm.processing ||
+                                    deleteForm.processing ||
+                                    orderForm.processing
+                                "
+                                class="mt-4 min-h-11 w-full rounded-lg border border-[var(--workspace-line)] px-3 text-sm font-semibold hover:bg-[var(--workspace-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-60"
+                                @click="addServiceTime"
+                            >
+                                Add a gathering
+                            </button>
+                            <p
+                                v-if="serviceTimeStatus"
+                                role="status"
+                                class="mt-2 text-sm text-[var(--workspace-muted)]"
+                            >
+                                {{ serviceTimeStatus }}
+                            </p>
+                            <p
+                                v-if="saveForm.errors['content.entries']"
+                                role="alert"
+                                class="mt-2 text-sm text-red-700 dark:text-red-300"
+                            >
+                                {{ saveForm.errors['content.entries'] }}
+                            </p>
+                        </div>
+                        <template v-if="selectedBlock.type === 'contact'">
+                            <div>
+                                <label
+                                    for="contact-email"
+                                    class="mb-2 block text-sm font-semibold"
+                                    >Email address</label
+                                >
+                                <input
+                                    id="contact-email"
+                                    ref="emailInput"
+                                    v-model="draftEmail"
+                                    type="email"
+                                    inputmode="email"
+                                    autocomplete="email"
+                                    :disabled="
+                                        saveForm.processing ||
+                                        addForm.processing ||
+                                        deleteForm.processing ||
+                                        orderForm.processing
+                                    "
+                                    :aria-invalid="
+                                        Boolean(
+                                            saveForm.errors['content.email'],
+                                        )
+                                    "
+                                    :aria-describedby="
+                                        saveForm.errors['content.email']
+                                            ? 'contact-email-error'
+                                            : undefined
+                                    "
+                                    class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                    @input="clearContentError"
+                                />
+                                <p
+                                    v-if="saveForm.errors['content.email']"
+                                    id="contact-email-error"
+                                    role="alert"
+                                    class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                >
+                                    {{ saveForm.errors['content.email'] }}
+                                </p>
+                            </div>
+                            <div>
+                                <label
+                                    for="contact-phone"
+                                    class="mb-2 block text-sm font-semibold"
+                                    >Phone number</label
+                                >
+                                <input
+                                    id="contact-phone"
+                                    ref="phoneInput"
+                                    v-model="draftPhone"
+                                    type="tel"
+                                    inputmode="tel"
+                                    autocomplete="tel"
+                                    placeholder="+1 (555) 123-4567"
+                                    :disabled="
+                                        saveForm.processing ||
+                                        addForm.processing ||
+                                        deleteForm.processing ||
+                                        orderForm.processing
+                                    "
+                                    :aria-invalid="
+                                        Boolean(
+                                            saveForm.errors['content.phone'],
+                                        )
+                                    "
+                                    :aria-describedby="
+                                        saveForm.errors['content.phone']
+                                            ? 'contact-phone-error'
+                                            : undefined
+                                    "
+                                    class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                    @input="clearContentError"
+                                />
+                                <p
+                                    v-if="saveForm.errors['content.phone']"
+                                    id="contact-phone-error"
+                                    role="alert"
+                                    class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                >
+                                    {{ saveForm.errors['content.phone'] }}
+                                </p>
+                            </div>
+                        </template>
                         <p
                             v-if="isDirty"
                             role="status"

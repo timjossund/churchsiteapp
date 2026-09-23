@@ -25,6 +25,12 @@ class SiteBlockController extends Controller
                 'content' => match ($type) {
                     'about', 'heading_text' => ['heading' => '', 'body' => ''],
                     'plain_text' => ['body' => ''],
+                    'hero' => [
+                        'heading' => '', 'body' => '', 'button_label' => '',
+                        'link_type' => 'none', 'target_block_id' => null, 'external_url' => '',
+                    ],
+                    'service_times' => ['heading' => '', 'entries' => []],
+                    'contact' => ['heading' => '', 'email' => '', 'phone' => ''],
                     default => throw new LogicException('Unsupported validated block type.'),
                 },
             ]);
@@ -35,9 +41,24 @@ class SiteBlockController extends Controller
 
     public function update(UpdateSiteBlockRequest $request, int $site, int $block): RedirectResponse
     {
-        $request->ownedBlock()->update([
-            'content' => $request->validated('content'),
-        ]);
+        DB::transaction(function () use ($request, $site, $block): void {
+            $ownedSite = $request->user()->sites()->whereKey($site)->lockForUpdate()->firstOrFail();
+            $content = $request->validated('content');
+
+            if ($request->ownedBlock()->type === 'hero' && $content['link_type'] === 'section') {
+                $content['target_block_id'] = (int) $content['target_block_id'];
+
+                if (! $ownedSite->blocks()->whereKey($content['target_block_id'])->exists()) {
+                    throw ValidationException::withMessages([
+                        'content.target_block_id' => 'This section is no longer available. Choose another block.',
+                    ]);
+                }
+            }
+
+            $ownedSite->blocks()->whereKey($block)->firstOrFail()->update([
+                'content' => $content,
+            ]);
+        });
 
         return to_route('sites.show', $site);
     }
@@ -47,6 +68,19 @@ class SiteBlockController extends Controller
         DB::transaction(function () use ($request, $site, $block): void {
             $ownedSite = $request->user()->sites()->whereKey($site)->lockForUpdate()->firstOrFail();
             $ownedSite->blocks()->whereKey($block)->firstOrFail()->delete();
+
+            foreach ($ownedSite->blocks()->where('type', 'hero')->get() as $hero) {
+                if ($hero->content['link_type'] !== 'section' || (int) $hero->content['target_block_id'] !== $block) {
+                    continue;
+                }
+
+                $content = $hero->content;
+                $content['button_label'] = '';
+                $content['link_type'] = 'none';
+                $content['target_block_id'] = null;
+                $content['external_url'] = '';
+                $hero->update(['content' => $content]);
+            }
 
             $remaining = $ownedSite->blocks()->orderBy('position')->orderBy('id')->get(['id']);
             foreach ($remaining as $position => $remainingBlock) {

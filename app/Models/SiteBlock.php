@@ -14,7 +14,7 @@ use Illuminate\Support\Carbon;
  * @property int $site_id
  * @property string $type
  * @property int $position
- * @property array<string, string> $content
+ * @property array<string, mixed> $content
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */

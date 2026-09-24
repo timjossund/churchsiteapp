@@ -9,7 +9,10 @@ type BlockType =
     | 'heading_text'
     | 'hero'
     | 'service_times'
-    | 'contact';
+    | 'contact'
+    | 'image'
+    | 'text_image'
+    | 'video';
 type HeroLinkType = 'none' | 'section' | 'external';
 type ServiceTimeEntry = { day: string; time: string; label: string };
 type BlockContent = {
@@ -22,6 +25,8 @@ type BlockContent = {
     entries?: ServiceTimeEntry[];
     email?: string;
     phone?: string;
+    media_asset_id?: null;
+    url?: string;
 };
 type SiteBlock = {
     id: number;
@@ -62,6 +67,21 @@ const blockTypes: { type: BlockType; label: string; description: string }[] = [
         label: 'Contact',
         description: 'Help visitors call or email you',
     },
+    {
+        type: 'image',
+        label: 'Image',
+        description: 'Add an image placeholder',
+    },
+    {
+        type: 'text_image',
+        label: 'Text and image',
+        description: 'Pair a message with an image placeholder',
+    },
+    {
+        type: 'video',
+        label: 'Video',
+        description: 'Embed a YouTube or Vimeo video',
+    },
 ];
 
 const weekdays = [
@@ -99,6 +119,8 @@ const draftEmail = ref('');
 const draftPhone = ref('');
 const savedEmail = ref('');
 const savedPhone = ref('');
+const draftVideoUrl = ref('');
+const savedVideoUrl = ref('');
 const isDirty = computed(
     () =>
         !!selectedBlock.value &&
@@ -114,7 +136,9 @@ const isDirty = computed(
                     JSON.stringify(savedEntries.value)) ||
             (selectedBlock.value?.type === 'contact' &&
                 (draftEmail.value !== savedEmail.value ||
-                    draftPhone.value !== savedPhone.value))),
+                    draftPhone.value !== savedPhone.value)) ||
+            (selectedBlock.value?.type === 'video' &&
+                draftVideoUrl.value !== savedVideoUrl.value)),
 );
 const saveForm = useForm<{ content: BlockContent }>({
     content: { body: '' },
@@ -131,6 +155,7 @@ const addServiceTimeButton = ref<HTMLButtonElement | null>(null);
 const serviceTimeStatus = ref('');
 const emailInput = ref<HTMLInputElement | null>(null);
 const phoneInput = ref<HTMLInputElement | null>(null);
+const videoUrlInput = ref<HTMLInputElement | null>(null);
 let ownVisit = false;
 let stopBeforeListener: (() => void) | undefined;
 let stopNavigateListener: (() => void) | undefined;
@@ -152,6 +177,7 @@ watch(
         }));
         draftEmail.value = block?.content.email ?? '';
         draftPhone.value = block?.content.phone ?? '';
+        draftVideoUrl.value = block?.content.url ?? '';
         savedHeading.value = draftHeading.value;
         savedBody.value = draftBody.value;
         savedButtonLabel.value = draftButtonLabel.value;
@@ -161,6 +187,7 @@ watch(
         savedEntries.value = draftEntries.value.map((entry) => ({ ...entry }));
         savedEmail.value = draftEmail.value;
         savedPhone.value = draftPhone.value;
+        savedVideoUrl.value = draftVideoUrl.value;
         serviceTimeStatus.value = '';
         saveForm.clearErrors();
         saveError.value = '';
@@ -184,6 +211,7 @@ function resetDraft() {
     draftEntries.value = savedEntries.value.map((entry) => ({ ...entry }));
     draftEmail.value = savedEmail.value;
     draftPhone.value = savedPhone.value;
+    draftVideoUrl.value = savedVideoUrl.value;
     serviceTimeStatus.value = '';
     saveForm.clearErrors();
     saveError.value = '';
@@ -275,6 +303,15 @@ function contentFor(block: SiteBlock) {
             phone: draftPhone.value,
         };
     }
+    if (block.type === 'image') return { media_asset_id: null };
+    if (block.type === 'text_image') {
+        return {
+            heading: draftHeading.value,
+            body: draftBody.value,
+            media_asset_id: null,
+        };
+    }
+    if (block.type === 'video') return { url: draftVideoUrl.value };
     return { heading: draftHeading.value, body: draftBody.value };
 }
 
@@ -365,6 +402,78 @@ function heroHref(block: SiteBlock): string | null {
     return null;
 }
 
+function videoEmbedUrl(block: SiteBlock): string | null {
+    const source = contentFor(block).url?.trim() ?? '';
+    if (!source) return null;
+    const hasControlCharacter = source.split('').some((character) => {
+        const code = character.charCodeAt(0);
+        return code < 0x20 || code === 0x7f;
+    });
+    if (hasControlCharacter) return null;
+
+    const rawAuthority = /^https:\/\/([^/?#]+)/i.exec(source)?.[1];
+    if (!rawAuthority || rawAuthority.includes('@')) return null;
+
+    try {
+        const url = new URL(source);
+        const rawHostname = rawAuthority.replace(/:\d+$/, '').toLowerCase();
+        const rawPath = /^https:\/\/[^/?#]+([^?#]*)/i.exec(source)?.[1];
+
+        if (
+            url.protocol !== 'https:' ||
+            !rawHostname ||
+            rawHostname !== url.hostname ||
+            !rawPath ||
+            url.pathname !== rawPath ||
+            url.username ||
+            url.password ||
+            url.port
+        ) {
+            return null;
+        }
+
+        const rawQuery = url.search.slice(1);
+        if (
+            rawQuery !== '' &&
+            rawQuery.split('&').some((segment) => segment === '')
+        )
+            return null;
+
+        const query = new Map<string, string>();
+        for (const [key, value] of url.searchParams.entries()) {
+            if (!/^[A-Za-z0-9_-]+$/.test(key) || query.has(key)) return null;
+            query.set(key, value);
+        }
+
+        if (
+            ['youtube.com', 'www.youtube.com'].includes(url.hostname) &&
+            url.pathname === '/watch' &&
+            !query.has('list')
+        ) {
+            const videoId = query.get('v');
+            return videoId && /^[A-Za-z0-9_-]{11}$/.test(videoId)
+                ? `https://www.youtube-nocookie.com/embed/${videoId}`
+                : null;
+        }
+
+        if (['youtu.be', 'www.youtu.be'].includes(url.hostname)) {
+            const videoId = /^\/([A-Za-z0-9_-]{11})$/.exec(url.pathname)?.[1];
+            return videoId && !query.has('list')
+                ? `https://www.youtube-nocookie.com/embed/${videoId}`
+                : null;
+        }
+
+        if (['vimeo.com', 'www.vimeo.com'].includes(url.hostname)) {
+            const videoId = /^\/([0-9]+)$/.exec(url.pathname)?.[1];
+            return videoId ? `https://player.vimeo.com/video/${videoId}` : null;
+        }
+    } catch {
+        return null;
+    }
+
+    return null;
+}
+
 function changeHeroLinkType() {
     if (draftLinkType.value !== 'section') draftTargetBlockId.value = null;
     if (draftLinkType.value !== 'external') draftExternalUrl.value = '';
@@ -409,9 +518,22 @@ function saveBlock() {
                           ...entry,
                       })),
                   }
-                : block.type === 'plain_text'
-                  ? { body: draftBody.value }
-                  : { heading: draftHeading.value, body: draftBody.value };
+                : block.type === 'video'
+                  ? { url: draftVideoUrl.value }
+                  : block.type === 'image'
+                    ? { media_asset_id: null }
+                    : block.type === 'text_image'
+                      ? {
+                            heading: draftHeading.value,
+                            body: draftBody.value,
+                            media_asset_id: null,
+                        }
+                      : block.type === 'plain_text'
+                        ? { body: draftBody.value }
+                        : {
+                              heading: draftHeading.value,
+                              body: draftBody.value,
+                          };
 
     runOwnVisit(() =>
         saveForm.patch('/sites/' + props.site.id + '/blocks/' + block.id, {
@@ -428,6 +550,7 @@ function saveBlock() {
                 }));
                 savedEmail.value = draftEmail.value;
                 savedPhone.value = draftPhone.value;
+                savedVideoUrl.value = draftVideoUrl.value;
                 contentSaved.value = true;
             },
             onError: (errors) => {
@@ -440,6 +563,7 @@ function saveBlock() {
                     !errors['content.external_url'] &&
                     !errors['content.email'] &&
                     !errors['content.phone'] &&
+                    !errors['content.url'] &&
                     !Object.keys(errors).some((key) =>
                         key.startsWith('content.entries'),
                     ) &&
@@ -461,6 +585,8 @@ function saveBlock() {
                         externalUrlInput.value?.focus();
                     else if (errors['content.email']) emailInput.value?.focus();
                     else if (errors['content.phone']) phoneInput.value?.focus();
+                    else if (errors['content.url'])
+                        videoUrlInput.value?.focus();
                     else if (
                         Object.keys(errors).some((key) =>
                             key.startsWith('content.entries.'),
@@ -1233,6 +1359,82 @@ defineOptions({
                                 Add an email or phone number in the editor.
                             </p>
                         </template>
+                        <template v-else-if="block.type === 'image'">
+                            <div
+                                role="group"
+                                aria-label="Image placeholder"
+                                class="flex min-h-64 flex-col items-center justify-center rounded-xl border border-dashed border-[var(--workspace-line)] bg-[var(--workspace-soft)] p-8 text-center"
+                            >
+                                <span class="font-semibold">Image</span>
+                                <span
+                                    class="mt-2 text-sm text-[var(--workspace-muted)]"
+                                    >Image uploads are not available yet.</span
+                                >
+                            </div>
+                        </template>
+                        <template v-else-if="block.type === 'text_image'">
+                            <div
+                                class="grid gap-8 md:grid-cols-2 md:items-center"
+                            >
+                                <div>
+                                    <h3 class="font-serif text-2xl">
+                                        {{
+                                            contentFor(block).heading ||
+                                            'Your heading'
+                                        }}
+                                    </h3>
+                                    <p
+                                        class="mt-4 whitespace-pre-line text-[var(--workspace-muted)]"
+                                    >
+                                        {{
+                                            contentFor(block).body ||
+                                            'Add the details you want visitors to know.'
+                                        }}
+                                    </p>
+                                </div>
+                                <div
+                                    role="group"
+                                    aria-label="Image placeholder"
+                                    class="flex min-h-56 flex-col items-center justify-center rounded-xl border border-dashed border-[var(--workspace-line)] bg-[var(--workspace-soft)] p-8 text-center"
+                                >
+                                    <span class="font-semibold">Image</span>
+                                    <span
+                                        class="mt-2 text-sm text-[var(--workspace-muted)]"
+                                        >Image uploads are not available
+                                        yet.</span
+                                    >
+                                </div>
+                            </div>
+                        </template>
+                        <template v-else-if="block.type === 'video'">
+                            <div
+                                class="mx-auto max-w-3xl overflow-hidden rounded-xl bg-[var(--workspace-soft)]"
+                            >
+                                <div class="aspect-video">
+                                    <iframe
+                                        v-if="videoEmbedUrl(block)"
+                                        :src="videoEmbedUrl(block) ?? undefined"
+                                        title="YouTube or Vimeo video preview"
+                                        loading="lazy"
+                                        allowfullscreen
+                                        class="h-full w-full border-0"
+                                    />
+                                    <div
+                                        v-else
+                                        role="status"
+                                        class="flex h-full flex-col items-center justify-center p-6 text-center text-sm text-[var(--workspace-muted)]"
+                                    >
+                                        <span class="font-semibold"
+                                            >Video preview</span
+                                        >
+                                        <span class="mt-2"
+                                            >Enter a supported YouTube or Vimeo
+                                            link in the editor.</span
+                                        >
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
                         <p
                             v-else-if="block.type === 'plain_text'"
                             class="max-w-prose text-lg leading-relaxed whitespace-pre-line"
@@ -1266,14 +1468,29 @@ defineOptions({
                     }}
                 </h2>
                 <template v-if="selectedBlock">
-                    <p class="mt-3 text-sm text-[var(--workspace-muted)]">
+                    <p
+                        v-if="selectedBlock.type === 'image'"
+                        class="mt-3 text-sm text-[var(--workspace-muted)]"
+                    >
+                        Image uploads are not available yet.
+                    </p>
+                    <p
+                        v-else
+                        class="mt-3 text-sm text-[var(--workspace-muted)]"
+                    >
                         Edit the fields below, then save your changes.
                     </p>
                     <form
+                        v-if="selectedBlock.type !== 'image'"
                         class="mt-6 space-y-5 border-t border-[var(--workspace-line)] pt-5"
                         @submit.prevent="saveBlock"
                     >
-                        <div v-if="selectedBlock.type !== 'plain_text'">
+                        <div
+                            v-if="
+                                selectedBlock.type !== 'plain_text' &&
+                                selectedBlock.type !== 'video'
+                            "
+                        >
                             <label
                                 for="block-heading"
                                 class="mb-2 block text-sm font-semibold"
@@ -1313,7 +1530,8 @@ defineOptions({
                         <div
                             v-if="
                                 selectedBlock.type !== 'service_times' &&
-                                selectedBlock.type !== 'contact'
+                                selectedBlock.type !== 'contact' &&
+                                selectedBlock.type !== 'video'
                             "
                         >
                             <label
@@ -1350,6 +1568,53 @@ defineOptions({
                                 class="mt-2 text-sm text-red-700 dark:text-red-300"
                             >
                                 {{ saveForm.errors['content.body'] }}
+                            </p>
+                        </div>
+                        <div v-if="selectedBlock.type === 'video'">
+                            <label
+                                for="video-url"
+                                class="mb-2 block text-sm font-semibold"
+                                >Video URL</label
+                            >
+                            <input
+                                id="video-url"
+                                ref="videoUrlInput"
+                                v-model="draftVideoUrl"
+                                type="text"
+                                inputmode="url"
+                                autocomplete="url"
+                                placeholder="https://www.youtube.com/watch?v=…"
+                                :disabled="
+                                    saveForm.processing ||
+                                    addForm.processing ||
+                                    deleteForm.processing ||
+                                    orderForm.processing
+                                "
+                                :aria-invalid="
+                                    Boolean(saveForm.errors['content.url'])
+                                "
+                                :aria-describedby="
+                                    saveForm.errors['content.url']
+                                        ? 'video-url-error'
+                                        : 'video-url-help'
+                                "
+                                class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                @input="clearContentError"
+                            />
+                            <p
+                                id="video-url-help"
+                                class="mt-2 text-sm text-[var(--workspace-muted)]"
+                            >
+                                Paste an HTTPS link to one YouTube or Vimeo
+                                video.
+                            </p>
+                            <p
+                                v-if="saveForm.errors['content.url']"
+                                id="video-url-error"
+                                role="alert"
+                                class="mt-2 text-sm text-red-700 dark:text-red-300"
+                            >
+                                {{ saveForm.errors['content.url'] }}
                             </p>
                         </div>
                         <template v-if="selectedBlock.type === 'hero'">

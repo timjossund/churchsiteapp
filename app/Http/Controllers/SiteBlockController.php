@@ -31,6 +31,9 @@ class SiteBlockController extends Controller
                     ],
                     'service_times' => ['heading' => '', 'entries' => []],
                     'contact' => ['heading' => '', 'email' => '', 'phone' => ''],
+                    'image' => ['media_asset_id' => null],
+                    'text_image' => ['heading' => '', 'body' => '', 'media_asset_id' => null],
+                    'video' => ['url' => ''],
                     default => throw new LogicException('Unsupported validated block type.'),
                 },
             ]);

@@ -20,6 +20,16 @@ class UpdateSiteBlockRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $content = $this->input('content');
+
+        if (is_array($content) && is_string($content['url'] ?? null)) {
+            $content['url'] = trim($content['url']);
+            $this->merge(['content' => $content]);
+        }
+    }
+
     /** @return array<string, mixed> */
     public function rules(): array
     {
@@ -30,6 +40,9 @@ class UpdateSiteBlockRequest extends FormRequest
             'hero' => ['heading', 'body', 'button_label', 'link_type', 'target_block_id', 'external_url'],
             'service_times' => ['heading', 'entries'],
             'contact' => ['heading', 'email', 'phone'],
+            'image' => ['media_asset_id'],
+            'text_image' => ['heading', 'body', 'media_asset_id'],
+            'video' => ['url'],
             default => throw new LogicException('Unsupported block type.'),
         };
 
@@ -41,7 +54,7 @@ class UpdateSiteBlockRequest extends FormRequest
         ];
 
         foreach ($fields as $field) {
-            if (in_array($field, ['entries', 'target_block_id'], true)) {
+            if (in_array($field, ['entries', 'target_block_id', 'media_asset_id'], true)) {
                 continue;
             }
 
@@ -92,6 +105,10 @@ class UpdateSiteBlockRequest extends FormRequest
             $rules['content.phone'][] = 'regex:/[0-9]/';
         }
 
+        if (in_array($type, ['image', 'text_image'], true)) {
+            $rules['content.media_asset_id'] = ['present', 'nullable'];
+        }
+
         return $rules;
     }
 
@@ -109,6 +126,97 @@ class UpdateSiteBlockRequest extends FormRequest
                     $validator->errors()->add($key, 'This field is not allowed.');
                 }
             }
+
+            $type = $this->ownedBlock()->type;
+            $content = $this->input('content');
+
+            if (in_array($type, ['image', 'text_image'], true)
+                && is_array($content)
+                && array_key_exists('media_asset_id', $content)
+                && $content['media_asset_id'] !== null) {
+                $validator->errors()->add('content.media_asset_id', 'The media asset reference must be null.');
+            }
+
+            if ($type === 'video') {
+                $url = $this->input('content.url');
+
+                if (is_string($url) && $url !== '' && ! $this->isSupportedVideoUrl($url)) {
+                    $validator->errors()->add('content.url', 'Enter an HTTPS link to a single YouTube or Vimeo video.');
+                }
+            }
         }];
+    }
+
+    private function isSupportedVideoUrl(string $url): bool
+    {
+        $url = trim($url);
+
+        if (preg_match('/[\x00-\x1F\x7F]/', $url) === 1) {
+            return false;
+        }
+
+        $parts = parse_url($url);
+
+        if ($parts === false
+            || strtolower($parts['scheme'] ?? '') !== 'https'
+            || ! isset($parts['host'])
+            || isset($parts['user'])
+            || isset($parts['pass'])
+            || (isset($parts['port']) && $parts['port'] !== 443)) {
+            return false;
+        }
+
+        $host = strtolower($parts['host']);
+        $path = $parts['path'] ?? '';
+        $query = $this->parseVideoQuery($parts['query'] ?? '');
+
+        if ($query === null) {
+            return false;
+        }
+
+        if (in_array($host, ['youtube.com', 'www.youtube.com'], true) && $path === '/watch') {
+            return ! array_key_exists('list', $query)
+                && is_string($query['v'] ?? null)
+                && preg_match('/\A[A-Za-z0-9_-]{11}\z/', $query['v']) === 1;
+        }
+
+        if (in_array($host, ['youtu.be', 'www.youtu.be'], true)) {
+            return ! array_key_exists('list', $query)
+                && preg_match('/\A\/[A-Za-z0-9_-]{11}\z/', $path) === 1;
+        }
+
+        if (in_array($host, ['vimeo.com', 'www.vimeo.com'], true)) {
+            return preg_match('/\A\/[0-9]+\z/', $path) === 1;
+        }
+
+        return false;
+    }
+
+    /** @return array<string, string>|null */
+    private function parseVideoQuery(string $query): ?array
+    {
+        if ($query === '') {
+            return [];
+        }
+
+        $parameters = [];
+
+        foreach (explode('&', $query) as $pair) {
+            if ($pair === '') {
+                return null;
+            }
+
+            [$encodedKey, $encodedValue] = array_pad(explode('=', $pair, 2), 2, '');
+            $key = urldecode($encodedKey);
+            $value = urldecode($encodedValue);
+
+            if (preg_match('/\A[A-Za-z0-9_-]+\z/', $key) !== 1 || array_key_exists($key, $parameters)) {
+                return null;
+            }
+
+            $parameters[$key] = $value;
+        }
+
+        return $parameters;
     }
 }

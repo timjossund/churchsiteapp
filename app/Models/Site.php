@@ -14,14 +14,29 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $user_id
  * @property string $name
+ * @property string $theme_key
+ * @property array{text: string} $footer
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name'])]
+#[Fillable(['name', 'theme_key', 'footer'])]
 class Site extends Model
 {
+    protected $attributes = [
+        'theme_key' => 'warm',
+        'footer' => '{"text":""}',
+    ];
+
     /** @use HasFactory<SiteFactory> */
     use HasFactory;
+
+    /** @return array<string, string> */
+    protected function casts(): array
+    {
+        return [
+            'footer' => 'array',
+        ];
+    }
 
     /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo

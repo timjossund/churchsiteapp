@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition, applyUrlDefaults } from './../../../../wayfinder'
 /**
 * @see \App\Http\Controllers\SiteController::index
-* @see app/Http/Controllers/SiteController.php:13
+* @see app/Http/Controllers/SiteController.php:14
 * @route '/dashboard'
 */
 export const index = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -16,7 +16,7 @@ index.definition = {
 
 /**
 * @see \App\Http\Controllers\SiteController::index
-* @see app/Http/Controllers/SiteController.php:13
+* @see app/Http/Controllers/SiteController.php:14
 * @route '/dashboard'
 */
 index.url = (options?: RouteQueryOptions) => {
@@ -25,7 +25,7 @@ index.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\SiteController::index
-* @see app/Http/Controllers/SiteController.php:13
+* @see app/Http/Controllers/SiteController.php:14
 * @route '/dashboard'
 */
 index.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -35,7 +35,7 @@ index.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\SiteController::index
-* @see app/Http/Controllers/SiteController.php:13
+* @see app/Http/Controllers/SiteController.php:14
 * @route '/dashboard'
 */
 index.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -45,7 +45,7 @@ index.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
 /**
 * @see \App\Http\Controllers\SiteController::index
-* @see app/Http/Controllers/SiteController.php:13
+* @see app/Http/Controllers/SiteController.php:14
 * @route '/dashboard'
 */
 const indexForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -55,7 +55,7 @@ const indexForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => (
 
 /**
 * @see \App\Http\Controllers\SiteController::index
-* @see app/Http/Controllers/SiteController.php:13
+* @see app/Http/Controllers/SiteController.php:14
 * @route '/dashboard'
 */
 indexForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -65,7 +65,7 @@ indexForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\SiteController::index
-* @see app/Http/Controllers/SiteController.php:13
+* @see app/Http/Controllers/SiteController.php:14
 * @route '/dashboard'
 */
 indexForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -82,7 +82,7 @@ index.form = indexForm
 
 /**
 * @see \App\Http\Controllers\SiteController::store
-* @see app/Http/Controllers/SiteController.php:22
+* @see app/Http/Controllers/SiteController.php:23
 * @route '/sites'
 */
 export const store = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -97,7 +97,7 @@ store.definition = {
 
 /**
 * @see \App\Http\Controllers\SiteController::store
-* @see app/Http/Controllers/SiteController.php:22
+* @see app/Http/Controllers/SiteController.php:23
 * @route '/sites'
 */
 store.url = (options?: RouteQueryOptions) => {
@@ -106,7 +106,7 @@ store.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\SiteController::store
-* @see app/Http/Controllers/SiteController.php:22
+* @see app/Http/Controllers/SiteController.php:23
 * @route '/sites'
 */
 store.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -116,7 +116,7 @@ store.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\SiteController::store
-* @see app/Http/Controllers/SiteController.php:22
+* @see app/Http/Controllers/SiteController.php:23
 * @route '/sites'
 */
 const storeForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -126,7 +126,7 @@ const storeForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => 
 
 /**
 * @see \App\Http\Controllers\SiteController::store
-* @see app/Http/Controllers/SiteController.php:22
+* @see app/Http/Controllers/SiteController.php:23
 * @route '/sites'
 */
 storeForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -138,7 +138,7 @@ store.form = storeForm
 
 /**
 * @see \App\Http\Controllers\SiteController::show
-* @see app/Http/Controllers/SiteController.php:29
+* @see app/Http/Controllers/SiteController.php:30
 * @route '/sites/{site}'
 */
 export const show = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -153,7 +153,7 @@ show.definition = {
 
 /**
 * @see \App\Http\Controllers\SiteController::show
-* @see app/Http/Controllers/SiteController.php:29
+* @see app/Http/Controllers/SiteController.php:30
 * @route '/sites/{site}'
 */
 show.url = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions) => {
@@ -180,7 +180,7 @@ show.url = (args: { site: string | number } | [site: string | number ] | string 
 
 /**
 * @see \App\Http\Controllers\SiteController::show
-* @see app/Http/Controllers/SiteController.php:29
+* @see app/Http/Controllers/SiteController.php:30
 * @route '/sites/{site}'
 */
 show.get = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -190,7 +190,7 @@ show.get = (args: { site: string | number } | [site: string | number ] | string 
 
 /**
 * @see \App\Http\Controllers\SiteController::show
-* @see app/Http/Controllers/SiteController.php:29
+* @see app/Http/Controllers/SiteController.php:30
 * @route '/sites/{site}'
 */
 show.head = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -200,7 +200,7 @@ show.head = (args: { site: string | number } | [site: string | number ] | string
 
 /**
 * @see \App\Http\Controllers\SiteController::show
-* @see app/Http/Controllers/SiteController.php:29
+* @see app/Http/Controllers/SiteController.php:30
 * @route '/sites/{site}'
 */
 const showForm = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -210,7 +210,7 @@ const showForm = (args: { site: string | number } | [site: string | number ] | s
 
 /**
 * @see \App\Http\Controllers\SiteController::show
-* @see app/Http/Controllers/SiteController.php:29
+* @see app/Http/Controllers/SiteController.php:30
 * @route '/sites/{site}'
 */
 showForm.get = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -220,7 +220,7 @@ showForm.get = (args: { site: string | number } | [site: string | number ] | str
 
 /**
 * @see \App\Http\Controllers\SiteController::show
-* @see app/Http/Controllers/SiteController.php:29
+* @see app/Http/Controllers/SiteController.php:30
 * @route '/sites/{site}'
 */
 showForm.head = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -237,7 +237,7 @@ show.form = showForm
 
 /**
 * @see \App\Http\Controllers\SiteController::update
-* @see app/Http/Controllers/SiteController.php:42
+* @see app/Http/Controllers/SiteController.php:43
 * @route '/sites/{site}'
 */
 export const update = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
@@ -252,7 +252,7 @@ update.definition = {
 
 /**
 * @see \App\Http\Controllers\SiteController::update
-* @see app/Http/Controllers/SiteController.php:42
+* @see app/Http/Controllers/SiteController.php:43
 * @route '/sites/{site}'
 */
 update.url = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions) => {
@@ -279,7 +279,7 @@ update.url = (args: { site: string | number } | [site: string | number ] | strin
 
 /**
 * @see \App\Http\Controllers\SiteController::update
-* @see app/Http/Controllers/SiteController.php:42
+* @see app/Http/Controllers/SiteController.php:43
 * @route '/sites/{site}'
 */
 update.patch = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
@@ -289,7 +289,7 @@ update.patch = (args: { site: string | number } | [site: string | number ] | str
 
 /**
 * @see \App\Http\Controllers\SiteController::update
-* @see app/Http/Controllers/SiteController.php:42
+* @see app/Http/Controllers/SiteController.php:43
 * @route '/sites/{site}'
 */
 const updateForm = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -304,7 +304,7 @@ const updateForm = (args: { site: string | number } | [site: string | number ] |
 
 /**
 * @see \App\Http\Controllers\SiteController::update
-* @see app/Http/Controllers/SiteController.php:42
+* @see app/Http/Controllers/SiteController.php:43
 * @route '/sites/{site}'
 */
 updateForm.patch = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({

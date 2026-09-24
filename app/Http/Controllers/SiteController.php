@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\SiteNameRequest;
+use App\Http\Requests\SiteSettingsRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -31,7 +32,7 @@ class SiteController extends Controller
         $ownedSite = $request->user()->sites()->findOrFail($site);
 
         return Inertia::render('Sites/Show', [
-            'site' => $ownedSite->only('id', 'name'),
+            'site' => $ownedSite->only('id', 'name', 'theme_key', 'footer'),
             'blocks' => $ownedSite->blocks()
                 ->orderBy('position')
                 ->orderBy('id')
@@ -39,7 +40,7 @@ class SiteController extends Controller
         ]);
     }
 
-    public function update(SiteNameRequest $request, int $site): RedirectResponse
+    public function update(SiteSettingsRequest $request, int $site): RedirectResponse
     {
         $ownedSite = $request->user()->sites()->findOrFail($site);
         $ownedSite->update($request->validated());

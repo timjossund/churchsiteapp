@@ -14,6 +14,7 @@ type BlockType =
     | 'text_image'
     | 'video';
 type HeroLinkType = 'none' | 'section' | 'external';
+type SiteTheme = 'warm' | 'clean' | 'bold';
 type ServiceTimeEntry = { day: string; time: string; label: string };
 type BlockContent = {
     heading?: string;
@@ -36,9 +37,32 @@ type SiteBlock = {
 };
 
 const props = defineProps<{
-    site: { id: number; name: string };
+    site: {
+        id: number;
+        name: string;
+        theme_key: SiteTheme;
+        footer: { text: string };
+    };
     blocks: SiteBlock[];
 }>();
+
+const siteThemes: { key: SiteTheme; label: string; description: string }[] = [
+    {
+        key: 'warm',
+        label: 'Warm',
+        description: 'Traditional and welcoming',
+    },
+    {
+        key: 'clean',
+        label: 'Clean',
+        description: 'Minimal and calm',
+    },
+    {
+        key: 'bold',
+        label: 'Bold',
+        description: 'Contemporary and expressive',
+    },
+];
 
 const blockTypes: { type: BlockType; label: string; description: string }[] = [
     {
@@ -313,6 +337,24 @@ function contentFor(block: SiteBlock) {
     }
     if (block.type === 'video') return { url: draftVideoUrl.value };
     return { heading: draftHeading.value, body: draftBody.value };
+}
+
+const previewHeadingFallbacks: Partial<Record<BlockType, string>> = {
+    hero: 'Welcome to our church',
+    about: 'Your introduction',
+    heading_text: 'Your heading',
+    service_times: 'Service times',
+    contact: 'Contact us',
+    text_image: 'Your heading',
+};
+
+function previewHeading(block: SiteBlock, fallback: string): string {
+    return contentFor(block).heading?.trim() || fallback;
+}
+
+function sectionNavigationLabel(block: SiteBlock): string {
+    const fallback = previewHeadingFallbacks[block.type];
+    return fallback ? previewHeading(block, fallback) : labelFor(block.type);
 }
 
 function emailHref(block: SiteBlock): string | null {
@@ -808,14 +850,37 @@ function removeSelectedBlock() {
 }
 
 const nameForm = useForm({ name: props.site.name });
+const appearanceForm = useForm<{
+    theme_key: SiteTheme;
+    footer: { text: string };
+}>({
+    theme_key: props.site.theme_key,
+    footer: { text: props.site.footer.text },
+});
 const nameInput = ref<HTMLInputElement | null>(null);
+const themeInput = ref<HTMLSelectElement | null>(null);
+const footerTextInput = ref<HTMLInputElement | null>(null);
 const nameSaved = ref(false);
 const nameError = ref('');
+const appearanceSaved = ref(false);
+const appearanceError = ref('');
 
 watch(
     () => props.site.name,
     (name) => {
         nameForm.name = name;
+    },
+);
+
+watch(
+    () => props.site.id,
+    () => {
+        appearanceForm.theme_key = props.site.theme_key;
+        appearanceForm.footer.text = props.site.footer.text;
+        appearanceForm.defaults();
+        appearanceForm.clearErrors();
+        appearanceError.value = '';
+        appearanceSaved.value = false;
     },
 );
 
@@ -864,6 +929,61 @@ function renameSite() {
     );
 }
 
+function clearAppearanceError() {
+    appearanceForm.clearErrors();
+    appearanceError.value = '';
+    appearanceSaved.value = false;
+}
+
+function saveAppearance() {
+    if (
+        appearanceForm.processing ||
+        nameForm.processing ||
+        saveForm.processing ||
+        addForm.processing ||
+        orderForm.processing ||
+        deleteForm.processing ||
+        !discardDraft()
+    )
+        return;
+    resetDraft();
+    appearanceError.value = '';
+    appearanceSaved.value = false;
+    runOwnVisit(() =>
+        appearanceForm.patch('/sites/' + props.site.id, {
+            preserveScroll: true,
+            onSuccess: () => {
+                appearanceForm.footer.text = appearanceForm.footer.text.trim();
+                appearanceForm.defaults();
+                appearanceSaved.value = true;
+            },
+            onError: (errors) => {
+                const fieldErrors = errors as Record<string, string>;
+                if (!fieldErrors.theme_key && !fieldErrors['footer.text']) {
+                    appearanceError.value =
+                        'We could not save appearance settings. Please try again.';
+                }
+                nextTick(() => {
+                    if (fieldErrors.theme_key) themeInput.value?.focus();
+                    else if (fieldErrors['footer.text'])
+                        footerTextInput.value?.focus();
+                    else themeInput.value?.focus();
+                });
+            },
+            onHttpException: () => {
+                appearanceError.value =
+                    'We could not save appearance settings. Please try again.';
+                return false;
+            },
+            onNetworkError: () => {
+                appearanceError.value =
+                    'We could not save appearance settings. Please try again.';
+                return false;
+            },
+        }),
+    );
+}
+
 defineOptions({
     layout: {
         breadcrumbs: [{ title: 'My sites', href: dashboard() }],
@@ -887,7 +1007,9 @@ defineOptions({
             >
                 Page editor
             </p>
-            <div class="mt-2 flex flex-wrap items-end justify-between gap-4">
+            <div
+                class="relative mt-2 flex flex-wrap items-end justify-between gap-4"
+            >
                 <div>
                     <h1 class="font-serif text-4xl tracking-tight">
                         {{ props.site.name }}
@@ -896,78 +1018,255 @@ defineOptions({
                         Build your page one block at a time.
                     </p>
                 </div>
-                <details class="group relative">
-                    <summary
-                        class="inline-flex min-h-11 cursor-pointer items-center rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-4 text-sm font-semibold marker:hidden hover:bg-[var(--workspace-soft)]"
-                    >
-                        Rename site
-                    </summary>
-                    <div
-                        class="mt-3 w-full rounded-xl border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-5 shadow-[var(--workspace-shadow)] sm:w-80"
-                    >
-                        <form class="space-y-4" @submit.prevent="renameSite">
-                            <div>
-                                <label
-                                    for="site-name"
-                                    class="mb-2 block text-sm font-semibold"
-                                    >Site name</label
-                                >
-                                <input
-                                    id="site-name"
-                                    ref="nameInput"
-                                    v-model="nameForm.name"
-                                    type="text"
-                                    required
-                                    maxlength="255"
-                                    autocomplete="off"
-                                    :aria-invalid="
-                                        Boolean(nameForm.errors.name)
-                                    "
-                                    :aria-describedby="
-                                        nameForm.errors.name
-                                            ? 'site-name-error'
-                                            : undefined
-                                    "
-                                    class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20"
-                                    @input="clearNameError"
+                <div class="ml-auto flex flex-col items-end gap-4 lg:flex-row">
+                    <details class="group relative">
+                        <summary
+                            aria-controls="site-name-dropdown"
+                            class="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-4 text-sm font-semibold marker:hidden hover:bg-[var(--workspace-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)]"
+                        >
+                            <span>Rename site</span>
+                            <svg
+                                aria-hidden="true"
+                                viewBox="0 0 20 20"
+                                fill="none"
+                                class="size-4 transition-transform group-open:rotate-180"
+                            >
+                                <path
+                                    d="m5 7.5 5 5 5-5"
+                                    stroke="currentColor"
+                                    stroke-width="1.75"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
                                 />
+                            </svg>
+                        </summary>
+                        <div
+                            id="site-name-dropdown"
+                            class="absolute top-full right-0 z-30 mt-2 w-80 max-w-[calc(100vw-2.5rem)] rounded-xl border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-5 shadow-[var(--workspace-shadow)]"
+                        >
+                            <form
+                                class="space-y-4"
+                                @submit.prevent="renameSite"
+                            >
+                                <div>
+                                    <label
+                                        for="site-name"
+                                        class="mb-2 block text-sm font-semibold"
+                                        >Site name</label
+                                    >
+                                    <input
+                                        id="site-name"
+                                        ref="nameInput"
+                                        v-model="nameForm.name"
+                                        type="text"
+                                        required
+                                        maxlength="255"
+                                        autocomplete="off"
+                                        :aria-invalid="
+                                            Boolean(nameForm.errors.name)
+                                        "
+                                        :aria-describedby="
+                                            nameForm.errors.name
+                                                ? 'site-name-error'
+                                                : undefined
+                                        "
+                                        class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20"
+                                        @input="clearNameError"
+                                    />
+                                    <p
+                                        v-if="nameForm.errors.name"
+                                        id="site-name-error"
+                                        role="alert"
+                                        class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                    >
+                                        {{ nameForm.errors.name }}
+                                    </p>
+                                </div>
                                 <p
-                                    v-if="nameForm.errors.name"
-                                    id="site-name-error"
+                                    v-if="nameError"
                                     role="alert"
-                                    class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                    class="text-sm text-red-700 dark:text-red-300"
                                 >
-                                    {{ nameForm.errors.name }}
+                                    {{ nameError }}
                                 </p>
-                            </div>
-                            <p
-                                v-if="nameError"
-                                role="alert"
-                                class="text-sm text-red-700 dark:text-red-300"
+                                <p
+                                    v-if="nameSaved"
+                                    role="status"
+                                    class="text-sm font-semibold text-[var(--workspace-green)]"
+                                >
+                                    Site name saved.
+                                </p>
+                                <button
+                                    type="submit"
+                                    :disabled="nameForm.processing"
+                                    class="min-h-11 w-full rounded-lg bg-[var(--workspace-green)] px-4 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60 dark:text-[var(--workspace-surface)]"
+                                >
+                                    {{
+                                        nameForm.processing
+                                            ? 'Saving…'
+                                            : 'Save name'
+                                    }}
+                                </button>
+                            </form>
+                        </div>
+                    </details>
+                    <details class="group relative">
+                        <summary
+                            aria-controls="site-appearance-dropdown"
+                            class="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-4 text-sm font-semibold marker:hidden hover:bg-[var(--workspace-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)]"
+                        >
+                            <span>Theme &amp; footer</span>
+                            <svg
+                                aria-hidden="true"
+                                viewBox="0 0 20 20"
+                                fill="none"
+                                class="size-4 transition-transform group-open:rotate-180"
                             >
-                                {{ nameError }}
-                            </p>
-                            <p
-                                v-if="nameSaved"
-                                role="status"
-                                class="text-sm font-semibold text-[var(--workspace-green)]"
+                                <path
+                                    d="m5 7.5 5 5 5-5"
+                                    stroke="currentColor"
+                                    stroke-width="1.75"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                />
+                            </svg>
+                        </summary>
+                        <div
+                            id="site-appearance-dropdown"
+                            class="absolute top-full right-0 z-30 mt-2 w-80 max-w-[calc(100vw-2.5rem)] rounded-xl border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-5 shadow-[var(--workspace-shadow)]"
+                        >
+                            <form
+                                class="space-y-4"
+                                @submit.prevent="saveAppearance"
                             >
-                                Site name saved.
-                            </p>
-                            <button
-                                type="submit"
-                                :disabled="nameForm.processing"
-                                class="min-h-11 w-full rounded-lg bg-[var(--workspace-green)] px-4 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60 dark:text-[var(--workspace-surface)]"
-                            >
-                                {{
-                                    nameForm.processing
-                                        ? 'Saving…'
-                                        : 'Save name'
-                                }}
-                            </button>
-                        </form>
-                    </div>
-                </details>
+                                <div>
+                                    <label
+                                        for="site-theme"
+                                        class="mb-2 block text-sm font-semibold"
+                                        >Page theme</label
+                                    >
+                                    <select
+                                        id="site-theme"
+                                        ref="themeInput"
+                                        v-model="appearanceForm.theme_key"
+                                        :aria-invalid="
+                                            Boolean(
+                                                appearanceForm.errors.theme_key,
+                                            )
+                                        "
+                                        :aria-describedby="
+                                            appearanceForm.errors.theme_key
+                                                ? 'site-theme-help site-theme-error'
+                                                : 'site-theme-help'
+                                        "
+                                        class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20"
+                                        @change="clearAppearanceError"
+                                    >
+                                        <option
+                                            v-for="theme in siteThemes"
+                                            :key="theme.key"
+                                            :value="theme.key"
+                                        >
+                                            {{ theme.label }}
+                                        </option>
+                                    </select>
+                                    <p
+                                        id="site-theme-help"
+                                        class="mt-2 text-xs text-[var(--workspace-muted)]"
+                                    >
+                                        {{
+                                            siteThemes.find(
+                                                (theme) =>
+                                                    theme.key ===
+                                                    appearanceForm.theme_key,
+                                            )?.description
+                                        }}
+                                    </p>
+                                    <p
+                                        v-if="appearanceForm.errors.theme_key"
+                                        id="site-theme-error"
+                                        role="alert"
+                                        class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                    >
+                                        {{ appearanceForm.errors.theme_key }}
+                                    </p>
+                                </div>
+                                <div>
+                                    <label
+                                        for="site-footer-text"
+                                        class="mb-2 block text-sm font-semibold"
+                                        >Footer text</label
+                                    >
+                                    <input
+                                        id="site-footer-text"
+                                        ref="footerTextInput"
+                                        v-model="appearanceForm.footer.text"
+                                        type="text"
+                                        autocomplete="off"
+                                        :aria-invalid="
+                                            Boolean(
+                                                appearanceForm.errors[
+                                                    'footer.text'
+                                                ],
+                                            )
+                                        "
+                                        :aria-describedby="
+                                            appearanceForm.errors['footer.text']
+                                                ? 'site-footer-help site-footer-error'
+                                                : 'site-footer-help'
+                                        "
+                                        class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20"
+                                        @input="clearAppearanceError"
+                                    />
+                                    <p
+                                        id="site-footer-help"
+                                        class="mt-2 text-xs text-[var(--workspace-muted)]"
+                                    >
+                                        Optional single-line text at the bottom
+                                        of your page.
+                                    </p>
+                                    <p
+                                        v-if="
+                                            appearanceForm.errors['footer.text']
+                                        "
+                                        id="site-footer-error"
+                                        role="alert"
+                                        class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                    >
+                                        {{
+                                            appearanceForm.errors['footer.text']
+                                        }}
+                                    </p>
+                                </div>
+                                <p
+                                    v-if="appearanceError"
+                                    role="alert"
+                                    class="text-sm text-red-700 dark:text-red-300"
+                                >
+                                    {{ appearanceError }}
+                                </p>
+                                <p
+                                    v-if="appearanceSaved"
+                                    role="status"
+                                    class="text-sm font-semibold text-[var(--workspace-green)]"
+                                >
+                                    Page appearance saved.
+                                </p>
+                                <button
+                                    type="submit"
+                                    :disabled="appearanceForm.processing"
+                                    class="min-h-11 w-full rounded-lg bg-[var(--workspace-green)] px-4 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60 dark:text-[var(--workspace-surface)]"
+                                >
+                                    {{
+                                        appearanceForm.processing
+                                            ? 'Saving…'
+                                            : 'Save appearance'
+                                    }}
+                                </button>
+                            </form>
+                        </div>
+                    </details>
+                </div>
             </div>
         </header>
 
@@ -1172,282 +1471,329 @@ defineOptions({
                         >Private workspace</span
                     >
                 </div>
-                <div
-                    v-if="props.blocks.length === 0"
-                    class="flex min-h-[27rem] flex-col items-center justify-center px-6 text-center"
-                >
-                    <div
-                        class="mb-5 grid size-14 place-items-center rounded-2xl bg-[var(--workspace-green-soft)] font-serif text-3xl text-[var(--workspace-green-ink)]"
+                <div class="site-preview" :data-theme="props.site.theme_key">
+                    <header
+                        class="border-b border-[var(--site-preview-border)] px-6 py-7 sm:px-10"
                     >
-                        +
-                    </div>
-                    <h3 class="font-serif text-2xl">
-                        A blank page, ready for your story
-                    </h3>
-                    <p
-                        class="mt-3 max-w-sm text-sm text-[var(--workspace-muted)]"
-                    >
-                        Add your first block to see the page take shape.
-                    </p>
-                </div>
-                <div v-else>
-                    <section
-                        v-for="block in props.blocks"
-                        :key="block.id"
-                        :id="`block-${block.id}`"
-                        class="border-b border-[var(--workspace-line)] px-6 py-12 last:border-b-0 sm:px-10"
-                        :class="
-                            block.type === 'about'
-                                ? 'bg-[var(--workspace-soft)]'
-                                : ''
-                        "
-                    >
-                        <template v-if="block.type === 'hero'">
-                            <p
-                                class="text-xs font-bold tracking-[0.14em] text-[var(--workspace-green)] uppercase"
-                            >
-                                Welcome
-                            </p>
-                            <h3
-                                class="mt-4 max-w-xl font-serif text-4xl leading-tight sm:text-5xl"
-                            >
-                                {{
-                                    contentFor(block).heading ||
-                                    'Welcome to our church'
-                                }}
-                            </h3>
-                            <p
-                                class="mt-5 max-w-prose whitespace-pre-line text-[var(--workspace-muted)]"
-                            >
-                                {{
-                                    contentFor(block).body ||
-                                    'Share a warm invitation with your visitors.'
-                                }}
-                            </p>
-                            <a
-                                v-if="heroHref(block)"
-                                :href="heroHref(block) ?? undefined"
-                                :target="
-                                    contentFor(block).link_type === 'external'
-                                        ? '_blank'
-                                        : undefined
-                                "
-                                :rel="
-                                    contentFor(block).link_type === 'external'
-                                        ? 'noopener noreferrer'
-                                        : undefined
-                                "
-                                class="mt-7 inline-flex min-h-11 items-center rounded-lg bg-[var(--workspace-green)] px-5 py-2 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] dark:text-[var(--workspace-surface)]"
-                            >
-                                {{ contentFor(block).button_label }}
-                            </a>
-                        </template>
-                        <template v-else-if="block.type === 'about'">
-                            <p
-                                class="text-xs font-bold tracking-[0.14em] text-[var(--workspace-green)] uppercase"
-                            >
-                                About us
-                            </p>
-                            <h3 class="mt-3 font-serif text-3xl">
-                                {{
-                                    contentFor(block).heading ||
-                                    'Your introduction'
-                                }}
-                            </h3>
-                            <p
-                                class="mt-4 whitespace-pre-line text-[var(--workspace-muted)]"
-                            >
-                                {{
-                                    contentFor(block).body ||
-                                    'Tell visitors who you are and what matters to your community.'
-                                }}
-                            </p>
-                        </template>
-                        <template v-else-if="block.type === 'heading_text'">
-                            <h3 class="font-serif text-2xl">
-                                {{
-                                    contentFor(block).heading || 'Your heading'
-                                }}
-                            </h3>
-                            <p
-                                class="mt-4 whitespace-pre-line text-[var(--workspace-muted)]"
-                            >
-                                {{
-                                    contentFor(block).body ||
-                                    'Add the details you want visitors to know.'
-                                }}
-                            </p>
-                        </template>
-                        <template v-else-if="block.type === 'service_times'">
-                            <h3 class="font-serif text-2xl">
-                                {{
-                                    contentFor(block).heading || 'Service times'
-                                }}
-                            </h3>
-                            <ul
-                                v-if="contentFor(block).entries?.length"
-                                class="mt-6 divide-y divide-[var(--workspace-line)]"
-                            >
+                        <h3
+                            class="font-serif text-2xl font-semibold tracking-tight"
+                        >
+                            {{ props.site.name }}
+                        </h3>
+                        <nav
+                            v-if="props.blocks.length"
+                            aria-label="Page sections"
+                            class="mt-4"
+                        >
+                            <ul class="flex flex-wrap gap-2">
                                 <li
-                                    v-for="(entry, index) in contentFor(block)
-                                        .entries"
-                                    :key="index"
-                                    class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3"
+                                    v-for="block in props.blocks"
+                                    :key="block.id"
                                 >
-                                    <span class="font-semibold">{{
-                                        entry.day.charAt(0).toUpperCase() +
-                                        entry.day.slice(1)
-                                    }}</span>
-                                    <span
-                                        class="text-[var(--workspace-muted)]"
-                                        >{{
-                                            formatServiceTime(entry.time)
-                                        }}</span
+                                    <a
+                                        :href="`#block-${block.id}`"
+                                        class="inline-flex min-h-10 items-center rounded-lg border border-[var(--site-preview-border)] bg-[var(--site-preview-soft)] px-3 py-2 text-sm font-semibold text-[var(--site-preview-accent)] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]"
                                     >
-                                    <span
-                                        v-if="entry.label"
-                                        class="w-full text-sm text-[var(--workspace-muted)]"
-                                        >{{ entry.label }}</span
-                                    >
+                                        {{ sectionNavigationLabel(block) }}
+                                    </a>
                                 </li>
                             </ul>
-                            <p
-                                v-else
-                                class="mt-4 text-[var(--workspace-muted)]"
-                            >
-                                Add your weekly gatherings in the editor.
-                            </p>
-                        </template>
-                        <template v-else-if="block.type === 'contact'">
-                            <h3 class="font-serif text-2xl">
-                                {{ contentFor(block).heading || 'Contact us' }}
-                            </h3>
-                            <div
-                                v-if="
-                                    contentFor(block).email ||
-                                    contentFor(block).phone
-                                "
-                                class="mt-5 flex flex-col items-start gap-3"
-                            >
+                        </nav>
+                    </header>
+                    <div
+                        v-if="props.blocks.length === 0"
+                        class="flex min-h-[27rem] flex-col items-center justify-center px-6 text-center"
+                    >
+                        <div
+                            class="mb-5 grid size-14 place-items-center rounded-2xl bg-[var(--site-preview-soft)] font-serif text-3xl text-[var(--site-preview-accent)]"
+                        >
+                            +
+                        </div>
+                        <h3 class="font-serif text-2xl">
+                            A blank page, ready for your story
+                        </h3>
+                        <p
+                            class="mt-3 max-w-sm text-sm text-[var(--site-preview-muted)]"
+                        >
+                            Add your first block to see the page take shape.
+                        </p>
+                    </div>
+                    <div v-else>
+                        <section
+                            v-for="block in props.blocks"
+                            :key="block.id"
+                            :id="`block-${block.id}`"
+                            class="border-b border-[var(--site-preview-border)] px-6 py-12 last:border-b-0 sm:px-10"
+                            :class="
+                                block.type === 'about'
+                                    ? 'bg-[var(--site-preview-soft)]'
+                                    : ''
+                            "
+                        >
+                            <template v-if="block.type === 'hero'">
+                                <p
+                                    class="text-xs font-bold tracking-[0.14em] text-[var(--site-preview-accent)] uppercase"
+                                >
+                                    Welcome
+                                </p>
+                                <h3
+                                    class="mt-4 max-w-xl font-serif text-4xl leading-tight sm:text-5xl"
+                                >
+                                    {{
+                                        previewHeading(
+                                            block,
+                                            'Welcome to our church',
+                                        )
+                                    }}
+                                </h3>
+                                <p
+                                    class="mt-5 max-w-prose whitespace-pre-line text-[var(--site-preview-muted)]"
+                                >
+                                    {{
+                                        contentFor(block).body ||
+                                        'Share a warm invitation with your visitors.'
+                                    }}
+                                </p>
                                 <a
-                                    v-if="emailHref(block)"
-                                    :href="emailHref(block) ?? undefined"
-                                    class="text-[var(--workspace-green)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)]"
-                                    >{{ contentFor(block).email }}</a
+                                    v-if="heroHref(block)"
+                                    :href="heroHref(block) ?? undefined"
+                                    :target="
+                                        contentFor(block).link_type ===
+                                        'external'
+                                            ? '_blank'
+                                            : undefined
+                                    "
+                                    :rel="
+                                        contentFor(block).link_type ===
+                                        'external'
+                                            ? 'noopener noreferrer'
+                                            : undefined
+                                    "
+                                    class="mt-7 inline-flex min-h-11 items-center rounded-lg bg-[var(--site-preview-action)] px-5 py-2 text-sm font-semibold text-[var(--site-preview-action-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]"
                                 >
-                                <span
-                                    v-else-if="contentFor(block).email"
-                                    class="text-[var(--workspace-muted)]"
-                                    >{{ contentFor(block).email }}</span
+                                    {{ contentFor(block).button_label }}
+                                </a>
+                            </template>
+                            <template v-else-if="block.type === 'about'">
+                                <p
+                                    class="text-xs font-bold tracking-[0.14em] text-[var(--site-preview-accent)] uppercase"
                                 >
-                                <a
-                                    v-if="phoneHref(block)"
-                                    :href="phoneHref(block) ?? undefined"
-                                    class="text-[var(--workspace-green)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)]"
-                                    >{{ contentFor(block).phone }}</a
+                                    About us
+                                </p>
+                                <h3 class="mt-3 font-serif text-3xl">
+                                    {{
+                                        previewHeading(
+                                            block,
+                                            'Your introduction',
+                                        )
+                                    }}
+                                </h3>
+                                <p
+                                    class="mt-4 whitespace-pre-line text-[var(--site-preview-muted)]"
                                 >
-                                <span
-                                    v-else-if="contentFor(block).phone"
-                                    class="text-[var(--workspace-muted)]"
-                                    >{{ contentFor(block).phone }}</span
+                                    {{
+                                        contentFor(block).body ||
+                                        'Tell visitors who you are and what matters to your community.'
+                                    }}
+                                </p>
+                            </template>
+                            <template v-else-if="block.type === 'heading_text'">
+                                <h3 class="font-serif text-2xl">
+                                    {{ previewHeading(block, 'Your heading') }}
+                                </h3>
+                                <p
+                                    class="mt-4 whitespace-pre-line text-[var(--site-preview-muted)]"
                                 >
-                            </div>
-                            <p
-                                v-else
-                                class="mt-4 text-[var(--workspace-muted)]"
+                                    {{
+                                        contentFor(block).body ||
+                                        'Add the details you want visitors to know.'
+                                    }}
+                                </p>
+                            </template>
+                            <template
+                                v-else-if="block.type === 'service_times'"
                             >
-                                Add an email or phone number in the editor.
-                            </p>
-                        </template>
-                        <template v-else-if="block.type === 'image'">
-                            <div
-                                role="group"
-                                aria-label="Image placeholder"
-                                class="flex min-h-64 flex-col items-center justify-center rounded-xl border border-dashed border-[var(--workspace-line)] bg-[var(--workspace-soft)] p-8 text-center"
-                            >
-                                <span class="font-semibold">Image</span>
-                                <span
-                                    class="mt-2 text-sm text-[var(--workspace-muted)]"
-                                    >Image uploads are not available yet.</span
+                                <h3 class="font-serif text-2xl">
+                                    {{ previewHeading(block, 'Service times') }}
+                                </h3>
+                                <ul
+                                    v-if="contentFor(block).entries?.length"
+                                    class="mt-6 divide-y divide-[var(--site-preview-border)]"
                                 >
-                            </div>
-                        </template>
-                        <template v-else-if="block.type === 'text_image'">
-                            <div
-                                class="grid gap-8 md:grid-cols-2 md:items-center"
-                            >
-                                <div>
-                                    <h3 class="font-serif text-2xl">
-                                        {{
-                                            contentFor(block).heading ||
-                                            'Your heading'
-                                        }}
-                                    </h3>
-                                    <p
-                                        class="mt-4 whitespace-pre-line text-[var(--workspace-muted)]"
+                                    <li
+                                        v-for="(entry, index) in contentFor(
+                                            block,
+                                        ).entries"
+                                        :key="index"
+                                        class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3"
                                     >
-                                        {{
-                                            contentFor(block).body ||
-                                            'Add the details you want visitors to know.'
-                                        }}
-                                    </p>
+                                        <span class="font-semibold">{{
+                                            entry.day.charAt(0).toUpperCase() +
+                                            entry.day.slice(1)
+                                        }}</span>
+                                        <span
+                                            class="text-[var(--site-preview-muted)]"
+                                            >{{
+                                                formatServiceTime(entry.time)
+                                            }}</span
+                                        >
+                                        <span
+                                            v-if="entry.label"
+                                            class="w-full text-sm text-[var(--site-preview-muted)]"
+                                            >{{ entry.label }}</span
+                                        >
+                                    </li>
+                                </ul>
+                                <p
+                                    v-else
+                                    class="mt-4 text-[var(--site-preview-muted)]"
+                                >
+                                    Add your weekly gatherings in the editor.
+                                </p>
+                            </template>
+                            <template v-else-if="block.type === 'contact'">
+                                <h3 class="font-serif text-2xl">
+                                    {{ previewHeading(block, 'Contact us') }}
+                                </h3>
+                                <div
+                                    v-if="
+                                        contentFor(block).email ||
+                                        contentFor(block).phone
+                                    "
+                                    class="mt-5 flex flex-col items-start gap-3"
+                                >
+                                    <a
+                                        v-if="emailHref(block)"
+                                        :href="emailHref(block) ?? undefined"
+                                        class="text-[var(--site-preview-accent)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]"
+                                        >{{ contentFor(block).email }}</a
+                                    >
+                                    <span
+                                        v-else-if="contentFor(block).email"
+                                        class="text-[var(--site-preview-muted)]"
+                                        >{{ contentFor(block).email }}</span
+                                    >
+                                    <a
+                                        v-if="phoneHref(block)"
+                                        :href="phoneHref(block) ?? undefined"
+                                        class="text-[var(--site-preview-accent)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]"
+                                        >{{ contentFor(block).phone }}</a
+                                    >
+                                    <span
+                                        v-else-if="contentFor(block).phone"
+                                        class="text-[var(--site-preview-muted)]"
+                                        >{{ contentFor(block).phone }}</span
+                                    >
                                 </div>
+                                <p
+                                    v-else
+                                    class="mt-4 text-[var(--site-preview-muted)]"
+                                >
+                                    Add an email or phone number in the editor.
+                                </p>
+                            </template>
+                            <template v-else-if="block.type === 'image'">
                                 <div
                                     role="group"
                                     aria-label="Image placeholder"
-                                    class="flex min-h-56 flex-col items-center justify-center rounded-xl border border-dashed border-[var(--workspace-line)] bg-[var(--workspace-soft)] p-8 text-center"
+                                    class="flex min-h-64 flex-col items-center justify-center rounded-xl border border-dashed border-[var(--site-preview-border)] bg-[var(--site-preview-soft)] p-8 text-center"
                                 >
                                     <span class="font-semibold">Image</span>
                                     <span
-                                        class="mt-2 text-sm text-[var(--workspace-muted)]"
+                                        class="mt-2 text-sm text-[var(--site-preview-muted)]"
                                         >Image uploads are not available
                                         yet.</span
                                     >
                                 </div>
-                            </div>
-                        </template>
-                        <template v-else-if="block.type === 'video'">
-                            <div
-                                class="mx-auto max-w-3xl overflow-hidden rounded-xl bg-[var(--workspace-soft)]"
-                            >
-                                <div class="aspect-video">
-                                    <iframe
-                                        v-if="videoEmbedUrl(block)"
-                                        :src="videoEmbedUrl(block) ?? undefined"
-                                        title="YouTube or Vimeo video preview"
-                                        loading="lazy"
-                                        allowfullscreen
-                                        class="h-full w-full border-0"
-                                    />
-                                    <div
-                                        v-else
-                                        role="status"
-                                        class="flex h-full flex-col items-center justify-center p-6 text-center text-sm text-[var(--workspace-muted)]"
-                                    >
-                                        <span class="font-semibold"
-                                            >Video preview</span
+                            </template>
+                            <template v-else-if="block.type === 'text_image'">
+                                <div
+                                    class="grid gap-8 md:grid-cols-2 md:items-center"
+                                >
+                                    <div>
+                                        <h3 class="font-serif text-2xl">
+                                            {{
+                                                previewHeading(
+                                                    block,
+                                                    'Your heading',
+                                                )
+                                            }}
+                                        </h3>
+                                        <p
+                                            class="mt-4 whitespace-pre-line text-[var(--site-preview-muted)]"
                                         >
-                                        <span class="mt-2"
-                                            >Enter a supported YouTube or Vimeo
-                                            link in the editor.</span
+                                            {{
+                                                contentFor(block).body ||
+                                                'Add the details you want visitors to know.'
+                                            }}
+                                        </p>
+                                    </div>
+                                    <div
+                                        role="group"
+                                        aria-label="Image placeholder"
+                                        class="flex min-h-56 flex-col items-center justify-center rounded-xl border border-dashed border-[var(--site-preview-border)] bg-[var(--site-preview-soft)] p-8 text-center"
+                                    >
+                                        <span class="font-semibold">Image</span>
+                                        <span
+                                            class="mt-2 text-sm text-[var(--site-preview-muted)]"
+                                            >Image uploads are not available
+                                            yet.</span
                                         >
                                     </div>
                                 </div>
-                            </div>
-                        </template>
-                        <p
-                            v-else-if="block.type === 'plain_text'"
-                            class="max-w-prose text-lg leading-relaxed whitespace-pre-line"
-                        >
-                            {{
-                                contentFor(block).body ||
-                                'Your message will appear here.'
-                            }}
-                        </p>
-                        <p v-else class="text-[var(--workspace-muted)]">
-                            {{ labelFor(block.type) }} block
-                        </p>
-                    </section>
+                            </template>
+                            <template v-else-if="block.type === 'video'">
+                                <div
+                                    class="mx-auto max-w-3xl overflow-hidden rounded-xl bg-[var(--site-preview-soft)]"
+                                >
+                                    <div class="aspect-video">
+                                        <iframe
+                                            v-if="videoEmbedUrl(block)"
+                                            :src="
+                                                videoEmbedUrl(block) ??
+                                                undefined
+                                            "
+                                            title="YouTube or Vimeo video preview"
+                                            loading="lazy"
+                                            allowfullscreen
+                                            class="h-full w-full border-0"
+                                        />
+                                        <div
+                                            v-else
+                                            role="status"
+                                            class="flex h-full flex-col items-center justify-center p-6 text-center text-sm text-[var(--site-preview-muted)]"
+                                        >
+                                            <span class="font-semibold"
+                                                >Video preview</span
+                                            >
+                                            <span class="mt-2"
+                                                >Enter a supported YouTube or
+                                                Vimeo link in the editor.</span
+                                            >
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                            <p
+                                v-else-if="block.type === 'plain_text'"
+                                class="max-w-prose text-lg leading-relaxed whitespace-pre-line"
+                            >
+                                {{
+                                    contentFor(block).body ||
+                                    'Your message will appear here.'
+                                }}
+                            </p>
+                            <p v-else class="text-[var(--site-preview-muted)]">
+                                {{ labelFor(block.type) }} block
+                            </p>
+                        </section>
+                    </div>
+                    <footer
+                        v-if="props.site.footer.text"
+                        class="border-t border-[var(--site-preview-border)] px-6 py-5 text-sm text-[var(--site-preview-muted)] sm:px-10"
+                    >
+                        {{ props.site.footer.text }}
+                    </footer>
                 </div>
             </section>
 

@@ -121,26 +121,22 @@ when you just want something done.
 
 `workflow.stepReview: "every"` restores per-step approval pauses but does not
 enable checkpoint prompts by itself. The previous workflow uses
-`stepReview: "every"` together with `checkpointCommits: "enabled"`.
-10. **Safety + log** - `/complete` first checks the active spec, branch, changed
-   files, Verify or fallback check evidence, manual try path, and adapter sync when
-   workflow files changed. Then it archives the spec using its frozen build attempt:
-   `blueprint/history/features/NN-name.md` for the first build and
-   `NN-name--build-N.md` for rebuilds, preserving earlier archives and the stable
-   plan ID (fixes use `blueprint/history/fixes/`). It checks the feature off in
-   `blueprint/build-plan.md`, and
-   resets `blueprint/context/current-feature.md` and
-   `blueprint/context/review.md` to their stubs.
-11. **Feature commit** - `/complete` stages everything on the branch (step work
-   plus the logging changes) into one conventional feature commit.
-12. **Squash-merge** - `/complete` squash-merges the branch to main (explicit yes)
-    and deletes it, so the feature lands as one commit. Then it must ask
-    separately before pushing main; merge approval does not approve a push.
-13. **Release prep (optional)** - run `/release render` or `/release vercel`
-    after a completed feature or milestone when you want local provider config,
-    env var review, build/start checks, and a smoke-test path. `/release` must
-    stop before deploy, remote service creation, remote env changes, push, or
-    publish unless the user gives a separate yes in the current chat.
+`stepReview: "every"` together with `checkpointCommits: "enabled"`. 10. **Safety + log** - `/complete` first checks the active spec, branch, changed
+files, Verify or fallback check evidence, manual try path, and adapter sync when
+workflow files changed. Then it archives the spec using its frozen build attempt:
+`blueprint/history/features/NN-name.md` for the first build and
+`NN-name--build-N.md` for rebuilds, preserving earlier archives and the stable
+plan ID (fixes use `blueprint/history/fixes/`). It checks the feature off in
+`blueprint/build-plan.md`, and
+resets `blueprint/context/current-feature.md` and
+`blueprint/context/review.md` to their stubs. 11. **Feature commit** - `/complete` stages everything on the branch (step work
+plus the logging changes) into one conventional feature commit. 12. **Squash-merge** - `/complete` squash-merges the branch to main (explicit yes)
+and deletes it, so the feature lands as one commit. Then it must ask
+separately before pushing main; merge approval does not approve a push. 13. **Release prep (optional)** - run `/release render` or `/release vercel`
+after a completed feature or milestone when you want local provider config,
+env var review, build/start checks, and a smoke-test path. `/release` must
+stop before deploy, remote service creation, remote env changes, push, or
+publish unless the user gives a separate yes in the current chat.
 
 **Resuming after a context clear.** Progress lives in files, not the chat:
 `current-feature.md` holds the spec with each step checked off as it's done, and git
@@ -196,11 +192,11 @@ preserving all other settings in the existing JSON:
 
 ```json
 {
-  "attribution": {
-    "commit": "",
-    "pr": "",
-    "sessionUrl": false
-  }
+    "attribution": {
+        "commit": "",
+        "pr": "",
+        "sessionUrl": false
+    }
 }
 ```
 

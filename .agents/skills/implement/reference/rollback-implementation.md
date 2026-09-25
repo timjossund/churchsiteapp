@@ -11,7 +11,7 @@ Before the first rollback step:
    `^[0-9a-f]{40}$`.
 2. Resolve the archive's introducing commit and verify it has exactly one parent.
    Stop on a merge target. Confirm the resolved commit exactly equals `Target
-   commit` and the resolved parent exactly equals `Target parent`.
+commit` and the resolved parent exactly equals `Target parent`.
 3. Confirm the target is an ancestor of `HEAD` and the approved rollback spec is
    the only dirty path. Stop on drift.
 4. Preview the target's product diff while excluding `.agents/**`,

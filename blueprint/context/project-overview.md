@@ -1,6 +1,6 @@
 # Churchsite - Project Overview
 
-<!-- blueprint:source-hash a2c738945efa4f95717bbd7a6ffcd65468d61706f028949892f280d6e2512ba3 -->
+<!-- blueprint:source-hash 60b5325ddc0b3f7a1ef808b20744dc8cffe5f3bdc50cc5c4309f1bd84394fc16 -->
 
 > A block-based church website builder with shareable previews and paid custom domains.
 

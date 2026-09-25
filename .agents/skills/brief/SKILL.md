@@ -13,8 +13,8 @@ Where this sits in the workflow:
     (what exists)              (read-only    (spec it)     (build it)
                                 explainer)
 
-This skill answers one question: *what does this feature actually involve, before
-I commit to spec'ing it?* It reads the two files that describe the work and prints
+This skill answers one question: _what does this feature actually involve, before
+I commit to spec'ing it?_ It reads the two files that describe the work and prints
 a short briefing so you can decide whether to spec it now, reorder it, split it,
 or clear a blocker first. It is the read-only precursor to `/feature`.
 
@@ -27,9 +27,9 @@ How it differs from its neighbors:
 - `/explore` investigates an open idea against the code without requiring plans.
   `/brief` explains an existing build-plan item.
 
-- `/status` reports the *whole project*: progress, current work, git, next action.
-  `/brief` zooms into *one feature* and explains it in depth.
-- `/feature` *writes* the spec (and may split the item in `build-plan.md`).
+- `/status` reports the _whole project_: progress, current work, git, next action.
+  `/brief` zooms into _one feature_ and explains it in depth.
+- `/feature` _writes_ the spec (and may split the item in `build-plan.md`).
   `/brief` previews what `/feature` would tackle, changing nothing.
 
 ## Input

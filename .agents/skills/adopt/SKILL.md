@@ -21,7 +21,7 @@ The standard onboarding assumes a freshly scaffolded, near-empty app: you write
 the two plans from scratch and build forward. That doesn't fit a project that
 already has thousands of lines of working code. `/adopt` is the brownfield
 on-ramp: it reads what's already there, asks you only for what the code can't tell
-it (the *why* and the *roadmap*), and produces the same input files the rest of
+it (the _why_ and the _roadmap_), and produces the same input files the rest of
 the workflow expects - so an existing project joins the loop without you
 hand-writing everything.
 
@@ -67,19 +67,19 @@ Read the repo to establish the facts. Change nothing in this step. Establish:
   whether a testing gate even applies.
 - **Conventions in practice** - directory layout, component/file naming, styling
   approach, state management, data-fetching pattern, error handling. Read what the
-  code *does*, not what a default template prescribes.
+  code _does_, not what a default template prescribes.
 - **Testing reality** - is a runner configured and are there tests, or none? Be
   honest; don't describe a gate the project doesn't have.
 - **Verification and CI** - note any combined verification command, GitHub
   remote, `.github/workflows/`, or external CI. Preserve what already exists.
 - **What the app already does** - the shipped features, inferred from routes,
-  pages, entry points, and modules. This becomes the *checked* part of the build plan.
+  pages, entry points, and modules. This becomes the _checked_ part of the build plan.
 
 Keep notes; you'll turn them into the files in Step 3.
 
 ## Step 2 - interview for intent
 
-The code reveals *what* and *how*, never *why* or *what next*. Ask the user a short
+The code reveals _what_ and _how_, never _why_ or _what next_. Ask the user a short
 set of questions (aim for three to five, not an interrogation) to fill the gaps:
 
 - What is this project for, and who uses it? (the problem and the users)
@@ -99,7 +99,7 @@ it rather than inherit a wrong guess.
 
 - **`blueprint/project-plan.md`** - the what & why, following the existing
   worksheet structure (problem, users, features, data, tech, monetization, UI/UX).
-  The "features" and "tech" sections describe what *already exists*; the rest comes
+  The "features" and "tech" sections describe what _already exists_; the rest comes
   from the interview.
 - **`blueprint/build-plan.md`** - the ordered feature list as a checklist. **Mark
   shipped features `- [x]`** (this is the brownfield difference: the build plan
@@ -107,7 +107,7 @@ it rather than inherit a wrong guess.
   items from the interview as `- [ ]`. This makes `/status` and `/feature` work
   immediately - the next unchecked item is genuinely what's next.
 - **`blueprint/context/coding-standards.md`** - rewrite the default to match the
-  project's *actual* conventions from Step 1, not the shipped Next.js/Prisma
+  project's _actual_ conventions from Step 1, not the shipped Next.js/Prisma
   defaults. Keep the Writing and Comments sections; replace the stack-specific ones
   with what the code really does. Its Testing section must reflect the real testing
   state (the opt-in switch is a `test` command in `AGENTS.md`).
@@ -150,13 +150,13 @@ Recommend option 1 by default. If the user chooses option 2:
 
 - Add this block to `.gitignore`, preserving existing entries:
 
-  ```gitignore
-  # AI Blueprint local workflow files
-  .agents/
-  .claude/
-  blueprint/
-  CLAUDE.md
-  ```
+    ```gitignore
+    # AI Blueprint local workflow files
+    .agents/
+    .claude/
+    blueprint/
+    CLAUDE.md
+    ```
 
 - Keep `AGENTS.md` tracked. It remains the lightweight public project guide for
   commands and conventions.
@@ -189,7 +189,7 @@ Stop and show the user what you generated, calling out:
 - Blueprint visibility choice, and a tracked-file warning if local-only mode was
   chosen after files were already tracked.
 
-These files are the ones the user *owns*. Have them review and adjust, then tell
+These files are the ones the user _owns_. Have them review and adjust, then tell
 them to run `/overview` to distill the plans into `project-overview.md` and start
 the normal loop.
 

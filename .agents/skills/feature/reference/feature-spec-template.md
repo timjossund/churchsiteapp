@@ -39,8 +39,8 @@ Small, reviewable units. Each ends with something working. `/implement` checks
 these off as it finishes them, so progress survives a context clear: a fresh
 session reads which boxes are ticked and resumes from the first unchecked step.
 
-- [ ] **Step 1 - <step>** - what you build. *Done when:* <observable criteria>.
-- [ ] **Step 2 - <step>** - what you build. *Done when:* <observable criteria>.
+- [ ] **Step 1 - <step>** - what you build. _Done when:_ <observable criteria>.
+- [ ] **Step 2 - <step>** - what you build. _Done when:_ <observable criteria>.
 
 ## Files / areas
 

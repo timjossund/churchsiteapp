@@ -16,10 +16,11 @@ use Illuminate\Support\Carbon;
  * @property string $name
  * @property string $theme_key
  * @property array{text: string} $footer
+ * @property int|null $logo_media_asset_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'theme_key', 'footer'])]
+#[Fillable(['name', 'theme_key', 'footer', 'logo_media_asset_id'])]
 class Site extends Model
 {
     protected $attributes = [
@@ -48,5 +49,17 @@ class Site extends Model
     public function blocks(): HasMany
     {
         return $this->hasMany(SiteBlock::class);
+    }
+
+    /** @return HasMany<MediaAsset, $this> */
+    public function mediaAssets(): HasMany
+    {
+        return $this->hasMany(MediaAsset::class);
+    }
+
+    /** @return BelongsTo<MediaAsset, $this> */
+    public function logoMediaAsset(): BelongsTo
+    {
+        return $this->belongsTo(MediaAsset::class, 'logo_media_asset_id');
     }
 }

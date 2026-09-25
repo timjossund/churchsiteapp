@@ -1,11 +1,5 @@
 {
-    "agents": [
-        "codex",
-        "cursor",
-        "junie",
-        "opencode",
-        "zed"
-    ],
+    "agents": ["codex", "cursor", "junie", "opencode", "zed"],
     "cloud": true,
     "guidelines": true,
     "mcp": true,

@@ -128,20 +128,20 @@ request and receipt keep both execution fields absent.
    as `claude`. These files prove project support, not that the external runtime
    is installed or authenticated.
 3. Resolve the review executor from `review.independentExecution`:
-   - For `manual`, ask which detected adapter and available model should review.
-     Recommend an equal-or-stronger coding model, a different model family when
-     practical, and high reasoning for sensitive work. Offer a fresh session in
-     the current adapter as the fallback. Do not invent available models or
-     offer an adapter that is not installed in the project.
-   - For `automatic`, use only a live child-agent capability in the current
-     adapter that can start with no builder transcript, disclose the exact
-     reviewer adapter and model, and wait for completion. Spawn a generic fresh
-     isolated child through the current runtime. Do not discover, select, or
-     depend on a globally installed role, skill, prompt, or another workflow
-     such as TraversyFlow. If the runtime cannot start that generic child from
-     project-local instructions, or capability, isolation, identity, model,
-     completion, or access to the same ignored spec/snapshot inputs cannot be
-     confirmed, use the manual path in the original checkout.
+    - For `manual`, ask which detected adapter and available model should review.
+      Recommend an equal-or-stronger coding model, a different model family when
+      practical, and high reasoning for sensitive work. Offer a fresh session in
+      the current adapter as the fallback. Do not invent available models or
+      offer an adapter that is not installed in the project.
+    - For `automatic`, use only a live child-agent capability in the current
+      adapter that can start with no builder transcript, disclose the exact
+      reviewer adapter and model, and wait for completion. Spawn a generic fresh
+      isolated child through the current runtime. Do not discover, select, or
+      depend on a globally installed role, skill, prompt, or another workflow
+      such as TraversyFlow. If the runtime cannot start that generic child from
+      project-local instructions, or capability, isolation, identity, model,
+      completion, or access to the same ignored spec/snapshot inputs cannot be
+      confirmed, use the manual path in the original checkout.
 4. Record the full target SHA, full merge-base SHA, the exact local base ref
    used to calculate it, exact spec SHA-256, current adapter and model,
    requested reviewer adapter and model, requested execution from
@@ -157,24 +157,24 @@ request and receipt keep both execution fields absent.
    reviewer runtime cannot select a specific model before opening the session,
    record the exact runtime-default sentinel from the reference contract.
 5. Execute the configured path:
-   - For `manual`, set dashboard activity to `ready` and give the exact handoff
-     command for the selected adapter. Claude Code uses
-     `/audit independent current`; Codex uses `$audit independent current`;
-     Copilot and OpenCode receive the equivalent plain-language instruction.
-     Tell the user to open a fresh session in the original checkout with only the
-     handoff, not the builder chat. Include target/base SHAs and, when present,
-     the exact snapshot path and spec hash.
-   - For `automatic`, freeze all parent product, test, spec, and config changes.
-     Start one generic isolated child without the builder transcript. Instruct
-     it to read the project-local Audit skill and
-     `audit/reference/independent-review.md` from the current adapter tree, then
-     execute Phase B using the same local spec/snapshot inputs against the
-     prepared request. All review instructions come
-     from that installed Blueprint project. The reviewer may write only
-     `blueprint/context/findings.md` and `blueprint/context/review.md`; it must
-     not repair code, change the spec, commit, or perform external actions. Wait
-     for completion, then reread and validate the normal receipt before
-     continuing. Record `fresh subagent` as its reviewer context.
+    - For `manual`, set dashboard activity to `ready` and give the exact handoff
+      command for the selected adapter. Claude Code uses
+      `/audit independent current`; Codex uses `$audit independent current`;
+      Copilot and OpenCode receive the equivalent plain-language instruction.
+      Tell the user to open a fresh session in the original checkout with only the
+      handoff, not the builder chat. Include target/base SHAs and, when present,
+      the exact snapshot path and spec hash.
+    - For `automatic`, freeze all parent product, test, spec, and config changes.
+      Start one generic isolated child without the builder transcript. Instruct
+      it to read the project-local Audit skill and
+      `audit/reference/independent-review.md` from the current adapter tree, then
+      execute Phase B using the same local spec/snapshot inputs against the
+      prepared request. All review instructions come
+      from that installed Blueprint project. The reviewer may write only
+      `blueprint/context/findings.md` and `blueprint/context/review.md`; it must
+      not repair code, change the spec, commit, or perform external actions. Wait
+      for completion, then reread and validate the normal receipt before
+      continuing. Record `fresh subagent` as its reviewer context.
 
 If automatic execution fails or any required property becomes uncertain, keep
 the pending request intact, set activity to `ready`, and stop with the existing
@@ -369,14 +369,14 @@ their archive filenames. That prefixed form is the permanent reference. A later
 ledger that has emptied and reset starts at `F-01` again without colliding. Severity reuses the P0-P3
 scheme from Step 5; only P0 and P1 block `/complete`. Status is one of:
 
-| Status | Meaning | Blocks P0/P1 at /complete |
-|---|---|---|
-| `unverified` | Suspected, no confirming evidence yet | No |
-| `open` | Confirmed, not yet repaired | Yes |
-| `fixed` | Repaired, not yet re-reviewed | Yes |
-| `closed` | Repaired and re-reviewed against the new code | No |
-| `accepted` | Not fixing, by the user's explicit decision; reason recorded in Resolution | No |
-| `invalid` | Re-examination proved the finding wrong; evidence recorded in Resolution | No |
+| Status       | Meaning                                                                    | Blocks P0/P1 at /complete |
+| ------------ | -------------------------------------------------------------------------- | ------------------------- |
+| `unverified` | Suspected, no confirming evidence yet                                      | No                        |
+| `open`       | Confirmed, not yet repaired                                                | Yes                       |
+| `fixed`      | Repaired, not yet re-reviewed                                              | Yes                       |
+| `closed`     | Repaired and re-reviewed against the new code                              | No                        |
+| `accepted`   | Not fixing, by the user's explicit decision; reason recorded in Resolution | No                        |
+| `invalid`    | Re-examination proved the finding wrong; evidence recorded in Resolution   | No                        |
 
 After the review:
 

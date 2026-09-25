@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import SiteMediaController from '@/actions/App/Http/Controllers/SiteMediaController';
 import { dashboard } from '@/routes';
 
 type BlockType =
@@ -26,7 +27,7 @@ type BlockContent = {
     entries?: ServiceTimeEntry[];
     email?: string;
     phone?: string;
-    media_asset_id?: null;
+    media_asset_id?: number | null;
     url?: string;
 };
 type SiteBlock = {
@@ -34,6 +35,8 @@ type SiteBlock = {
     type: BlockType;
     position: number;
     content: BlockContent;
+    media_url: string | null;
+    alt_text: string | null;
 };
 
 const props = defineProps<{
@@ -42,6 +45,11 @@ const props = defineProps<{
         name: string;
         theme_key: SiteTheme;
         footer: { text: string };
+        logo: {
+            media_asset_id: number;
+            url: string;
+            alt_text: string | null;
+        } | null;
     };
     blocks: SiteBlock[];
 }>();
@@ -145,7 +153,22 @@ const savedEmail = ref('');
 const savedPhone = ref('');
 const draftVideoUrl = ref('');
 const savedVideoUrl = ref('');
-const isDirty = computed(
+const draftAltText = ref('');
+const savedAltText = ref('');
+const clearImagePending = ref(false);
+const uploadPreviewUrl = ref<string | null>(null);
+const imageUploadStatus = ref('');
+const imageUploadError = ref('');
+const altTextStatus = ref('');
+const altTextError = ref('');
+const imageInput = ref<HTMLInputElement | null>(null);
+const altTextInput = ref<HTMLInputElement | null>(null);
+const imageUploadForm = useForm<{ image: File | null; alt_text: string }>({
+    image: null,
+    alt_text: '',
+});
+const altTextForm = useForm<{ alt_text: string }>({ alt_text: '' });
+const isContentDirty = computed(
     () =>
         !!selectedBlock.value &&
         (draftHeading.value !== savedHeading.value ||
@@ -162,7 +185,24 @@ const isDirty = computed(
                 (draftEmail.value !== savedEmail.value ||
                     draftPhone.value !== savedPhone.value)) ||
             (selectedBlock.value?.type === 'video' &&
-                draftVideoUrl.value !== savedVideoUrl.value)),
+                draftVideoUrl.value !== savedVideoUrl.value) ||
+            (selectedBlock.value &&
+                ['image', 'text_image'].includes(selectedBlock.value.type) &&
+                clearImagePending.value)),
+);
+const isAltTextDirty = computed(
+    () =>
+        !!selectedBlock.value &&
+        ['image', 'text_image'].includes(selectedBlock.value.type) &&
+        draftAltText.value !== savedAltText.value,
+);
+const isDirty = computed(
+    () =>
+        isContentDirty.value ||
+        isAltTextDirty.value ||
+        clearImagePending.value ||
+        imageUploadForm.processing ||
+        altTextForm.processing,
 );
 const saveForm = useForm<{ content: BlockContent }>({
     content: { body: '' },
@@ -202,6 +242,18 @@ watch(
         draftEmail.value = block?.content.email ?? '';
         draftPhone.value = block?.content.phone ?? '';
         draftVideoUrl.value = block?.content.url ?? '';
+        draftAltText.value = block?.alt_text ?? '';
+        savedAltText.value = draftAltText.value;
+        clearImagePending.value = false;
+        releaseUploadPreview();
+        imageUploadForm.reset();
+        imageUploadForm.clearErrors();
+        altTextForm.reset();
+        altTextForm.clearErrors();
+        imageUploadStatus.value = '';
+        imageUploadError.value = '';
+        altTextStatus.value = '';
+        altTextError.value = '';
         savedHeading.value = draftHeading.value;
         savedBody.value = draftBody.value;
         savedButtonLabel.value = draftButtonLabel.value;
@@ -236,18 +288,31 @@ function resetDraft() {
     draftEmail.value = savedEmail.value;
     draftPhone.value = savedPhone.value;
     draftVideoUrl.value = savedVideoUrl.value;
+    draftAltText.value = savedAltText.value;
+    clearImagePending.value = false;
+    releaseUploadPreview();
+    imageUploadForm.reset();
+    imageUploadForm.clearErrors();
+    altTextForm.clearErrors();
+    imageUploadError.value = '';
+    altTextError.value = '';
+    imageUploadStatus.value = '';
+    altTextStatus.value = '';
     serviceTimeStatus.value = '';
     saveForm.clearErrors();
     saveError.value = '';
 }
 
 function selectBlock(id: number) {
+    if (uploadInProgress.value) return;
     if (
         id === selectedBlockId.value ||
         saveForm.processing ||
         addForm.processing ||
         orderForm.processing ||
-        deleteForm.processing
+        deleteForm.processing ||
+        imageUploadForm.processing ||
+        altTextForm.processing
     )
         return;
     if (!discardDraft()) return;
@@ -264,8 +329,187 @@ function runOwnVisit(submit: () => void) {
     }
 }
 
+function releaseUploadPreview() {
+    if (uploadPreviewUrl.value) URL.revokeObjectURL(uploadPreviewUrl.value);
+    uploadPreviewUrl.value = null;
+}
+
+function clearImageErrors() {
+    imageUploadForm.clearErrors('image', 'alt_text');
+    imageUploadError.value = '';
+    imageUploadStatus.value = '';
+}
+
+function clearAltTextFeedback() {
+    imageUploadForm.clearErrors('alt_text');
+    altTextForm.clearErrors('alt_text');
+    altTextError.value = '';
+    altTextStatus.value = '';
+}
+
+function requestClearBlockImage() {
+    if (uploadInProgress.value) return;
+    const block = selectedBlock.value;
+    if (!block) return;
+    if (clearImagePending.value) {
+        clearImagePending.value = false;
+        imageUploadStatus.value = 'Image will be kept.';
+        return;
+    }
+    if (!block.content.media_asset_id || isAltTextDirty.value) return;
+    clearImagePending.value = true;
+    imageUploadStatus.value = 'Image will be cleared when you save the block.';
+    clearContentError();
+}
+
+function selectImageFile(event: Event) {
+    if (editorWriteInProgress.value) return;
+    const input = event.currentTarget;
+    const file =
+        input instanceof HTMLInputElement ? input.files?.[0] : undefined;
+    if (!file || !selectedBlock.value) return;
+
+    releaseUploadPreview();
+    clearImageErrors();
+    if (file.size > 5 * 1024 * 1024) {
+        imageUploadError.value = 'Choose an image that is 5 MB or smaller.';
+        if (input instanceof HTMLInputElement) input.value = '';
+        nextTick(() => imageInput.value?.focus());
+        return;
+    }
+
+    clearImagePending.value = false;
+    imageUploadForm.image = file;
+    imageUploadForm.alt_text = draftAltText.value;
+    uploadPreviewUrl.value = URL.createObjectURL(file);
+    imageUploadStatus.value = 'Uploading image…';
+    const blockId = selectedBlock.value.id;
+
+    runOwnVisit(() =>
+        imageUploadForm.post(
+            SiteMediaController.uploadBlockImage({
+                site: props.site.id,
+                block: blockId,
+            }).url,
+            {
+                forceFormData: true,
+                preserveScroll: true,
+                onCancel: () => {
+                    imageUploadStatus.value = '';
+                    releaseUploadPreview();
+                    imageUploadForm.image = null;
+                    imageUploadForm.progress = null;
+                    if (imageInput.value) imageInput.value.value = '';
+                },
+                onSuccess: () => {
+                    savedAltText.value = imageUploadForm.alt_text;
+                    draftAltText.value = imageUploadForm.alt_text;
+                    imageUploadStatus.value = 'Image uploaded.';
+                    releaseUploadPreview();
+                    imageUploadForm.reset();
+                    if (imageInput.value) imageInput.value.value = '';
+                },
+                onError: (errors) => {
+                    imageUploadStatus.value = '';
+                    imageUploadError.value = errors.image ?? '';
+                    nextTick(() => {
+                        if (errors.image) imageInput.value?.focus();
+                        else if (errors.alt_text) altTextInput.value?.focus();
+                        else imageInput.value?.focus();
+                    });
+                    releaseUploadPreview();
+                    imageUploadForm.image = null;
+                    if (imageInput.value) imageInput.value.value = '';
+                },
+                onHttpException: () => {
+                    imageUploadStatus.value = '';
+                    imageUploadError.value =
+                        'We could not upload this image. Please try again.';
+                    releaseUploadPreview();
+                    imageUploadForm.image = null;
+                    if (imageInput.value) imageInput.value.value = '';
+                    return false;
+                },
+                onNetworkError: () => {
+                    imageUploadStatus.value = '';
+                    imageUploadError.value =
+                        'We could not upload this image. Please try again.';
+                    releaseUploadPreview();
+                    imageUploadForm.image = null;
+                    if (imageInput.value) imageInput.value.value = '';
+                    return false;
+                },
+            },
+        ),
+    );
+}
+
+function saveAltText() {
+    if (uploadInProgress.value) return;
+    const block = selectedBlock.value;
+    const mediaAssetId = block?.content.media_asset_id;
+    if (
+        !block ||
+        !mediaAssetId ||
+        altTextForm.processing ||
+        imageUploadForm.processing ||
+        !isAltTextDirty.value
+    ) {
+        return;
+    }
+
+    altTextError.value = '';
+    altTextStatus.value = '';
+    altTextForm.alt_text = draftAltText.value;
+    runOwnVisit(() =>
+        altTextForm.patch(
+            SiteMediaController.updateAltText({
+                site: props.site.id,
+                mediaAsset: mediaAssetId,
+            }).url,
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    savedAltText.value = altTextForm.alt_text;
+                    draftAltText.value = altTextForm.alt_text;
+                    altTextStatus.value = 'Image description saved.';
+                },
+                onError: (errors) => {
+                    altTextError.value = errors.alt_text ?? '';
+                    nextTick(() => altTextInput.value?.focus());
+                },
+                onHttpException: () => {
+                    altTextError.value =
+                        'We could not save this image description. Please try again.';
+                    return false;
+                },
+                onNetworkError: () => {
+                    altTextError.value =
+                        'We could not save this image description. Please try again.';
+                    return false;
+                },
+            },
+        ),
+    );
+}
+
+function blockMediaUrl(block: SiteBlock): string | null {
+    if (block.id === selectedBlockId.value) {
+        if (clearImagePending.value) return null;
+        if (uploadPreviewUrl.value) return uploadPreviewUrl.value;
+    }
+
+    return block.media_url;
+}
+
+function blockPreviewAltText(block: SiteBlock): string {
+    return block.id === selectedBlockId.value && uploadPreviewUrl.value
+        ? draftAltText.value
+        : (block.alt_text ?? '');
+}
+
 function guardBeforeUnload(event: BeforeUnloadEvent) {
-    if (!isDirty.value) return;
+    if (!isDirty.value && !uploadInProgress.value) return;
     event.preventDefault();
     event.returnValue = '';
 }
@@ -281,6 +525,10 @@ onMounted(() => {
     editorHistoryState = window.history.state;
     editorUrl = window.location.href;
     stopBeforeListener = router.on('before', (event) => {
+        if (uploadInProgress.value) {
+            event.preventDefault();
+            return;
+        }
         if (!ownVisit && isDirty.value && !discardDraft())
             event.preventDefault();
     });
@@ -297,6 +545,7 @@ onUnmounted(() => {
     stopNavigateListener?.();
     window.removeEventListener('beforeunload', guardBeforeUnload);
     window.removeEventListener('popstate', guardHistory, true);
+    releaseUploadPreview();
 });
 
 function clearContentError() {
@@ -327,12 +576,20 @@ function contentFor(block: SiteBlock) {
             phone: draftPhone.value,
         };
     }
-    if (block.type === 'image') return { media_asset_id: null };
+    if (block.type === 'image') {
+        return {
+            media_asset_id: clearImagePending.value
+                ? null
+                : (block.content.media_asset_id ?? null),
+        };
+    }
     if (block.type === 'text_image') {
         return {
             heading: draftHeading.value,
             body: draftBody.value,
-            media_asset_id: null,
+            media_asset_id: clearImagePending.value
+                ? null
+                : (block.content.media_asset_id ?? null),
         };
     }
     if (block.type === 'video') return { url: draftVideoUrl.value };
@@ -524,6 +781,7 @@ function changeHeroLinkType() {
 }
 
 function saveBlock() {
+    if (uploadInProgress.value) return;
     const block = selectedBlock.value;
     if (
         !block ||
@@ -531,12 +789,17 @@ function saveBlock() {
         addForm.processing ||
         orderForm.processing ||
         deleteForm.processing ||
-        !isDirty.value
+        imageUploadForm.processing ||
+        altTextForm.processing ||
+        !isContentDirty.value
     )
         return;
 
     saveError.value = '';
     contentSaved.value = false;
+    const mediaAssetId = clearImagePending.value
+        ? null
+        : (block.content.media_asset_id ?? null);
     saveForm.content =
         block.type === 'hero'
             ? {
@@ -563,12 +826,12 @@ function saveBlock() {
                 : block.type === 'video'
                   ? { url: draftVideoUrl.value }
                   : block.type === 'image'
-                    ? { media_asset_id: null }
+                    ? { media_asset_id: mediaAssetId }
                     : block.type === 'text_image'
                       ? {
                             heading: draftHeading.value,
                             body: draftBody.value,
-                            media_asset_id: null,
+                            media_asset_id: mediaAssetId,
                         }
                       : block.type === 'plain_text'
                         ? { body: draftBody.value }
@@ -593,9 +856,19 @@ function saveBlock() {
                 savedEmail.value = draftEmail.value;
                 savedPhone.value = draftPhone.value;
                 savedVideoUrl.value = draftVideoUrl.value;
+                if (clearImagePending.value) {
+                    clearImagePending.value = false;
+                    draftAltText.value = '';
+                    savedAltText.value = '';
+                    altTextForm.reset();
+                    altTextForm.clearErrors();
+                    altTextError.value = '';
+                    imageUploadStatus.value = 'Image cleared.';
+                }
                 contentSaved.value = true;
             },
             onError: (errors) => {
+                clearImagePending.value = false;
                 if (
                     !errors['content.heading'] &&
                     !errors['content.body'] &&
@@ -654,11 +927,13 @@ function saveBlock() {
                 });
             },
             onHttpException: () => {
+                clearImagePending.value = false;
                 saveError.value =
                     'We could not save this block. Please try again.';
                 return false;
             },
             onNetworkError: () => {
+                clearImagePending.value = false;
                 saveError.value =
                     'We could not save this block. Please try again.';
                 return false;
@@ -684,11 +959,14 @@ function labelFor(type: BlockType): string {
 }
 
 function addBlock(type: BlockType) {
+    if (uploadInProgress.value) return;
     if (
         addForm.processing ||
         saveForm.processing ||
         orderForm.processing ||
         deleteForm.processing ||
+        imageUploadForm.processing ||
+        altTextForm.processing ||
         !discardDraft()
     )
         return;
@@ -731,11 +1009,14 @@ const orderSaved = ref(false);
 const draggedBlockId = ref<number | null>(null);
 
 function persistOrder(nextOrder: number[]) {
+    if (uploadInProgress.value) return;
     if (
         orderForm.processing ||
         deleteForm.processing ||
         addForm.processing ||
         saveForm.processing ||
+        imageUploadForm.processing ||
+        altTextForm.processing ||
         !discardDraft()
     )
         return;
@@ -782,7 +1063,14 @@ function moveBlock(id: number, offset: number) {
 }
 
 function startDrag(event: DragEvent, id: number) {
-    if (orderForm.processing || deleteForm.processing || addForm.processing) {
+    if (uploadInProgress.value) return;
+    if (
+        orderForm.processing ||
+        deleteForm.processing ||
+        addForm.processing ||
+        imageUploadForm.processing ||
+        altTextForm.processing
+    ) {
         event.preventDefault();
         return;
     }
@@ -807,6 +1095,7 @@ const deleteForm = useForm({});
 const deleteError = ref('');
 
 function removeSelectedBlock() {
+    if (uploadInProgress.value) return;
     const block = selectedBlock.value;
     if (
         !block ||
@@ -814,6 +1103,8 @@ function removeSelectedBlock() {
         addForm.processing ||
         orderForm.processing ||
         saveForm.processing ||
+        imageUploadForm.processing ||
+        altTextForm.processing ||
         !window.confirm(
             isDirty.value
                 ? 'Remove this block and discard your unsaved edits? This cannot be undone.'
@@ -864,6 +1155,39 @@ const nameSaved = ref(false);
 const nameError = ref('');
 const appearanceSaved = ref(false);
 const appearanceError = ref('');
+const logoDraftAltText = ref(props.site.logo?.alt_text ?? '');
+const logoUploadPreviewUrl = ref<string | null>(null);
+const logoUploadStatus = ref('');
+const logoUploadError = ref('');
+const logoAltTextStatus = ref('');
+const logoAltTextError = ref('');
+const logoFileInput = ref<HTMLInputElement | null>(null);
+const logoAltTextInput = ref<HTMLInputElement | null>(null);
+const logoUploadForm = useForm<{ image: File | null; alt_text: string }>({
+    image: null,
+    alt_text: '',
+});
+const logoAltTextForm = useForm<{ alt_text: string }>({ alt_text: '' });
+const logoClearForm = useForm({});
+const uploadInProgress = computed(
+    () => imageUploadForm.processing || logoUploadForm.processing,
+);
+const editorWriteInProgress = computed(
+    () =>
+        uploadInProgress.value ||
+        nameForm.processing ||
+        appearanceForm.processing ||
+        saveForm.processing ||
+        addForm.processing ||
+        orderForm.processing ||
+        deleteForm.processing ||
+        altTextForm.processing ||
+        logoAltTextForm.processing ||
+        logoClearForm.processing,
+);
+const isLogoAltTextDirty = computed(
+    () => logoDraftAltText.value !== (props.site.logo?.alt_text ?? ''),
+);
 
 watch(
     () => props.site.name,
@@ -891,6 +1215,7 @@ function clearNameError() {
 }
 
 function renameSite() {
+    if (uploadInProgress.value) return;
     if (
         nameForm.processing ||
         saveForm.processing ||
@@ -936,6 +1261,7 @@ function clearAppearanceError() {
 }
 
 function saveAppearance() {
+    if (uploadInProgress.value) return;
     if (
         appearanceForm.processing ||
         nameForm.processing ||
@@ -983,6 +1309,206 @@ function saveAppearance() {
         }),
     );
 }
+
+function releaseLogoUploadPreview() {
+    if (logoUploadPreviewUrl.value)
+        URL.revokeObjectURL(logoUploadPreviewUrl.value);
+    logoUploadPreviewUrl.value = null;
+}
+
+function logoPreviewUrl(): string | null {
+    return logoUploadPreviewUrl.value ?? props.site.logo?.url ?? null;
+}
+
+function logoPreviewAltText(): string {
+    if (logoUploadPreviewUrl.value) return logoDraftAltText.value;
+    return props.site.logo?.alt_text || props.site.name;
+}
+
+function clearLogoUploadFeedback() {
+    logoUploadForm.clearErrors('image', 'alt_text');
+    logoUploadError.value = '';
+    logoUploadStatus.value = '';
+}
+
+function clearLogoAltTextFeedback() {
+    logoUploadForm.clearErrors('alt_text');
+    logoAltTextForm.clearErrors('alt_text');
+    logoAltTextError.value = '';
+    logoAltTextStatus.value = '';
+}
+
+function selectLogoFile(event: Event) {
+    if (editorWriteInProgress.value) return;
+    const input = event.currentTarget;
+    const file =
+        input instanceof HTMLInputElement ? input.files?.[0] : undefined;
+    if (!file) return;
+
+    releaseLogoUploadPreview();
+    clearLogoUploadFeedback();
+    if (file.size > 5 * 1024 * 1024) {
+        logoUploadError.value = 'Choose an image that is 5 MB or smaller.';
+        if (input instanceof HTMLInputElement) input.value = '';
+        nextTick(() => logoFileInput.value?.focus());
+        return;
+    }
+
+    logoUploadForm.image = file;
+    logoUploadForm.alt_text = logoDraftAltText.value;
+    logoUploadPreviewUrl.value = URL.createObjectURL(file);
+    logoUploadStatus.value = 'Uploading logo…';
+
+    runOwnVisit(() =>
+        logoUploadForm.post(
+            SiteMediaController.uploadLogo({ site: props.site.id }).url,
+            {
+                forceFormData: true,
+                preserveScroll: true,
+                onCancel: () => {
+                    logoUploadStatus.value = '';
+                    releaseLogoUploadPreview();
+                    logoUploadForm.image = null;
+                    logoUploadForm.progress = null;
+                    if (logoFileInput.value) logoFileInput.value.value = '';
+                },
+                onSuccess: () => {
+                    logoDraftAltText.value = logoUploadForm.alt_text;
+                    logoUploadStatus.value = 'Logo uploaded.';
+                    releaseLogoUploadPreview();
+                    logoUploadForm.reset();
+                    if (logoFileInput.value) logoFileInput.value.value = '';
+                },
+                onError: (errors) => {
+                    logoUploadStatus.value = '';
+                    logoUploadError.value = errors.image ?? '';
+                    nextTick(() => {
+                        if (errors.image) logoFileInput.value?.focus();
+                        else if (errors.alt_text)
+                            logoAltTextInput.value?.focus();
+                        else logoFileInput.value?.focus();
+                    });
+                    releaseLogoUploadPreview();
+                    logoUploadForm.image = null;
+                    if (logoFileInput.value) logoFileInput.value.value = '';
+                },
+                onHttpException: () => {
+                    logoUploadStatus.value = '';
+                    logoUploadError.value =
+                        'We could not upload this logo. Please try again.';
+                    releaseLogoUploadPreview();
+                    logoUploadForm.image = null;
+                    if (logoFileInput.value) logoFileInput.value.value = '';
+                    return false;
+                },
+                onNetworkError: () => {
+                    logoUploadStatus.value = '';
+                    logoUploadError.value =
+                        'We could not upload this logo. Please try again.';
+                    releaseLogoUploadPreview();
+                    logoUploadForm.image = null;
+                    if (logoFileInput.value) logoFileInput.value.value = '';
+                    return false;
+                },
+            },
+        ),
+    );
+}
+
+function saveLogoAltText() {
+    if (uploadInProgress.value) return;
+    const logo = props.site.logo;
+    if (
+        !logo ||
+        !isLogoAltTextDirty.value ||
+        logoAltTextForm.processing ||
+        logoUploadForm.processing ||
+        logoClearForm.processing
+    ) {
+        return;
+    }
+
+    logoAltTextError.value = '';
+    logoAltTextStatus.value = '';
+    logoAltTextForm.alt_text = logoDraftAltText.value;
+    runOwnVisit(() =>
+        logoAltTextForm.patch(
+            SiteMediaController.updateAltText({
+                site: props.site.id,
+                mediaAsset: logo.media_asset_id,
+            }).url,
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    logoDraftAltText.value = logoAltTextForm.alt_text;
+                    logoAltTextForm.defaults();
+                    logoAltTextStatus.value = 'Logo description saved.';
+                },
+                onError: (errors) => {
+                    logoAltTextError.value = errors.alt_text ?? '';
+                    nextTick(() => logoAltTextInput.value?.focus());
+                },
+                onHttpException: () => {
+                    logoAltTextError.value =
+                        'We could not save this logo description. Please try again.';
+                    return false;
+                },
+                onNetworkError: () => {
+                    logoAltTextError.value =
+                        'We could not save this logo description. Please try again.';
+                    return false;
+                },
+            },
+        ),
+    );
+}
+
+function clearLogo() {
+    if (uploadInProgress.value) return;
+    if (
+        !props.site.logo ||
+        logoClearForm.processing ||
+        logoUploadForm.processing ||
+        logoAltTextForm.processing
+    ) {
+        return;
+    }
+
+    logoUploadError.value = '';
+    logoUploadStatus.value = '';
+    logoAltTextError.value = '';
+    logoAltTextStatus.value = '';
+    runOwnVisit(() =>
+        logoClearForm.delete(
+            SiteMediaController.clearLogo({ site: props.site.id }).url,
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    logoDraftAltText.value = '';
+                    logoAltTextForm.reset();
+                    logoAltTextForm.clearErrors();
+                    logoUploadStatus.value = 'Logo cleared.';
+                },
+                onError: () => {
+                    logoUploadError.value =
+                        'We could not clear this logo. Please try again.';
+                },
+                onHttpException: () => {
+                    logoUploadError.value =
+                        'We could not clear this logo. Please try again.';
+                    return false;
+                },
+                onNetworkError: () => {
+                    logoUploadError.value =
+                        'We could not clear this logo. Please try again.';
+                    return false;
+                },
+            },
+        ),
+    );
+}
+
+onUnmounted(() => releaseLogoUploadPreview());
 
 defineOptions({
     layout: {
@@ -1098,7 +1624,9 @@ defineOptions({
                                 </p>
                                 <button
                                     type="submit"
-                                    :disabled="nameForm.processing"
+                                    :disabled="
+                                        uploadInProgress || nameForm.processing
+                                    "
                                     class="min-h-11 w-full rounded-lg bg-[var(--workspace-green)] px-4 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60 dark:text-[var(--workspace-surface)]"
                                 >
                                     {{
@@ -1108,6 +1636,216 @@ defineOptions({
                                     }}
                                 </button>
                             </form>
+                        </div>
+                    </details>
+                    <details class="group relative">
+                        <summary
+                            aria-controls="site-logo-dropdown"
+                            class="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-4 text-sm font-semibold marker:hidden hover:bg-[var(--workspace-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)]"
+                        >
+                            <span>Site logo</span>
+                            <svg
+                                aria-hidden="true"
+                                viewBox="0 0 20 20"
+                                fill="none"
+                                class="size-4 transition-transform group-open:rotate-180"
+                            >
+                                <path
+                                    d="m5 7.5 5 5 5-5"
+                                    stroke="currentColor"
+                                    stroke-width="1.75"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                />
+                            </svg>
+                        </summary>
+                        <div
+                            id="site-logo-dropdown"
+                            class="absolute top-full right-0 z-30 mt-2 w-80 max-w-[calc(100vw-2.5rem)] rounded-xl border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-5 shadow-[var(--workspace-shadow)]"
+                        >
+                            <div class="space-y-4">
+                                <div>
+                                    <label
+                                        for="site-logo-file"
+                                        class="mb-2 block text-sm font-semibold"
+                                    >
+                                        {{
+                                            props.site.logo
+                                                ? 'Replace logo'
+                                                : 'Choose logo'
+                                        }}
+                                    </label>
+                                    <input
+                                        id="site-logo-file"
+                                        ref="logoFileInput"
+                                        type="file"
+                                        accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                                        :disabled="
+                                            editorWriteInProgress ||
+                                            logoUploadForm.processing ||
+                                            logoAltTextForm.processing ||
+                                            logoClearForm.processing
+                                        "
+                                        :aria-invalid="
+                                            Boolean(
+                                                logoUploadError ||
+                                                logoUploadForm.errors.image,
+                                            )
+                                        "
+                                        :aria-describedby="
+                                            logoUploadError ||
+                                            logoUploadForm.errors.image
+                                                ? 'site-logo-error'
+                                                : 'site-logo-help'
+                                        "
+                                        class="block min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-2 text-sm text-[var(--workspace-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-60"
+                                        @change="selectLogoFile"
+                                    />
+                                    <p
+                                        id="site-logo-help"
+                                        class="mt-2 text-xs text-[var(--workspace-muted)]"
+                                    >
+                                        JPEG or PNG, up to 5 MB. The preview
+                                        updates after upload.
+                                    </p>
+                                    <p
+                                        v-if="
+                                            logoUploadError ||
+                                            logoUploadForm.errors.image
+                                        "
+                                        id="site-logo-error"
+                                        role="alert"
+                                        class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                    >
+                                        {{
+                                            logoUploadError ||
+                                            logoUploadForm.errors.image
+                                        }}
+                                    </p>
+                                </div>
+                                <p
+                                    v-if="
+                                        logoUploadForm.processing &&
+                                        logoUploadForm.progress
+                                    "
+                                    role="status"
+                                    aria-live="polite"
+                                    class="text-sm text-[var(--workspace-muted)]"
+                                >
+                                    Uploading logo:
+                                    {{ logoUploadForm.progress.percentage }}%
+                                </p>
+                                <p
+                                    v-else-if="logoUploadStatus"
+                                    role="status"
+                                    aria-live="polite"
+                                    class="text-sm text-[var(--workspace-muted)]"
+                                >
+                                    {{ logoUploadStatus }}
+                                </p>
+                                <div>
+                                    <label
+                                        for="site-logo-alt-text"
+                                        class="mb-2 block text-sm font-semibold"
+                                    >
+                                        Logo description (alt text)
+                                    </label>
+                                    <input
+                                        id="site-logo-alt-text"
+                                        ref="logoAltTextInput"
+                                        v-model="logoDraftAltText"
+                                        type="text"
+                                        maxlength="255"
+                                        placeholder="Leave blank to use the site name"
+                                        :disabled="
+                                            uploadInProgress ||
+                                            logoUploadForm.processing ||
+                                            logoAltTextForm.processing ||
+                                            logoClearForm.processing
+                                        "
+                                        :aria-invalid="
+                                            Boolean(
+                                                logoAltTextError ||
+                                                logoAltTextForm.errors
+                                                    .alt_text ||
+                                                logoUploadForm.errors.alt_text,
+                                            )
+                                        "
+                                        :aria-describedby="
+                                            logoAltTextError ||
+                                            logoAltTextForm.errors.alt_text ||
+                                            logoUploadForm.errors.alt_text
+                                                ? 'site-logo-alt-error'
+                                                : undefined
+                                        "
+                                        class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                        @input="clearLogoAltTextFeedback"
+                                    />
+                                    <p
+                                        v-if="
+                                            logoAltTextError ||
+                                            logoAltTextForm.errors.alt_text ||
+                                            logoUploadForm.errors.alt_text
+                                        "
+                                        id="site-logo-alt-error"
+                                        role="alert"
+                                        class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                    >
+                                        {{
+                                            logoAltTextError ||
+                                            logoAltTextForm.errors.alt_text ||
+                                            logoUploadForm.errors.alt_text
+                                        }}
+                                    </p>
+                                </div>
+                                <div class="flex flex-wrap gap-2">
+                                    <button
+                                        v-if="props.site.logo"
+                                        type="button"
+                                        :disabled="
+                                            uploadInProgress ||
+                                            !isLogoAltTextDirty ||
+                                            logoUploadForm.processing ||
+                                            logoAltTextForm.processing ||
+                                            logoClearForm.processing
+                                        "
+                                        class="min-h-10 rounded-lg border border-[var(--workspace-line)] px-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-50"
+                                        @click="saveLogoAltText"
+                                    >
+                                        {{
+                                            logoAltTextForm.processing
+                                                ? 'Saving description…'
+                                                : 'Save description'
+                                        }}
+                                    </button>
+                                    <button
+                                        v-if="props.site.logo"
+                                        type="button"
+                                        :disabled="
+                                            uploadInProgress ||
+                                            logoUploadForm.processing ||
+                                            logoAltTextForm.processing ||
+                                            logoClearForm.processing
+                                        "
+                                        class="min-h-10 rounded-lg border border-red-300 px-3 text-sm font-semibold text-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:opacity-50 dark:text-red-300"
+                                        @click="clearLogo"
+                                    >
+                                        {{
+                                            logoClearForm.processing
+                                                ? 'Clearing…'
+                                                : 'Clear logo'
+                                        }}
+                                    </button>
+                                </div>
+                                <p
+                                    v-if="logoAltTextStatus"
+                                    role="status"
+                                    aria-live="polite"
+                                    class="text-sm text-[var(--workspace-muted)]"
+                                >
+                                    {{ logoAltTextStatus }}
+                                </p>
+                            </div>
                         </div>
                     </details>
                     <details class="group relative">
@@ -1254,7 +1992,10 @@ defineOptions({
                                 </p>
                                 <button
                                     type="submit"
-                                    :disabled="appearanceForm.processing"
+                                    :disabled="
+                                        uploadInProgress ||
+                                        appearanceForm.processing
+                                    "
                                     class="min-h-11 w-full rounded-lg bg-[var(--workspace-green)] px-4 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60 dark:text-[var(--workspace-surface)]"
                                 >
                                     {{
@@ -1296,10 +2037,13 @@ defineOptions({
                         :key="block.id"
                         class="flex items-center gap-1"
                         :draggable="
+                            !uploadInProgress &&
                             props.blocks.length > 1 &&
                             !orderForm.processing &&
                             !addForm.processing &&
-                            !deleteForm.processing
+                            !deleteForm.processing &&
+                            !imageUploadForm.processing &&
+                            !altTextForm.processing
                         "
                         @dragstart="startDrag($event, block.id)"
                         @dragover.prevent
@@ -1310,9 +2054,12 @@ defineOptions({
                             type="button"
                             :aria-pressed="selectedBlockId === block.id"
                             :disabled="
+                                uploadInProgress ||
                                 orderForm.processing ||
                                 deleteForm.processing ||
-                                addForm.processing
+                                addForm.processing ||
+                                imageUploadForm.processing ||
+                                altTextForm.processing
                             "
                             class="min-h-11 min-w-0 flex-1 rounded-lg border px-3 py-2 text-left text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-60"
                             :class="
@@ -1338,10 +2085,13 @@ defineOptions({
                                     ' up'
                                 "
                                 :disabled="
+                                    uploadInProgress ||
                                     block.position === 0 ||
                                     orderForm.processing ||
                                     deleteForm.processing ||
-                                    addForm.processing
+                                    addForm.processing ||
+                                    imageUploadForm.processing ||
+                                    altTextForm.processing
                                 "
                                 class="grid size-10 place-items-center rounded-lg border border-[var(--workspace-line)] text-lg hover:bg-[var(--workspace-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:cursor-not-allowed disabled:opacity-40"
                                 @click="moveBlock(block.id, -1)"
@@ -1358,11 +2108,14 @@ defineOptions({
                                     ' down'
                                 "
                                 :disabled="
+                                    uploadInProgress ||
                                     block.position ===
                                         props.blocks.length - 1 ||
                                     orderForm.processing ||
                                     deleteForm.processing ||
-                                    addForm.processing
+                                    addForm.processing ||
+                                    imageUploadForm.processing ||
+                                    altTextForm.processing
                                 "
                                 class="grid size-10 place-items-center rounded-lg border border-[var(--workspace-line)] text-lg hover:bg-[var(--workspace-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:cursor-not-allowed disabled:opacity-40"
                                 @click="moveBlock(block.id, 1)"
@@ -1423,6 +2176,7 @@ defineOptions({
                             :key="item.type"
                             type="button"
                             :disabled="
+                                uploadInProgress ||
                                 addForm.processing ||
                                 orderForm.processing ||
                                 deleteForm.processing ||
@@ -1475,11 +2229,19 @@ defineOptions({
                     <header
                         class="border-b border-[var(--site-preview-border)] px-6 py-7 sm:px-10"
                     >
-                        <h3
-                            class="font-serif text-2xl font-semibold tracking-tight"
-                        >
-                            {{ props.site.name }}
-                        </h3>
+                        <div class="flex items-center gap-2">
+                            <img
+                                v-if="logoPreviewUrl()"
+                                :src="logoPreviewUrl() ?? undefined"
+                                :alt="logoPreviewAltText()"
+                                class="max-h-24 max-w-40 shrink-0 object-contain object-left"
+                            />
+                            <h3
+                                class="min-w-0 font-serif text-2xl font-semibold tracking-tight break-words"
+                            >
+                                {{ props.site.name }}
+                            </h3>
+                        </div>
                         <nav
                             v-if="props.blocks.length"
                             aria-label="Page sections"
@@ -1694,16 +2456,27 @@ defineOptions({
                             </template>
                             <template v-else-if="block.type === 'image'">
                                 <div
-                                    role="group"
-                                    aria-label="Image placeholder"
-                                    class="flex min-h-64 flex-col items-center justify-center rounded-xl border border-dashed border-[var(--site-preview-border)] bg-[var(--site-preview-soft)] p-8 text-center"
+                                    class="overflow-hidden rounded-xl border border-[var(--site-preview-border)] bg-[var(--site-preview-soft)]"
                                 >
-                                    <span class="font-semibold">Image</span>
-                                    <span
-                                        class="mt-2 text-sm text-[var(--site-preview-muted)]"
-                                        >Image uploads are not available
-                                        yet.</span
+                                    <img
+                                        v-if="blockMediaUrl(block)"
+                                        :src="blockMediaUrl(block) ?? undefined"
+                                        :alt="blockPreviewAltText(block)"
+                                        class="max-h-[32rem] w-full object-contain"
+                                    />
+                                    <div
+                                        v-else
+                                        role="group"
+                                        aria-label="Image placeholder"
+                                        class="flex min-h-64 flex-col items-center justify-center p-8 text-center"
                                     >
+                                        <span class="font-semibold">Image</span>
+                                        <span
+                                            class="mt-2 text-sm text-[var(--site-preview-muted)]"
+                                            >Choose an image in the
+                                            editor.</span
+                                        >
+                                    </div>
                                 </div>
                             </template>
                             <template v-else-if="block.type === 'text_image'">
@@ -1729,16 +2502,32 @@ defineOptions({
                                         </p>
                                     </div>
                                     <div
-                                        role="group"
-                                        aria-label="Image placeholder"
-                                        class="flex min-h-56 flex-col items-center justify-center rounded-xl border border-dashed border-[var(--site-preview-border)] bg-[var(--site-preview-soft)] p-8 text-center"
+                                        class="overflow-hidden rounded-xl border border-[var(--site-preview-border)] bg-[var(--site-preview-soft)]"
                                     >
-                                        <span class="font-semibold">Image</span>
-                                        <span
-                                            class="mt-2 text-sm text-[var(--site-preview-muted)]"
-                                            >Image uploads are not available
-                                            yet.</span
+                                        <img
+                                            v-if="blockMediaUrl(block)"
+                                            :src="
+                                                blockMediaUrl(block) ??
+                                                undefined
+                                            "
+                                            :alt="blockPreviewAltText(block)"
+                                            class="max-h-[32rem] min-h-56 w-full object-contain"
+                                        />
+                                        <div
+                                            v-else
+                                            role="group"
+                                            aria-label="Image placeholder"
+                                            class="flex min-h-56 flex-col items-center justify-center p-8 text-center"
                                         >
+                                            <span class="font-semibold"
+                                                >Image</span
+                                            >
+                                            <span
+                                                class="mt-2 text-sm text-[var(--site-preview-muted)]"
+                                                >Choose an image in the
+                                                editor.</span
+                                            >
+                                        </div>
                                     </div>
                                 </div>
                             </template>
@@ -1814,26 +2603,226 @@ defineOptions({
                     }}
                 </h2>
                 <template v-if="selectedBlock">
-                    <p
-                        v-if="selectedBlock.type === 'image'"
-                        class="mt-3 text-sm text-[var(--workspace-muted)]"
-                    >
-                        Image uploads are not available yet.
-                    </p>
-                    <p
-                        v-else
-                        class="mt-3 text-sm text-[var(--workspace-muted)]"
-                    >
+                    <p class="mt-3 text-sm text-[var(--workspace-muted)]">
                         Edit the fields below, then save your changes.
                     </p>
+                    <section
+                        v-if="
+                            ['image', 'text_image'].includes(selectedBlock.type)
+                        "
+                        aria-labelledby="block-image-heading"
+                        class="mt-6 space-y-4 border-t border-[var(--workspace-line)] pt-5"
+                    >
+                        <h3
+                            id="block-image-heading"
+                            class="text-sm font-semibold"
+                        >
+                            Image
+                        </h3>
+                        <div>
+                            <label
+                                for="block-image-file"
+                                class="mb-2 block text-sm font-semibold"
+                            >
+                                {{
+                                    selectedBlock.content.media_asset_id
+                                        ? 'Replace image'
+                                        : 'Choose image'
+                                }}
+                            </label>
+                            <input
+                                id="block-image-file"
+                                ref="imageInput"
+                                type="file"
+                                accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                                :disabled="
+                                    editorWriteInProgress ||
+                                    imageUploadForm.processing ||
+                                    altTextForm.processing
+                                "
+                                :aria-invalid="
+                                    Boolean(
+                                        imageUploadError ||
+                                        imageUploadForm.errors.image,
+                                    )
+                                "
+                                :aria-describedby="
+                                    imageUploadError ||
+                                    imageUploadForm.errors.image
+                                        ? 'block-image-error'
+                                        : 'block-image-help'
+                                "
+                                class="block min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-2 text-sm text-[var(--workspace-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-60"
+                                @change="selectImageFile"
+                            />
+                            <p
+                                id="block-image-help"
+                                class="mt-2 text-xs text-[var(--workspace-muted)]"
+                            >
+                                JPEG or PNG, up to 5 MB. Uploading replaces the
+                                saved image.
+                            </p>
+                            <p
+                                v-if="
+                                    imageUploadError ||
+                                    imageUploadForm.errors.image
+                                "
+                                id="block-image-error"
+                                role="alert"
+                                class="mt-2 text-sm text-red-700 dark:text-red-300"
+                            >
+                                {{
+                                    imageUploadError ||
+                                    imageUploadForm.errors.image
+                                }}
+                            </p>
+                        </div>
+                        <p
+                            v-if="
+                                imageUploadForm.processing &&
+                                imageUploadForm.progress
+                            "
+                            role="status"
+                            aria-live="polite"
+                            class="text-sm text-[var(--workspace-muted)]"
+                        >
+                            Uploading image:
+                            {{ imageUploadForm.progress.percentage }}%
+                        </p>
+                        <p
+                            v-else-if="imageUploadStatus"
+                            role="status"
+                            aria-live="polite"
+                            class="text-sm text-[var(--workspace-muted)]"
+                        >
+                            {{ imageUploadStatus }}
+                        </p>
+                        <div>
+                            <label
+                                for="block-image-alt-text"
+                                class="mb-2 block text-sm font-semibold"
+                            >
+                                Image description (alt text)
+                            </label>
+                            <input
+                                id="block-image-alt-text"
+                                ref="altTextInput"
+                                v-model="draftAltText"
+                                type="text"
+                                maxlength="255"
+                                placeholder="Describe the image, or leave blank if decorative"
+                                :disabled="
+                                    uploadInProgress ||
+                                    imageUploadForm.processing ||
+                                    altTextForm.processing
+                                "
+                                :aria-invalid="
+                                    Boolean(
+                                        altTextError ||
+                                        altTextForm.errors.alt_text ||
+                                        imageUploadForm.errors.alt_text,
+                                    )
+                                "
+                                :aria-describedby="
+                                    altTextError ||
+                                    altTextForm.errors.alt_text ||
+                                    imageUploadForm.errors.alt_text
+                                        ? 'block-image-alt-error'
+                                        : undefined
+                                "
+                                class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                @input="clearAltTextFeedback"
+                            />
+                            <p
+                                v-if="
+                                    altTextError ||
+                                    altTextForm.errors.alt_text ||
+                                    imageUploadForm.errors.alt_text
+                                "
+                                id="block-image-alt-error"
+                                role="alert"
+                                class="mt-2 text-sm text-red-700 dark:text-red-300"
+                            >
+                                {{
+                                    altTextError ||
+                                    altTextForm.errors.alt_text ||
+                                    imageUploadForm.errors.alt_text
+                                }}
+                            </p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button
+                                v-if="selectedBlock.content.media_asset_id"
+                                type="button"
+                                :disabled="
+                                    uploadInProgress ||
+                                    !isAltTextDirty ||
+                                    altTextForm.processing ||
+                                    imageUploadForm.processing ||
+                                    clearImagePending
+                                "
+                                class="min-h-10 rounded-lg border border-[var(--workspace-line)] px-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-50"
+                                @click="saveAltText"
+                            >
+                                {{
+                                    altTextForm.processing
+                                        ? 'Saving description…'
+                                        : 'Save description'
+                                }}
+                            </button>
+                            <button
+                                v-if="selectedBlock.content.media_asset_id"
+                                type="button"
+                                :disabled="
+                                    uploadInProgress ||
+                                    (isAltTextDirty && !clearImagePending) ||
+                                    imageUploadForm.processing ||
+                                    altTextForm.processing
+                                "
+                                aria-describedby="block-image-clear-help"
+                                class="min-h-10 rounded-lg border border-red-300 px-3 text-sm font-semibold text-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:opacity-50 dark:text-red-300"
+                                @click="requestClearBlockImage"
+                            >
+                                {{
+                                    clearImagePending
+                                        ? 'Undo clear'
+                                        : 'Clear image'
+                                }}
+                            </button>
+                        </div>
+                        <p
+                            v-if="selectedBlock.content.media_asset_id"
+                            id="block-image-clear-help"
+                            class="text-xs text-[var(--workspace-muted)]"
+                        >
+                            <template v-if="clearImagePending">
+                                Save the block to clear this image, or undo the
+                                clear to keep it. You can also choose a
+                                replacement image now.
+                            </template>
+                            <template v-else>
+                                Save a changed description before clearing the
+                                image. Clear image takes effect when you save
+                                the block.
+                            </template>
+                        </p>
+                        <p
+                            v-if="altTextStatus"
+                            role="status"
+                            aria-live="polite"
+                            class="text-sm text-[var(--workspace-muted)]"
+                        >
+                            {{ altTextStatus }}
+                        </p>
+                    </section>
                     <form
-                        v-if="selectedBlock.type !== 'image'"
                         class="mt-6 space-y-5 border-t border-[var(--workspace-line)] pt-5"
                         @submit.prevent="saveBlock"
                     >
                         <div
                             v-if="
                                 selectedBlock.type !== 'plain_text' &&
+                                selectedBlock.type !== 'image' &&
                                 selectedBlock.type !== 'video'
                             "
                         >
@@ -1848,10 +2837,13 @@ defineOptions({
                                 v-model="draftHeading"
                                 type="text"
                                 :disabled="
+                                    uploadInProgress ||
                                     saveForm.processing ||
                                     addForm.processing ||
                                     deleteForm.processing ||
-                                    orderForm.processing
+                                    orderForm.processing ||
+                                    imageUploadForm.processing ||
+                                    altTextForm.processing
                                 "
                                 :aria-invalid="
                                     Boolean(saveForm.errors['content.heading'])
@@ -1877,6 +2869,7 @@ defineOptions({
                             v-if="
                                 selectedBlock.type !== 'service_times' &&
                                 selectedBlock.type !== 'contact' &&
+                                selectedBlock.type !== 'image' &&
                                 selectedBlock.type !== 'video'
                             "
                         >
@@ -1891,6 +2884,7 @@ defineOptions({
                                 v-model="draftBody"
                                 rows="8"
                                 :disabled="
+                                    uploadInProgress ||
                                     saveForm.processing ||
                                     addForm.processing ||
                                     deleteForm.processing ||
@@ -1931,6 +2925,7 @@ defineOptions({
                                 autocomplete="url"
                                 placeholder="https://www.youtube.com/watch?v=…"
                                 :disabled="
+                                    uploadInProgress ||
                                     saveForm.processing ||
                                     addForm.processing ||
                                     deleteForm.processing ||
@@ -1977,6 +2972,7 @@ defineOptions({
                                     ref="linkTypeInput"
                                     v-model="draftLinkType"
                                     :disabled="
+                                        uploadInProgress ||
                                         saveForm.processing ||
                                         addForm.processing ||
                                         deleteForm.processing ||
@@ -2026,6 +3022,7 @@ defineOptions({
                                     v-model="draftButtonLabel"
                                     type="text"
                                     :disabled="
+                                        uploadInProgress ||
                                         saveForm.processing ||
                                         addForm.processing ||
                                         deleteForm.processing ||
@@ -2070,6 +3067,7 @@ defineOptions({
                                     ref="targetBlockInput"
                                     v-model.number="draftTargetBlockId"
                                     :disabled="
+                                        uploadInProgress ||
                                         saveForm.processing ||
                                         addForm.processing ||
                                         deleteForm.processing ||
@@ -2144,6 +3142,7 @@ defineOptions({
                                     inputmode="url"
                                     placeholder="https://example.org"
                                     :disabled="
+                                        uploadInProgress ||
                                         saveForm.processing ||
                                         addForm.processing ||
                                         deleteForm.processing ||
@@ -2214,6 +3213,7 @@ defineOptions({
                                                 type="button"
                                                 :aria-label="`Move gathering ${index + 1} up`"
                                                 :disabled="
+                                                    uploadInProgress ||
                                                     index === 0 ||
                                                     saveForm.processing ||
                                                     addForm.processing ||
@@ -2231,6 +3231,7 @@ defineOptions({
                                                 type="button"
                                                 :aria-label="`Move gathering ${index + 1} down`"
                                                 :disabled="
+                                                    uploadInProgress ||
                                                     index ===
                                                         draftEntries.length -
                                                             1 ||
@@ -2250,6 +3251,7 @@ defineOptions({
                                                 type="button"
                                                 :aria-label="`Remove gathering ${index + 1}`"
                                                 :disabled="
+                                                    uploadInProgress ||
                                                     saveForm.processing ||
                                                     addForm.processing ||
                                                     deleteForm.processing ||
@@ -2281,6 +3283,7 @@ defineOptions({
                                             :id="`service-day-${index}`"
                                             v-model="entry.day"
                                             :disabled="
+                                                uploadInProgress ||
                                                 saveForm.processing ||
                                                 addForm.processing ||
                                                 deleteForm.processing ||
@@ -2335,6 +3338,7 @@ defineOptions({
                                             v-model="entry.time"
                                             type="time"
                                             :disabled="
+                                                uploadInProgress ||
                                                 saveForm.processing ||
                                                 addForm.processing ||
                                                 deleteForm.processing ||
@@ -2374,6 +3378,7 @@ defineOptions({
                                             type="text"
                                             placeholder="Traditional service"
                                             :disabled="
+                                                uploadInProgress ||
                                                 saveForm.processing ||
                                                 addForm.processing ||
                                                 deleteForm.processing ||
@@ -2407,6 +3412,7 @@ defineOptions({
                                 ref="addServiceTimeButton"
                                 type="button"
                                 :disabled="
+                                    uploadInProgress ||
                                     saveForm.processing ||
                                     addForm.processing ||
                                     deleteForm.processing ||
@@ -2447,6 +3453,7 @@ defineOptions({
                                     inputmode="email"
                                     autocomplete="email"
                                     :disabled="
+                                        uploadInProgress ||
                                         saveForm.processing ||
                                         addForm.processing ||
                                         deleteForm.processing ||
@@ -2489,6 +3496,7 @@ defineOptions({
                                     autocomplete="tel"
                                     placeholder="+1 (555) 123-4567"
                                     :disabled="
+                                        uploadInProgress ||
                                         saveForm.processing ||
                                         addForm.processing ||
                                         deleteForm.processing ||
@@ -2541,11 +3549,14 @@ defineOptions({
                         <button
                             type="submit"
                             :disabled="
+                                uploadInProgress ||
                                 saveForm.processing ||
                                 addForm.processing ||
                                 deleteForm.processing ||
                                 orderForm.processing ||
-                                !isDirty
+                                imageUploadForm.processing ||
+                                altTextForm.processing ||
+                                !isContentDirty
                             "
                             class="min-h-11 w-full rounded-lg bg-[var(--workspace-green)] px-4 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:cursor-not-allowed disabled:opacity-60 dark:text-[var(--workspace-surface)]"
                         >
@@ -2558,10 +3569,13 @@ defineOptions({
                         <button
                             type="button"
                             :disabled="
+                                uploadInProgress ||
                                 deleteForm.processing ||
                                 saveForm.processing ||
                                 orderForm.processing ||
-                                addForm.processing
+                                addForm.processing ||
+                                imageUploadForm.processing ||
+                                altTextForm.processing
                             "
                             class="min-h-11 w-full rounded-lg border border-red-300 px-4 text-sm font-semibold text-red-700 hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:cursor-wait disabled:opacity-60 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950"
                             @click="removeSelectedBlock"

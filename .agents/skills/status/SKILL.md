@@ -12,7 +12,7 @@ Where this sits in the workflow:
     any time  ->  [status]  ->  reads build-plan + current-feature + git
                   (read-only)   prints a short "you are here"
 
-This skill answers one question: *where am I?* It reads the files that already
+This skill answers one question: _where am I?_ It reads the files that already
 track progress and prints a short orientation. It is the fast way back in after a
 break, a context clear, or a day away. It never changes anything: no edits, no
 commits, no installs, no builds, no branch changes.

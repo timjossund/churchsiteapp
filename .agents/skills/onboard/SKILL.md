@@ -270,13 +270,13 @@ Recommend option 1 by default. If the user chooses option 2:
 
 - Add this block to `.gitignore`, preserving existing entries:
 
-  ```gitignore
-  # AI Blueprint local workflow files
-  .agents/
-  .claude/
-  blueprint/
-  CLAUDE.md
-  ```
+    ```gitignore
+    # AI Blueprint local workflow files
+    .agents/
+    .claude/
+    blueprint/
+    CLAUDE.md
+    ```
 
 - Keep `AGENTS.md` tracked. It remains the lightweight public project guide for
   commands and conventions.
@@ -339,8 +339,8 @@ Stop with a concise onboarding report:
 - adapter recommendation
 - TODOs or uncertainties
 - exact next files for the user to fill in:
-  - `blueprint/project-plan.md`
-  - `blueprint/build-plan.md`
+    - `blueprint/project-plan.md`
+    - `blueprint/build-plan.md`
 
 Make the direct path clear: the user can write or develop those files through
 any conversation, then run `/overview`. Also mention `/discovery` or `$discovery`

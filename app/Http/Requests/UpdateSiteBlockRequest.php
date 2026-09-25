@@ -106,7 +106,12 @@ class UpdateSiteBlockRequest extends FormRequest
         }
 
         if (in_array($type, ['image', 'text_image'], true)) {
-            $rules['content.media_asset_id'] = ['present', 'nullable'];
+            $rules['content.media_asset_id'] = [
+                'present',
+                'nullable',
+                'integer',
+                Rule::exists('media_assets', 'id')->where('site_id', $this->ownedBlock()->site_id),
+            ];
         }
 
         return $rules;
@@ -133,8 +138,8 @@ class UpdateSiteBlockRequest extends FormRequest
             if (in_array($type, ['image', 'text_image'], true)
                 && is_array($content)
                 && array_key_exists('media_asset_id', $content)
-                && $content['media_asset_id'] !== null) {
-                $validator->errors()->add('content.media_asset_id', 'The media asset reference must be null.');
+                && $content['media_asset_id'] === '') {
+                $validator->errors()->add('content.media_asset_id', 'Choose an image or clear the current image.');
             }
 
             if ($type === 'video') {

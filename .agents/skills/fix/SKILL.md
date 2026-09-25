@@ -41,7 +41,7 @@ is being built now, feature or fix). Its first heading must be exactly
 lighter than a feature spec:
 
 - **Title** - the bug or change in a few words.
-- **Type:** Fix  (so `/complete` logs it to `blueprint/history/fixes/`, not `blueprint/history/features/`).
+- **Type:** Fix (so `/complete` logs it to `blueprint/history/fixes/`, not `blueprint/history/features/`).
 - **Status:** not started - `/implement` updates this durable workflow state as
   work and verification progress.
 - **Branch:** the full fix branch from the configured prefix plus the fix title

@@ -41,24 +41,24 @@ preserving Blueprint history and compatible work added afterward.
 
 **Classification:** No overlap | Overlap, likely compatible | Dependency risk
 
-| Later commit | Shared path or contract | Required handling |
-| ------------ | ----------------------- | ----------------- |
-| `<sha> subject` | `path` or contract | Preserve, adapt, or block |
+| Later commit    | Shared path or contract | Required handling         |
+| --------------- | ----------------------- | ------------------------- |
+| `<sha> subject` | `path` or contract      | Preserve, adapt, or block |
 
 ## Build steps
 
 - [ ] Apply the target commit's product diff in reverse with the Type: Rollback
-  guard in `/implement`.
-  - Done when: the reverse patch applies only to product paths, protected
-    Blueprint paths are unchanged, and the staged diff matches the approved
-    rollback scope.
+      guard in `/implement`.
+    - Done when: the reverse patch applies only to product paths, protected
+      Blueprint paths are unchanged, and the staged diff matches the approved
+      rollback scope.
 - [ ] Make only the compatibility edits approved by the risk review.
-  - Done when: later features named above still compile and retain their stated
-    behavior. Remove this step when no compatibility work is required.
+    - Done when: later features named above still compile and retain their stated
+      behavior. Remove this step when no compatibility work is required.
 - [ ] Run the project checks and the observable removal path below.
-  - Done when: every declared build, test, and acceptance command passes, the
-    removed behavior is no longer reachable, and unaffected core behavior still
-    works.
+    - Done when: every declared build, test, and acceptance command passes, the
+      removed behavior is no longer reachable, and unaffected core behavior still
+      works.
 
 ## Verification
 

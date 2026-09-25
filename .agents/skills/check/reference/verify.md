@@ -12,7 +12,7 @@ Where this sits in the workflow:
      the feature)   done-when)       proven)
 
 `/implement` builds and does a quick build-plus-screenshot check inline. `/check`
-is the deeper, repeatable gate for when a "done when" needs the *real running app*,
+is the deeper, repeatable gate for when a "done when" needs the _real running app_,
 not just a green build: a click that triggers a download, a route that returns a
 file, a flow across screens. Run it on a single step whose done-when is
 behavioral, or on the whole feature as the acceptance check before `/complete`.
@@ -62,7 +62,7 @@ type:
 - **Server/API** - start it and hit the endpoints.
 - **Library** - exercise the public API through an example or the test command.
 
-If a `test` command is declared in `AGENTS.md`, you may run it as *one* input, but
+If a `test` command is declared in `AGENTS.md`, you may run it as _one_ input, but
 `/check` is broader than unit tests: it checks real behavior, which is exactly the
 evidence UI and integration steps ride on instead of unit tests.
 
@@ -99,7 +99,7 @@ Then state the bottom line: are all the feature's done-whens proven, or not yet.
 - Anything failed -> update only that status line to `verification failed`, then
   hand back to `/implement`; name what to fix. Do not fix it here.
 - Anything unverifiable -> update only that status line to `verification
-  incomplete`, then say why; never report it as a pass.
+incomplete`, then say why; never report it as a pass.
 
 The status-line update is generated workflow state, not a product-source edit.
 Do not change the spec, checkboxes, findings, or product files from `/check`.

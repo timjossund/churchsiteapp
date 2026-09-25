@@ -240,10 +240,11 @@ Read the archive back and confirm that its spec, findings, and review match thei
 inputs before resetting live evidence. Reset the active spec last.
 
 **Discard consumed prototypes.** If this feature built the look from `prototypes/`
+
 - its Design reference pointed there and an early step ported `prototypes/theme.css`
-into the app - delete the `prototypes/` folder now. The tokens live in the real
-stylesheet and the HTML mockups were always throwaway; fold the deletion into this
-feature's commit. Skip this if the feature didn't consume prototypes.
+  into the app - delete the `prototypes/` folder now. The tokens live in the real
+  stylesheet and the HTML mockups were always throwaway; fold the deletion into this
+  feature's commit. Skip this if the feature didn't consume prototypes.
 
 Then remove only the archived entries from the ledger. Entries with `open`,
 `fixed`, or `unverified` status stay in the ledger with their IDs so they are

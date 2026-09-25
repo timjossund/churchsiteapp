@@ -112,13 +112,13 @@ If there is no active spec:
    requested fix.
 2. Write `blueprint/context/current-feature.md`.
 3. Red-team the spec before building:
-   - missing unhappy paths
-   - oversized steps
-   - undefined contracts
-   - missing design reference
-   - scope creep
-   - vague done-whens
-   - missing testing plan when `AGENTS.md` declares a test command
+    - missing unhappy paths
+    - oversized steps
+    - undefined contracts
+    - missing design reference
+    - scope creep
+    - vague done-whens
+    - missing testing plan when `AGENTS.md` declares a test command
 4. Apply the spec fixes.
 
 Autopilot may continue past this spec gate because the user explicitly invoked
@@ -147,30 +147,30 @@ For every step:
 
 1. Implement only that step.
 2. Run the relevant verification:
-   - the exact `Verify` command from `AGENTS.md`, when declared
-   - otherwise the build, relevant test, lint, and typecheck commands already
-     documented by the project
-   - browser, CLI, API, or app-level evidence for behavioral done-whens
-   - with `verification.logicTests: "required"`, stop and point to `/tests` if
-     logic changed but no test runner is configured
+    - the exact `Verify` command from `AGENTS.md`, when declared
+    - otherwise the build, relevant test, lint, and typecheck commands already
+      documented by the project
+    - browser, CLI, API, or app-level evidence for behavioral done-whens
+    - with `verification.logicTests: "required"`, stop and point to `/tests` if
+      logic changed but no test runner is configured
 3. If UI is involved, inspect the running app when possible. Prefer Playwright if
    it is already installed or declared. Capture screenshots when they add useful
    evidence. Check for console errors and failed requests.
    With `verification.uiEvidence: "required"`, direct browser evidence is
    mandatory and unavailable evidence is a hard stop.
 4. Self-review the diff for the step:
-   - does it match the spec?
-   - did it add scope?
-   - is the error path handled?
-   - did it follow `coding-standards.md`?
-   - are tests present for new in-scope logic when the test gate is on?
+    - does it match the spec?
+    - did it add scope?
+    - is the error path handled?
+    - did it follow `coding-standards.md`?
+    - are tests present for new in-scope logic when the test gate is on?
 5. Fix obvious issues and rerun the failed checks.
 6. Mark the step checked in `current-feature.md` only after the step passes.
 7. When `workflow.checkpointCommits: "enabled"`, create a checkpoint commit on
    the feature or fix branch for the passing step. Include the code, tests, and
    the updated `current-feature.md` checkbox. Use a conventional message such as
    `feat: checkpoint mock snapshot route` or `fix: checkpoint stale service
-   filter`. Keep the message about the step, not about Autopilot. When the value
+filter`. Keep the message about the step, not about Autopilot. When the value
    is `disabled`, leave the passing step uncommitted for the final review.
 
 Do not batch the whole feature into one large diff. If a step gets too large,

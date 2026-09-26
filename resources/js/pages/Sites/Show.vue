@@ -2471,12 +2471,68 @@ defineOptions({
             </button>
         </section>
 
+        <section
+            aria-labelledby="add-block-heading"
+            class="mb-6 rounded-[1.25rem] border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-5 shadow-[var(--workspace-shadow)]"
+        >
+            <div
+                class="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3"
+            >
+                <h2 id="add-block-heading" class="font-serif text-xl">
+                    Add a block
+                </h2>
+                <p class="text-xs font-medium text-[var(--workspace-muted)]">
+                    Scroll for more
+                    <span aria-hidden="true">→</span>
+                </p>
+            </div>
+            <div
+                role="group"
+                aria-label="Choose a block type. Scroll horizontally to see more options."
+                class="mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain scroll-smooth pb-2"
+            >
+                <button
+                    v-for="item in blockTypes"
+                    :key="item.type"
+                    type="button"
+                    :disabled="
+                        uploadInProgress ||
+                        addForm.processing ||
+                        orderForm.processing ||
+                        deleteForm.processing ||
+                        saveForm.processing
+                    "
+                    class="flex min-h-16 shrink-0 basis-[82%] snap-start flex-col justify-center rounded-lg border border-[var(--workspace-line)] px-3 py-2 text-left hover:bg-[var(--workspace-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:cursor-wait disabled:opacity-60 sm:basis-[calc(28.57%_-_0.54rem)]"
+                    @click="addBlock(item.type)"
+                >
+                    <span class="text-sm font-semibold">{{ item.label }}</span>
+                    <span class="text-xs text-[var(--workspace-muted)]">{{
+                        item.description
+                    }}</span>
+                </button>
+            </div>
+            <p
+                v-if="addForm.processing"
+                role="status"
+                class="mt-3 text-sm text-[var(--workspace-muted)]"
+            >
+                Adding block…
+            </p>
+            <p
+                v-if="addError"
+                role="alert"
+                class="mt-3 text-sm text-red-700 dark:text-red-300"
+            >
+                {{ addError }}
+            </p>
+        </section>
+
         <div
             class="grid gap-5 lg:grid-cols-[15rem_minmax(0,1fr)_17rem] lg:items-start"
         >
             <section
                 aria-labelledby="block-list-heading"
-                class="rounded-[1.25rem] border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-5 shadow-[var(--workspace-shadow)]"
+                class="rounded-[1.25rem] border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-5 shadow-[var(--workspace-shadow)] lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:overscroll-contain"
             >
                 <div class="flex items-baseline justify-between gap-3">
                     <h2 id="block-list-heading" class="font-serif text-xl">
@@ -2586,7 +2642,7 @@ defineOptions({
                     </li>
                 </ol>
                 <p v-else class="mt-5 text-sm text-[var(--workspace-muted)]">
-                    No blocks yet. Add one below to begin.
+                    No blocks yet. Add one above to begin.
                 </p>
                 <p
                     v-if="props.blocks.length === 1"
@@ -2626,48 +2682,6 @@ defineOptions({
                     >
                         Refresh blocks
                     </button>
-                </div>
-
-                <div class="mt-7 border-t border-[var(--workspace-line)] pt-5">
-                    <h3 class="text-sm font-semibold">Add a block</h3>
-                    <div class="mt-3 space-y-2">
-                        <button
-                            v-for="item in blockTypes"
-                            :key="item.type"
-                            type="button"
-                            :disabled="
-                                uploadInProgress ||
-                                addForm.processing ||
-                                orderForm.processing ||
-                                deleteForm.processing ||
-                                saveForm.processing
-                            "
-                            class="flex min-h-11 w-full flex-col justify-center rounded-lg border border-[var(--workspace-line)] px-3 py-2 text-left hover:bg-[var(--workspace-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:cursor-wait disabled:opacity-60"
-                            @click="addBlock(item.type)"
-                        >
-                            <span class="text-sm font-semibold">{{
-                                item.label
-                            }}</span>
-                            <span
-                                class="text-xs text-[var(--workspace-muted)]"
-                                >{{ item.description }}</span
-                            >
-                        </button>
-                    </div>
-                    <p
-                        v-if="addForm.processing"
-                        role="status"
-                        class="mt-3 text-sm text-[var(--workspace-muted)]"
-                    >
-                        Adding block…
-                    </p>
-                    <p
-                        v-if="addError"
-                        role="alert"
-                        class="mt-3 text-sm text-red-700 dark:text-red-300"
-                    >
-                        {{ addError }}
-                    </p>
                 </div>
             </section>
 
@@ -3048,7 +3062,7 @@ defineOptions({
 
             <aside
                 aria-labelledby="block-details-heading"
-                class="rounded-[1.25rem] border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-5 shadow-[var(--workspace-shadow)]"
+                class="rounded-[1.25rem] border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-5 shadow-[var(--workspace-shadow)] lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:overscroll-contain"
             >
                 <p
                     class="text-xs font-bold tracking-[0.14em] text-[var(--workspace-green)] uppercase"

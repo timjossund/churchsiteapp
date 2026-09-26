@@ -1,8 +1,8 @@
 # Build Plan
 
-The first seven features lead to the single-page launch. Multi-page support is the first feature afterward. Each item is a high-level outcome; implementation steps belong in its later feature spec.
+Features 1-5 establish the editor and single-page publishing baseline. The next planned work is block styling and options, then multi-page sites; per-site billing and custom domains follow. Feature IDs remain stable when the build order changes. Each item is a high-level outcome; implementation steps belong in its later feature spec.
 
-## Single-page launch
+## Initial launch
 
 - [x] 1. **Site workspace** - Let signed-in users create and manage multiple blank sites, with one account owning and editing each site.
 - [x] 2. **Block page editor** - Let users add, edit in a side panel, remove, and freely reorder the agreed landing-page blocks, including structured service times, hero links, and YouTube/Vimeo video embeds.
@@ -12,12 +12,10 @@ The first seven features lead to the single-page launch. Multi-page support is t
 - [x] 3. **Themes and site shell** - Add the initial theme choices plus editable header, footer, logo or church name, and section navigation without changing block content or order.
 - [x] 4. **Image uploads** - Let users upload images for the relevant blocks and store them in IONOS buckets.
 - [x] 5. **Drafts, publishing, and preview** - Publish a stable Blade-rendered version to a shareable, non-indexed `churchsite.app` subdirectory page while later edits remain drafts; add page title, description, and social preview image.
+- [x] 9. **Block styling and options** - Improve block styling and expand the options users can configure for the blocks in their sites.
+- [ ] 8. **Multi-page sites** - Let users add and manage pages within a site, with navigation and page-specific published content.
 - [ ] 6. **Per-site subscriptions** - Integrate Spark with Stripe so each site can have its own monthly or annual subscription and billing status.
 - [ ] 7. **Custom domains and SSL** - Let a subscribed site connect a BYO `www` hostname through Cloudflare for SaaS, show DNS instructions and connection status, serve its published Blade page over HTTPS, and remove custom-domain access when the subscription becomes inactive.
-
-## First feature after launch
-
-- [ ] 8. **Multi-page sites** - Let users add and manage pages within a site, with navigation and page-specific published content.
 
 ## Planning TODOs
 

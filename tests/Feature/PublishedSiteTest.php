@@ -115,6 +115,72 @@ test('public rendering escapes text and omits unsafe links and unsupported video
         ->not->toContain('<iframe');
 });
 
+test('published rendering applies curated block styles from the published snapshot', function () {
+    Storage::fake('s3');
+    $site = Site::factory()->create(['slug' => 'block-style-rendering']);
+    $asset = $site->mediaAssets()->create([
+        'storage_key' => "sites/{$site->id}/block-style-image",
+        'mime_type' => 'image/png',
+        'alt_text' => 'A welcoming church.',
+    ]);
+    Storage::disk('s3')->put($asset->storage_key, 'block image', ['visibility' => 'private']);
+    $textImage = $site->blocks()->create([
+        'type' => 'text_image',
+        'position' => 0,
+        'content' => [
+            'heading' => 'Welcome',
+            'body' => 'A place for everyone.',
+            'media_asset_id' => $asset->id,
+            'style' => [
+                'layout' => 'image_left',
+                'alignment' => 'center',
+                'background' => 'soft',
+            ],
+        ],
+    ]);
+    $site->blocks()->create([
+        'type' => 'about',
+        'position' => 1,
+        'content' => ['heading' => 'About', 'body' => 'Our story.'],
+    ]);
+
+    $this->actingAs($site->user)->post(route('sites.publish', $site));
+    auth()->logout();
+
+    $html = $this->get(route('sites.published.show', $site->slug))
+        ->assertOk()
+        ->assertSee('md:order-1', false)
+        ->assertSee('md:order-2', false)
+        ->assertSee('text-center bg-[var(--site-preview-soft)]', false)
+        ->getContent();
+
+    expect($site->fresh()->published_snapshot['blocks'][0]['content']['style'])->toBe([
+        'layout' => 'image_left',
+        'alignment' => 'center',
+        'background' => 'soft',
+    ]);
+
+    $this->actingAs($site->user)
+        ->patch(route('sites.blocks.update', [$site, $textImage]), [
+            'content' => [
+                'heading' => 'Welcome',
+                'body' => 'A place for everyone.',
+                'media_asset_id' => $asset->id,
+                'style' => [
+                    'layout' => 'image_right',
+                    'alignment' => 'left',
+                    'background' => 'theme',
+                ],
+            ],
+        ])->assertRedirect(route('sites.show', $site));
+    auth()->logout();
+
+    $this->get(route('sites.published.show', $site->slug))
+        ->assertOk()
+        ->assertSee('text-center bg-[var(--site-preview-soft)]', false)
+        ->assertSee('md:order-1', false);
+});
+
 test('unknown and unpublished sites return not found', function () {
     $unpublished = Site::factory()->create(['slug' => 'not-published']);
 

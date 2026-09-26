@@ -105,6 +105,74 @@ test('an owner can save the exact content shape for each text block', function (
     expect($about->fresh()->content)->toBe(['heading' => '', 'body' => '']);
 });
 
+test('an owner can save curated style options with existing block content', function () {
+    $site = Site::factory()->create();
+    $plainText = SiteBlock::factory()->for($site)->create([
+        'content' => ['body' => 'Welcome'],
+    ]);
+    $textImage = SiteBlock::factory()->for($site)->create([
+        'type' => 'text_image',
+        'position' => 1,
+        'content' => ['heading' => 'Visit us', 'body' => 'Everyone is welcome', 'media_asset_id' => null],
+    ]);
+
+    $this->actingAs($site->user)
+        ->patch(route('sites.blocks.update', [$site, $plainText]), [
+            'content' => [
+                'body' => 'Welcome',
+                'style' => ['alignment' => 'center', 'background' => 'soft'],
+            ],
+        ])->assertRedirect(route('sites.show', $site));
+    $this->patch(route('sites.blocks.update', [$site, $textImage]), [
+        'content' => [
+            'heading' => 'Visit us',
+            'body' => 'Everyone is welcome',
+            'media_asset_id' => null,
+            'style' => ['layout' => 'image_left', 'alignment' => 'left', 'background' => 'theme'],
+        ],
+    ])->assertRedirect(route('sites.show', $site));
+
+    expect($plainText->fresh()->content)->toBe([
+        'body' => 'Welcome',
+        'style' => ['alignment' => 'center', 'background' => 'soft'],
+    ]);
+    expect($textImage->fresh()->content['style'])->toBe([
+        'layout' => 'image_left',
+        'alignment' => 'left',
+        'background' => 'theme',
+    ]);
+
+    $this->get(route('sites.show', $site))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('blocks.0.content.style.alignment', 'center')
+            ->where('blocks.1.content.style.layout', 'image_left'));
+});
+
+test('invalid curated style options cannot change a saved block', function ($style, $type = 'plain_text') {
+    $site = Site::factory()->create();
+    $block = SiteBlock::factory()->for($site)->create([
+        'type' => $type,
+        'content' => $type === 'text_image'
+            ? ['heading' => '', 'body' => '', 'media_asset_id' => null]
+            : ['body' => 'Saved text'],
+    ]);
+
+    $this->actingAs($site->user)
+        ->patch(route('sites.blocks.update', [$site, $block]), [
+            'content' => $type === 'text_image'
+                ? ['heading' => '', 'body' => '', 'media_asset_id' => null, 'style' => $style]
+                : ['body' => 'Changed', 'style' => $style],
+        ])->assertSessionHasErrors();
+
+    expect($block->fresh()->content['style'] ?? null)->toBeNull();
+})->with([
+    'unknown alignment' => [['alignment' => 'right']],
+    'unknown background' => [['background' => '#ffffff']],
+    'arbitrary css property' => [['class' => 'text-red-500']],
+    'layout on an unsupported block' => [['layout' => 'image_left']],
+    'unknown layout' => [['layout' => 'stacked'], 'text_image'],
+]);
+
 test('invalid or extra content fields cannot change a saved block', function ($content, $extra = []) {
     $site = Site::factory()->create();
     $block = SiteBlock::factory()->for($site)->create([

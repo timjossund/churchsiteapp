@@ -51,7 +51,13 @@ class UpdateSiteBlockRequest extends FormRequest
             'site_id' => ['prohibited'],
             'type' => ['prohibited'],
             'position' => ['prohibited'],
-            'content' => ['required', 'array:'.implode(',', $fields)],
+            'content' => ['required', 'array:'.implode(',', [...$fields, 'style'])],
+            'content.style' => ['sometimes', 'array:alignment,background,layout'],
+            'content.style.alignment' => ['sometimes', 'string', Rule::in(['left', 'center'])],
+            'content.style.background' => ['sometimes', 'string', Rule::in(['theme', 'soft'])],
+            'content.style.layout' => $type === 'text_image'
+                ? ['sometimes', 'string', Rule::in(['image_left', 'image_right'])]
+                : ['prohibited'],
         ];
 
         foreach ($fields as $field) {

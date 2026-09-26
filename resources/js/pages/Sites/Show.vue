@@ -16,6 +16,11 @@ type BlockType =
     | 'video';
 type HeroLinkType = 'none' | 'section' | 'external';
 type SiteTheme = 'warm' | 'clean' | 'bold';
+type BlockStyle = {
+    layout?: 'image_left' | 'image_right';
+    alignment?: 'left' | 'center';
+    background?: 'theme' | 'soft';
+};
 type ServiceTimeEntry = { day: string; time: string; label: string };
 type BlockContent = {
     heading?: string;
@@ -29,6 +34,7 @@ type BlockContent = {
     phone?: string;
     media_asset_id?: number | null;
     url?: string;
+    style?: BlockStyle;
 };
 type SiteBlock = {
     id: number;
@@ -164,6 +170,8 @@ const savedEmail = ref('');
 const savedPhone = ref('');
 const draftVideoUrl = ref('');
 const savedVideoUrl = ref('');
+const draftBlockStyle = ref<BlockStyle>({});
+const savedBlockStyle = ref<BlockStyle>({});
 const draftAltText = ref('');
 const savedAltText = ref('');
 const clearImagePending = ref(false);
@@ -197,6 +205,8 @@ const isContentDirty = computed(
                     draftPhone.value !== savedPhone.value)) ||
             (selectedBlock.value?.type === 'video' &&
                 draftVideoUrl.value !== savedVideoUrl.value) ||
+            JSON.stringify(draftBlockStyle.value) !==
+                JSON.stringify(savedBlockStyle.value) ||
             (selectedBlock.value &&
                 ['image', 'text_image'].includes(selectedBlock.value.type) &&
                 clearImagePending.value)),
@@ -228,6 +238,9 @@ const targetBlockInput = ref<HTMLSelectElement | null>(null);
 const externalUrlInput = ref<HTMLInputElement | null>(null);
 const addServiceTimeButton = ref<HTMLButtonElement | null>(null);
 const serviceTimeStatus = ref('');
+const blockLayoutInput = ref<HTMLSelectElement | null>(null);
+const blockAlignmentInput = ref<HTMLSelectElement | null>(null);
+const blockBackgroundInput = ref<HTMLSelectElement | null>(null);
 const emailInput = ref<HTMLInputElement | null>(null);
 const phoneInput = ref<HTMLInputElement | null>(null);
 const videoUrlInput = ref<HTMLInputElement | null>(null);
@@ -253,6 +266,8 @@ watch(
         draftEmail.value = block?.content.email ?? '';
         draftPhone.value = block?.content.phone ?? '';
         draftVideoUrl.value = block?.content.url ?? '';
+        draftBlockStyle.value = block ? styleForBlock(block) : {};
+        savedBlockStyle.value = { ...draftBlockStyle.value };
         draftAltText.value = block?.alt_text ?? '';
         savedAltText.value = draftAltText.value;
         clearImagePending.value = false;
@@ -299,6 +314,7 @@ function resetDraft() {
     draftEmail.value = savedEmail.value;
     draftPhone.value = savedPhone.value;
     draftVideoUrl.value = savedVideoUrl.value;
+    draftBlockStyle.value = { ...savedBlockStyle.value };
     draftAltText.value = savedAltText.value;
     clearImagePending.value = false;
     releaseUploadPreview();
@@ -565,10 +581,39 @@ function clearContentError() {
     contentSaved.value = false;
 }
 
-function contentFor(block: SiteBlock) {
+function styleForBlock(block: SiteBlock): BlockStyle {
+    const saved = block.content.style ?? {};
+    return {
+        ...(block.type === 'text_image'
+            ? {
+                  layout:
+                      saved.layout === 'image_left'
+                          ? 'image_left'
+                          : 'image_right',
+              }
+            : {}),
+        alignment:
+            saved.alignment === 'center'
+                ? 'center'
+                : saved.alignment === 'left'
+                  ? 'left'
+                  : block.type === 'video'
+                    ? 'center'
+                    : 'left',
+        background:
+            saved.background === 'theme' || saved.background === 'soft'
+                ? saved.background
+                : block.type === 'about'
+                  ? 'soft'
+                  : 'theme',
+    };
+}
+
+function contentFor(block: SiteBlock): BlockContent {
     if (block.id !== selectedBlockId.value) return block.content;
+    let content: BlockContent;
     if (block.type === 'hero') {
-        return {
+        content = {
             heading: draftHeading.value,
             body: draftBody.value,
             button_label: draftButtonLabel.value,
@@ -576,35 +621,54 @@ function contentFor(block: SiteBlock) {
             target_block_id: draftTargetBlockId.value,
             external_url: draftExternalUrl.value,
         };
-    }
-    if (block.type === 'service_times') {
-        return { heading: draftHeading.value, entries: draftEntries.value };
-    }
-    if (block.type === 'contact') {
-        return {
+    } else if (block.type === 'service_times') {
+        content = { heading: draftHeading.value, entries: draftEntries.value };
+    } else if (block.type === 'contact') {
+        content = {
             heading: draftHeading.value,
             email: draftEmail.value,
             phone: draftPhone.value,
         };
-    }
-    if (block.type === 'image') {
-        return {
+    } else if (block.type === 'image') {
+        content = {
             media_asset_id: clearImagePending.value
                 ? null
                 : (block.content.media_asset_id ?? null),
         };
-    }
-    if (block.type === 'text_image') {
-        return {
+    } else if (block.type === 'text_image') {
+        content = {
             heading: draftHeading.value,
             body: draftBody.value,
             media_asset_id: clearImagePending.value
                 ? null
                 : (block.content.media_asset_id ?? null),
         };
+    } else if (block.type === 'video') {
+        content = { url: draftVideoUrl.value };
+    } else if (block.type === 'plain_text') {
+        content = { body: draftBody.value };
+    } else {
+        content = { heading: draftHeading.value, body: draftBody.value };
     }
-    if (block.type === 'video') return { url: draftVideoUrl.value };
-    return { heading: draftHeading.value, body: draftBody.value };
+    return { ...content, style: { ...draftBlockStyle.value } };
+}
+
+function blockIsCentered(block: SiteBlock): boolean {
+    const alignment = contentFor(block).style?.alignment;
+    return (
+        alignment === 'center' ||
+        (alignment !== 'left' && block.type === 'video')
+    );
+}
+
+function blockBackgroundClass(block: SiteBlock): string {
+    const background =
+        contentFor(block).style?.background ??
+        (block.type === 'about' ? 'soft' : 'theme');
+    return background === 'soft' ||
+        (background !== 'theme' && block.type === 'about')
+        ? 'bg-[var(--site-preview-soft)]'
+        : '';
 }
 
 const previewHeadingFallbacks: Partial<Record<BlockType, string>> = {
@@ -850,6 +914,7 @@ function saveBlock() {
                               heading: draftHeading.value,
                               body: draftBody.value,
                           };
+    saveForm.content.style = { ...draftBlockStyle.value };
 
     runOwnVisit(() =>
         saveForm.patch('/sites/' + props.site.id + '/blocks/' + block.id, {
@@ -867,6 +932,7 @@ function saveBlock() {
                 savedEmail.value = draftEmail.value;
                 savedPhone.value = draftPhone.value;
                 savedVideoUrl.value = draftVideoUrl.value;
+                savedBlockStyle.value = { ...draftBlockStyle.value };
                 if (clearImagePending.value) {
                     clearImagePending.value = false;
                     draftAltText.value = '';
@@ -890,6 +956,10 @@ function saveBlock() {
                     !errors['content.email'] &&
                     !errors['content.phone'] &&
                     !errors['content.url'] &&
+                    !errors['content.style'] &&
+                    !errors['content.style.layout'] &&
+                    !errors['content.style.alignment'] &&
+                    !errors['content.style.background'] &&
                     !Object.keys(errors).some((key) =>
                         key.startsWith('content.entries'),
                     ) &&
@@ -913,6 +983,17 @@ function saveBlock() {
                     else if (errors['content.phone']) phoneInput.value?.focus();
                     else if (errors['content.url'])
                         videoUrlInput.value?.focus();
+                    else if (errors['content.style.layout'])
+                        blockLayoutInput.value?.focus();
+                    else if (errors['content.style.alignment'])
+                        blockAlignmentInput.value?.focus();
+                    else if (errors['content.style.background'])
+                        blockBackgroundInput.value?.focus();
+                    else if (errors['content.style'])
+                        (selectedBlock.value?.type === 'text_image'
+                            ? blockLayoutInput.value
+                            : blockAlignmentInput.value
+                        )?.focus();
                     else if (
                         Object.keys(errors).some((key) =>
                             key.startsWith('content.entries.'),
@@ -2760,11 +2841,10 @@ defineOptions({
                             :key="block.id"
                             :id="`block-${block.id}`"
                             class="border-b border-[var(--site-preview-border)] px-6 py-12 last:border-b-0 sm:px-10"
-                            :class="
-                                block.type === 'about'
-                                    ? 'bg-[var(--site-preview-soft)]'
-                                    : ''
-                            "
+                            :class="[
+                                blockIsCentered(block) ? 'text-center' : '',
+                                blockBackgroundClass(block),
+                            ]"
                         >
                             <template v-if="block.type === 'hero'">
                                 <p
@@ -2774,6 +2854,9 @@ defineOptions({
                                 </p>
                                 <h3
                                     class="mt-4 max-w-xl font-serif text-4xl leading-tight sm:text-5xl"
+                                    :class="
+                                        blockIsCentered(block) ? 'mx-auto' : ''
+                                    "
                                 >
                                     {{
                                         previewHeading(
@@ -2784,6 +2867,9 @@ defineOptions({
                                 </h3>
                                 <p
                                     class="mt-5 max-w-prose whitespace-pre-line text-[var(--site-preview-muted)]"
+                                    :class="
+                                        blockIsCentered(block) ? 'mx-auto' : ''
+                                    "
                                 >
                                     {{
                                         contentFor(block).body ||
@@ -2839,6 +2925,11 @@ defineOptions({
                                 </h3>
                                 <p
                                     class="mt-4 whitespace-pre-line text-[var(--site-preview-muted)]"
+                                    :class="
+                                        blockIsCentered(block)
+                                            ? 'mx-auto max-w-prose'
+                                            : ''
+                                    "
                                 >
                                     {{
                                         contentFor(block).body ||
@@ -2855,6 +2946,11 @@ defineOptions({
                                 <ul
                                     v-if="contentFor(block).entries?.length"
                                     class="mt-6 divide-y divide-[var(--site-preview-border)]"
+                                    :class="
+                                        blockIsCentered(block)
+                                            ? 'mx-auto max-w-2xl'
+                                            : ''
+                                    "
                                 >
                                     <li
                                         v-for="(entry, index) in contentFor(
@@ -2896,7 +2992,12 @@ defineOptions({
                                         contentFor(block).email ||
                                         contentFor(block).phone
                                     "
-                                    class="mt-5 flex flex-col items-start gap-3"
+                                    class="mt-5 flex flex-col gap-3"
+                                    :class="
+                                        blockIsCentered(block)
+                                            ? 'items-center'
+                                            : 'items-start'
+                                    "
                                 >
                                     <a
                                         v-if="emailHref(block)"
@@ -2931,6 +3032,11 @@ defineOptions({
                             <template v-else-if="block.type === 'image'">
                                 <div
                                     class="overflow-hidden rounded-xl border border-[var(--site-preview-border)] bg-[var(--site-preview-soft)]"
+                                    :class="
+                                        blockIsCentered(block)
+                                            ? 'mx-auto max-w-3xl'
+                                            : ''
+                                    "
                                 >
                                     <img
                                         v-if="blockMediaUrl(block)"
@@ -2957,7 +3063,14 @@ defineOptions({
                                 <div
                                     class="grid gap-8 md:grid-cols-2 md:items-center"
                                 >
-                                    <div>
+                                    <div
+                                        :class="
+                                            contentFor(block).style?.layout ===
+                                            'image_left'
+                                                ? 'md:order-2'
+                                                : ''
+                                        "
+                                    >
                                         <h3 class="font-serif text-2xl">
                                             {{
                                                 previewHeading(
@@ -2977,6 +3090,12 @@ defineOptions({
                                     </div>
                                     <div
                                         class="overflow-hidden rounded-xl border border-[var(--site-preview-border)] bg-[var(--site-preview-soft)]"
+                                        :class="
+                                            contentFor(block).style?.layout ===
+                                            'image_left'
+                                                ? 'md:order-1'
+                                                : 'md:order-2'
+                                        "
                                     >
                                         <img
                                             v-if="blockMediaUrl(block)"
@@ -3007,7 +3126,12 @@ defineOptions({
                             </template>
                             <template v-else-if="block.type === 'video'">
                                 <div
-                                    class="mx-auto max-w-3xl overflow-hidden rounded-xl bg-[var(--site-preview-soft)]"
+                                    class="max-w-3xl overflow-hidden rounded-xl bg-[var(--site-preview-soft)]"
+                                    :class="
+                                        blockIsCentered(block)
+                                            ? 'mx-auto'
+                                            : 'mr-auto'
+                                    "
                                 >
                                     <div class="aspect-video">
                                         <iframe
@@ -3040,6 +3164,7 @@ defineOptions({
                             <p
                                 v-else-if="block.type === 'plain_text'"
                                 class="max-w-prose text-lg leading-relaxed whitespace-pre-line"
+                                :class="blockIsCentered(block) ? 'mx-auto' : ''"
                             >
                                 {{
                                     contentFor(block).body ||
@@ -3293,6 +3418,188 @@ defineOptions({
                         class="mt-6 space-y-5 border-t border-[var(--workspace-line)] pt-5"
                         @submit.prevent="saveBlock"
                     >
+                        <fieldset
+                            class="space-y-4 rounded-xl bg-[var(--workspace-soft)] p-4"
+                        >
+                            <legend class="px-1 text-sm font-semibold">
+                                Block appearance
+                            </legend>
+                            <p
+                                v-if="saveForm.errors['content.style']"
+                                role="alert"
+                                class="text-sm text-red-700 dark:text-red-300"
+                            >
+                                {{ saveForm.errors['content.style'] }}
+                            </p>
+                            <div v-if="selectedBlock.type === 'text_image'">
+                                <label
+                                    for="block-layout"
+                                    class="mb-2 block text-sm font-semibold"
+                                    >Image placement</label
+                                >
+                                <select
+                                    id="block-layout"
+                                    ref="blockLayoutInput"
+                                    v-model="draftBlockStyle.layout"
+                                    :disabled="
+                                        uploadInProgress ||
+                                        saveForm.processing ||
+                                        addForm.processing ||
+                                        deleteForm.processing ||
+                                        orderForm.processing ||
+                                        imageUploadForm.processing ||
+                                        altTextForm.processing
+                                    "
+                                    :aria-invalid="
+                                        Boolean(
+                                            saveForm.errors[
+                                                'content.style.layout'
+                                            ],
+                                        )
+                                    "
+                                    :aria-describedby="
+                                        saveForm.errors['content.style.layout']
+                                            ? 'block-layout-error'
+                                            : undefined
+                                    "
+                                    class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                    @change="clearContentError"
+                                >
+                                    <option value="image_right">
+                                        Image on the right
+                                    </option>
+                                    <option value="image_left">
+                                        Image on the left
+                                    </option>
+                                </select>
+                                <p
+                                    v-if="
+                                        saveForm.errors['content.style.layout']
+                                    "
+                                    id="block-layout-error"
+                                    role="alert"
+                                    class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                >
+                                    {{
+                                        saveForm.errors['content.style.layout']
+                                    }}
+                                </p>
+                            </div>
+                            <div>
+                                <label
+                                    for="block-alignment"
+                                    class="mb-2 block text-sm font-semibold"
+                                    >Content alignment</label
+                                >
+                                <select
+                                    id="block-alignment"
+                                    ref="blockAlignmentInput"
+                                    v-model="draftBlockStyle.alignment"
+                                    :disabled="
+                                        uploadInProgress ||
+                                        saveForm.processing ||
+                                        addForm.processing ||
+                                        deleteForm.processing ||
+                                        orderForm.processing ||
+                                        imageUploadForm.processing ||
+                                        altTextForm.processing
+                                    "
+                                    :aria-invalid="
+                                        Boolean(
+                                            saveForm.errors[
+                                                'content.style.alignment'
+                                            ],
+                                        )
+                                    "
+                                    :aria-describedby="
+                                        saveForm.errors[
+                                            'content.style.alignment'
+                                        ]
+                                            ? 'block-alignment-error'
+                                            : undefined
+                                    "
+                                    class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                    @change="clearContentError"
+                                >
+                                    <option value="left">Left</option>
+                                    <option value="center">Center</option>
+                                </select>
+                                <p
+                                    v-if="
+                                        saveForm.errors[
+                                            'content.style.alignment'
+                                        ]
+                                    "
+                                    id="block-alignment-error"
+                                    role="alert"
+                                    class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                >
+                                    {{
+                                        saveForm.errors[
+                                            'content.style.alignment'
+                                        ]
+                                    }}
+                                </p>
+                            </div>
+                            <div>
+                                <label
+                                    for="block-background"
+                                    class="mb-2 block text-sm font-semibold"
+                                    >Background</label
+                                >
+                                <select
+                                    id="block-background"
+                                    ref="blockBackgroundInput"
+                                    v-model="draftBlockStyle.background"
+                                    :disabled="
+                                        uploadInProgress ||
+                                        saveForm.processing ||
+                                        addForm.processing ||
+                                        deleteForm.processing ||
+                                        orderForm.processing ||
+                                        imageUploadForm.processing ||
+                                        altTextForm.processing
+                                    "
+                                    :aria-invalid="
+                                        Boolean(
+                                            saveForm.errors[
+                                                'content.style.background'
+                                            ],
+                                        )
+                                    "
+                                    :aria-describedby="
+                                        saveForm.errors[
+                                            'content.style.background'
+                                        ]
+                                            ? 'block-background-error'
+                                            : undefined
+                                    "
+                                    class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                    @change="clearContentError"
+                                >
+                                    <option value="theme">
+                                        Theme background
+                                    </option>
+                                    <option value="soft">Soft contrast</option>
+                                </select>
+                                <p
+                                    v-if="
+                                        saveForm.errors[
+                                            'content.style.background'
+                                        ]
+                                    "
+                                    id="block-background-error"
+                                    role="alert"
+                                    class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                >
+                                    {{
+                                        saveForm.errors[
+                                            'content.style.background'
+                                        ]
+                                    }}
+                                </p>
+                            </div>
+                        </fieldset>
                         <div
                             v-if="
                                 selectedBlock.type !== 'plain_text' &&

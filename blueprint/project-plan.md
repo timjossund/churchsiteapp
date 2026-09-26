@@ -4,7 +4,7 @@
 
 Churches need modern websites, but the people responsible for them are often busy and may not want to manage web design or code. Churchsite lets a user assemble a church website from editable blocks, publish it, and update it later through a straightforward editor.
 
-The first release produces a single-page site. A user can share it at a non-indexed `churchsite.app` subdirectory address, then connect a `www` hostname on a domain they already own to make it live with SSL.
+The initial launch supports styled, multi-page sites published at a non-indexed `churchsite.app` subdirectory address. Per-site billing and customer `www` hostnames with SSL follow as later features.
 
 ## 2. Users and core workflow
 
@@ -50,7 +50,7 @@ The site also has an editable header and footer, including a church name or logo
 
 - Provide an initial mix of warm/traditional, clean/minimal, and bold/contemporary themes.
 - Switching themes changes colors, fonts, and styling. It preserves content and block order.
-- More detailed styling controls are deferred.
+- Add block-specific styling and configurable block options beyond the initial theme choices.
 - Users upload images from their devices. Store uploads in the owner's IONOS buckets.
 - Public pages should work on mobile and desktop and provide accessible text, links, and image descriptions.
 
@@ -71,7 +71,7 @@ The site also has an editable header and footer, including a church name or logo
 
 ## 4. Data
 
-Persist users; sites and their owners; theme choices; draft and published site content; block types, order, and fields; uploaded image references; structured service times; site metadata; custom-hostname connection and SSL status; and each site's subscription state in MySQL.
+Persist users; sites and their owners; pages and their order within each site; theme choices; draft and published site content per page; block types, order, styling, and fields; uploaded image references; structured service times; site metadata; custom-hostname connection and SSL status; and each site's subscription state in MySQL.
 
 A site's published content must remain stable while its draft is edited. Ownership checks must prevent one account from changing another account's sites or assets. Domain routing must resolve a hostname to only its assigned site.
 
@@ -104,8 +104,8 @@ The MySQL hosting arrangement, exact deployment commands, origin host handling, 
 
 ## 9. Scope and later work
 
-**First release:** the single-page builder, themes, uploads, explicit publishing, shareable non-indexed subdirectory pages, per-site billing, and self-service `www` customer hostnames with SSL.
+**Initial launch:** block styling and expanded block options, multi-page site editing and publishing, themes, uploads, explicit publishing, and shareable non-indexed subdirectory pages.
 
-**First feature after launch:** multi-page sites.
+**After the initial launch:** per-site billing, then self-service `www` customer hostnames with SSL.
 
-**Deferred:** bare customer domains, detailed styling controls, multiple editors for one site, domain purchasing, and a visitor contact form. No user count, traffic target, or special compliance requirement has been established.
+**Deferred:** bare customer domains, multiple editors for one site, domain purchasing, and a visitor contact form. No user count, traffic target, or special compliance requirement has been established.

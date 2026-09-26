@@ -54,14 +54,18 @@
 
         @foreach ($blocks as $block)
             @php($content = $block['content'])
-            <section id="block-{{ $block['id'] }}" class="border-b border-[var(--site-preview-border)] px-6 py-12 last:border-b-0 sm:px-10 {{ $block['type'] === 'about' ? 'bg-[var(--site-preview-soft)]' : '' }}">
+            @php($style = is_array($content['style'] ?? null) ? $content['style'] : [])
+            @php($alignment = in_array($style['alignment'] ?? null, ['left', 'center'], true) ? $style['alignment'] : ($block['type'] === 'video' ? 'center' : 'left'))
+            @php($background = in_array($style['background'] ?? null, ['theme', 'soft'], true) ? $style['background'] : ($block['type'] === 'about' ? 'soft' : 'theme'))
+            @php($imageOnLeft = $block['type'] === 'text_image' && ($style['layout'] ?? 'image_right') === 'image_left')
+            <section id="block-{{ $block['id'] }}" class="border-b border-[var(--site-preview-border)] px-6 py-12 last:border-b-0 sm:px-10 {{ $alignment === 'center' ? 'text-center' : '' }} {{ $background === 'soft' ? 'bg-[var(--site-preview-soft)]' : '' }}">
                 <div class="mx-auto max-w-5xl">
                     @switch($block['type'])
                         @case('hero')
                             <p class="text-xs font-bold tracking-[0.14em] text-[var(--site-preview-accent)] uppercase">Welcome</p>
-                            <h2 class="mt-4 max-w-xl font-serif text-4xl leading-tight sm:text-5xl">{{ $block['heading'] }}</h2>
+                            <h2 class="mt-4 max-w-xl font-serif text-4xl leading-tight sm:text-5xl {{ $alignment === 'center' ? 'mx-auto' : '' }}">{{ $block['heading'] }}</h2>
                             @if (! empty($content['body']))
-                                <p class="mt-5 max-w-prose whitespace-pre-line text-[var(--site-preview-muted)]">{{ $content['body'] }}</p>
+                                <p class="mt-5 max-w-prose whitespace-pre-line text-[var(--site-preview-muted)] {{ $alignment === 'center' ? 'mx-auto' : '' }}">{{ $content['body'] }}</p>
                             @endif
                             @if ($block['hero_href'])
                                 <a href="{{ $block['hero_href'] }}" @if ($block['hero_external']) target="_blank" rel="noopener noreferrer" @endif class="mt-7 inline-flex min-h-11 items-center rounded-lg bg-[var(--site-preview-action)] px-5 py-2 text-sm font-semibold text-[var(--site-preview-action-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]">
@@ -88,7 +92,7 @@
                         @case('service_times')
                             <h2 class="font-serif text-2xl">{{ $block['heading'] }}</h2>
                             @if (! empty($content['entries']))
-                                <ul class="mt-6 divide-y divide-[var(--site-preview-border)]">
+                                <ul class="mt-6 divide-y divide-[var(--site-preview-border)] {{ $alignment === 'center' ? 'mx-auto max-w-2xl' : '' }}">
                                     @foreach ($content['entries'] as $entry)
                                         <li class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3">
                                             <span class="font-semibold">{{ ucfirst($entry['day']) }}</span>
@@ -113,7 +117,7 @@
                         @case('contact')
                             <h2 class="font-serif text-2xl">{{ $block['heading'] }}</h2>
                             @if (! empty($content['email']) || ! empty($content['phone']))
-                                <div class="mt-5 flex flex-col items-start gap-3">
+                                <div class="mt-5 flex flex-col gap-3 {{ $alignment === 'center' ? 'items-center' : 'items-start' }}">
                                     @if (! empty($content['email']))
                                         @if ($block['email_href'])
                                             <a href="{{ $block['email_href'] }}" class="text-[var(--site-preview-accent)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]">{{ $content['email'] }}</a>
@@ -134,7 +138,7 @@
 
                         @case('image')
                             @if ($block['image_url'])
-                                <div class="overflow-hidden rounded-xl border border-[var(--site-preview-border)] bg-[var(--site-preview-soft)]">
+                                <div class="overflow-hidden rounded-xl border border-[var(--site-preview-border)] bg-[var(--site-preview-soft)] {{ $alignment === 'center' ? 'mx-auto max-w-3xl' : '' }}">
                                     <img src="{{ $block['image_url'] }}" alt="{{ $block['image_alt'] }}" class="max-h-[32rem] w-full object-contain">
                                 </div>
                             @endif
@@ -142,14 +146,14 @@
 
                         @case('text_image')
                             <div class="grid gap-8 md:grid-cols-2 md:items-center">
-                                <div>
+                                <div class="{{ $imageOnLeft ? 'md:order-2' : '' }}">
                                     <h2 class="font-serif text-2xl">{{ $block['heading'] }}</h2>
                                     @if (! empty($content['body']))
                                         <p class="mt-4 whitespace-pre-line text-[var(--site-preview-muted)]">{{ $content['body'] }}</p>
                                     @endif
                                 </div>
                                 @if ($block['image_url'])
-                                    <div class="overflow-hidden rounded-xl border border-[var(--site-preview-border)] bg-[var(--site-preview-soft)]">
+                                    <div class="overflow-hidden rounded-xl border border-[var(--site-preview-border)] bg-[var(--site-preview-soft)] {{ $imageOnLeft ? 'md:order-1' : 'md:order-2' }}">
                                         <img src="{{ $block['image_url'] }}" alt="{{ $block['image_alt'] }}" class="max-h-[32rem] min-h-56 w-full object-contain">
                                     </div>
                                 @endif
@@ -158,7 +162,7 @@
 
                         @case('video')
                             @if ($block['video_embed_url'])
-                                <div class="mx-auto max-w-3xl overflow-hidden rounded-xl bg-[var(--site-preview-soft)]">
+                                <div class="{{ $alignment === 'center' ? 'mx-auto' : 'mr-auto' }} max-w-3xl overflow-hidden rounded-xl bg-[var(--site-preview-soft)]">
                                     <div class="aspect-video">
                                         <iframe src="{{ $block['video_embed_url'] }}" title="YouTube or Vimeo video" loading="lazy" allowfullscreen class="h-full w-full border-0"></iframe>
                                     </div>
@@ -168,7 +172,7 @@
 
                         @case('plain_text')
                             @if (! empty($content['body']))
-                                <p class="max-w-prose text-lg leading-relaxed whitespace-pre-line">{{ $content['body'] }}</p>
+                                <p class="max-w-prose text-lg leading-relaxed whitespace-pre-line {{ $alignment === 'center' ? 'mx-auto' : '' }}">{{ $content['body'] }}</p>
                             @endif
                             @break
                     @endswitch

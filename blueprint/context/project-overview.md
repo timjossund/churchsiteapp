@@ -1,12 +1,12 @@
 # Churchsite - Project Overview
 
-<!-- blueprint:source-hash 60b5325ddc0b3f7a1ef808b20744dc8cffe5f3bdc50cc5c4309f1bd84394fc16 -->
+<!-- blueprint:source-hash 62d566970302c490ce423c1859d0043abbd9e332703629edf6a1703e60234b65 -->
 
-> A block-based church website builder with shareable previews and paid custom domains.
+> A block-based church website builder with shareable multi-page previews and later paid custom domains.
 
 ## Problem
 
-Churches need modern websites, while the people responsible for them may have little time for design or code. Churchsite lets users create and update a site by filling out and arranging blocks. The first release builds single-page sites; multi-page sites follow after launch.
+Churches need modern websites, while the people responsible for them may have little time for design or code. Churchsite lets users create and update a site by filling out and arranging blocks. The initial launch includes expanded block styling and options, multi-page sites, and shareable subdirectory publishing. Per-site billing and custom domains follow later.
 
 ## Users and usage model
 
@@ -23,9 +23,10 @@ Churches need modern websites, while the people responsible for them may have li
 3. **Themes and site shell** - Warm/traditional, clean/minimal, and bold/contemporary themes style an editable header, footer, church name or logo, and section navigation without changing content order.
 4. **Image uploads** - Users upload images from their devices into IONOS buckets for image-bearing blocks and site presentation.
 5. **Drafts, publishing, and preview** - Explicit Publish creates a stable Blade-rendered page on a shareable, non-indexed `churchsite.app` subdirectory URL; edits remain drafts until the next publication. Include page title, description, and social preview image.
-6. **Per-site subscriptions** - Spark and Stripe provide monthly and annual billing for each site independently.
-7. **Custom domains and SSL** - Paid sites connect a BYO `www` hostname through Cloudflare for SaaS, receive DNS instructions and status, and serve their published page over HTTPS. Inactive subscriptions lose hostname access.
-8. **Multi-page sites, after launch** - Add pages, navigation, and page-specific published content.
+6. **Block styling and options** - Improve block styling and expand the options users can configure for the blocks in their sites.
+7. **Multi-page sites** - Add pages, navigation, and page-specific published content.
+8. **Per-site subscriptions** - Spark and Stripe provide monthly and annual billing for each site independently.
+9. **Custom domains and SSL** - Paid sites connect a BYO `www` hostname through Cloudflare for SaaS, receive DNS instructions and status, and serve their published pages over HTTPS. Inactive subscriptions lose hostname access.
 
 ## Data model
 
@@ -39,13 +40,14 @@ These are the initial logical shapes; later feature specs choose migrations and 
 ### Site
 
 - `id` (integer), `user_id` (foreign key), `name` (string), `slug` (unique string for the platform subdirectory), `theme_key` (string).
+- Has many ordered pages. Published page content remains stable while its draft changes.
 - Draft site presentation: `header` and `footer` (structured data), `seo_title` and `seo_description` (strings), `social_image_id` (nullable media reference).
 - Published snapshot (structured data, nullable) and `published_at` (nullable timestamp) keep the visitor-facing version stable while draft fields and blocks change.
 - Has many blocks and media assets; has a customer hostname and site-specific billing state when configured.
 
 ### SiteBlock
 
-- `id` (integer), `site_id` (foreign key), `type` (block type), `position` (integer), `content` (structured data).
+- `id` (integer), `site_id` (foreign key), `page_id` (page relationship), `type` (block type), `position` (integer), and structured content and styling options.
 - `content` holds fields for the selected block. Service times are structured day/time entries with an optional label; contact details supply email and telephone links; video embeds use a YouTube or Vimeo URL.
 - Image-bearing blocks refer to site media assets. Block position determines page order.
 
@@ -68,7 +70,7 @@ These are the initial logical shapes; later feature specs choose migrations and 
 
 - **Laravel 13 and MySQL** - Shared application, persistence, ownership checks, hostname resolution, and publishing.
 - **Vue 3, TypeScript, and Inertia** - Signup, account dashboard, and block editor.
-- **Blade and Tailwind 4** - Published sites and theme styles; share block data and styles with the editor preview to keep it faithful.
+- **Blade and Tailwind 4** - Published sites and theme styles; share page and block data and styles with the editor preview to keep it faithful.
 - **Laravel Spark and Stripe** - Per-site monthly and annual subscriptions.
 - **IONOS buckets** - Uploaded image storage.
 - **xCloud and Cloudflare for SaaS** - Laravel origin hosting, customer-hostname routing, and edge SSL.
@@ -80,7 +82,8 @@ Users can create and publish shareable subdirectory sites before paying. Each si
 
 ## UI and experience
 
-- A blank site opens in a page editor with a visible preview, block list, free reordering, and a side panel for the selected block.
+- A site opens in a page editor with a visible preview, page navigation, block list, free reordering, and a side panel for the selected block.
+- Users can configure expanded block-specific styling and options in addition to choosing a site theme.
 - An explicit Publish action distinguishes drafts from the version visitors see.
 - Initial themes span warm/traditional, clean/minimal, and bold/contemporary styles. Switching themes changes styling, not content or order.
 - Domain setup shows DNS values and explains connection and SSL progress in plain language.

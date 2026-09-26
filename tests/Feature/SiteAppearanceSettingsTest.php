@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Controllers\SiteController;
+use App\Http\Requests\SiteSettingsRequest;
 use App\Models\Site;
+use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 
 test('sites default to the warm theme and empty footer', function () {
@@ -67,4 +70,21 @@ test('an empty footer text can be saved to clear the footer', function () {
         ->assertRedirect(route('sites.show', $site));
 
     expect($site->refresh()->footer)->toBe(['text' => '']);
+});
+
+test('a slug claimed after validation returns a field error instead of a server error', function () {
+    $site = Site::factory()->create(['slug' => null]);
+    Site::factory()->create(['slug' => 'grace-church']);
+    $request = Mockery::mock(SiteSettingsRequest::class);
+    $request->shouldReceive('validated')->once()->andReturn(['slug' => 'grace-church']);
+    $request->shouldReceive('user')->once()->andReturn($site->user);
+
+    try {
+        app(SiteController::class)->update($request, $site->id);
+        test()->fail('Expected the late slug collision to become a validation error.');
+    } catch (ValidationException $exception) {
+        expect($exception->errors())->toHaveKey('slug');
+    }
+
+    expect($site->fresh()->slug)->toBeNull();
 });

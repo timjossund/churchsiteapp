@@ -15,12 +15,18 @@ use Illuminate\Support\Carbon;
  * @property int $user_id
  * @property string $name
  * @property string $theme_key
+ * @property string|null $slug
+ * @property string|null $seo_title
+ * @property string|null $seo_description
  * @property array{text: string} $footer
  * @property int|null $logo_media_asset_id
+ * @property int|null $social_image_id
+ * @property array<string, mixed>|null $published_snapshot
+ * @property Carbon|null $published_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'theme_key', 'footer', 'logo_media_asset_id'])]
+#[Fillable(['name', 'theme_key', 'footer', 'logo_media_asset_id', 'slug', 'seo_title', 'seo_description', 'social_image_id', 'published_snapshot', 'published_at'])]
 class Site extends Model
 {
     protected $attributes = [
@@ -36,6 +42,8 @@ class Site extends Model
     {
         return [
             'footer' => 'array',
+            'published_snapshot' => 'array',
+            'published_at' => 'immutable_datetime',
         ];
     }
 
@@ -61,5 +69,11 @@ class Site extends Model
     public function logoMediaAsset(): BelongsTo
     {
         return $this->belongsTo(MediaAsset::class, 'logo_media_asset_id');
+    }
+
+    /** @return BelongsTo<MediaAsset, $this> */
+    public function socialImage(): BelongsTo
+    {
+        return $this->belongsTo(MediaAsset::class, 'social_image_id');
     }
 }

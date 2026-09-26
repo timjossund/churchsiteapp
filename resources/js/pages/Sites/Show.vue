@@ -45,7 +45,18 @@ const props = defineProps<{
         name: string;
         theme_key: SiteTheme;
         footer: { text: string };
+        slug: string | null;
+        seo_title: string | null;
+        seo_description: string | null;
+        published_at: string | null;
+        published_url: string | null;
+        has_unpublished_changes: boolean;
         logo: {
+            media_asset_id: number;
+            url: string;
+            alt_text: string | null;
+        } | null;
+        social_image: {
             media_asset_id: number;
             url: string;
             alt_text: string | null;
@@ -1144,13 +1155,34 @@ const nameForm = useForm({ name: props.site.name });
 const appearanceForm = useForm<{
     theme_key: SiteTheme;
     footer: { text: string };
+    slug: string;
+    seo_title: string;
+    seo_description: string;
 }>({
     theme_key: props.site.theme_key,
     footer: { text: props.site.footer.text },
+    slug: props.site.slug ?? '',
+    seo_title: props.site.seo_title ?? '',
+    seo_description: props.site.seo_description ?? '',
 });
 const nameInput = ref<HTMLInputElement | null>(null);
 const themeInput = ref<HTMLSelectElement | null>(null);
 const footerTextInput = ref<HTMLInputElement | null>(null);
+const siteSlugInput = ref<HTMLInputElement | null>(null);
+const seoTitleInput = ref<HTMLInputElement | null>(null);
+const seoDescriptionInput = ref<HTMLTextAreaElement | null>(null);
+const socialImageInput = ref<HTMLInputElement | null>(null);
+const socialImageForm = useForm<{ image: File | null; alt_text: string }>({
+    image: null,
+    alt_text: '',
+});
+const socialImageClearForm = useForm({});
+const publishForm = useForm({});
+const socialImageError = ref('');
+const socialImageStatus = ref('');
+const publishError = ref('');
+const publishStatus = ref('');
+const appearanceDetails = ref<HTMLDetailsElement | null>(null);
 const nameSaved = ref(false);
 const nameError = ref('');
 const appearanceSaved = ref(false);
@@ -1170,7 +1202,10 @@ const logoUploadForm = useForm<{ image: File | null; alt_text: string }>({
 const logoAltTextForm = useForm<{ alt_text: string }>({ alt_text: '' });
 const logoClearForm = useForm({});
 const uploadInProgress = computed(
-    () => imageUploadForm.processing || logoUploadForm.processing,
+    () =>
+        imageUploadForm.processing ||
+        logoUploadForm.processing ||
+        socialImageForm.processing,
 );
 const editorWriteInProgress = computed(
     () =>
@@ -1183,7 +1218,17 @@ const editorWriteInProgress = computed(
         deleteForm.processing ||
         altTextForm.processing ||
         logoAltTextForm.processing ||
-        logoClearForm.processing,
+        logoClearForm.processing ||
+        socialImageForm.processing ||
+        socialImageClearForm.processing ||
+        publishForm.processing,
+);
+const hasUnsavedEditorChanges = computed(
+    () =>
+        nameForm.name !== props.site.name ||
+        appearanceForm.isDirty ||
+        isDirty.value ||
+        isLogoAltTextDirty.value,
 );
 const isLogoAltTextDirty = computed(
     () => logoDraftAltText.value !== (props.site.logo?.alt_text ?? ''),
@@ -1201,6 +1246,9 @@ watch(
     () => {
         appearanceForm.theme_key = props.site.theme_key;
         appearanceForm.footer.text = props.site.footer.text;
+        appearanceForm.slug = props.site.slug ?? '';
+        appearanceForm.seo_title = props.site.seo_title ?? '';
+        appearanceForm.seo_description = props.site.seo_description ?? '';
         appearanceForm.defaults();
         appearanceForm.clearErrors();
         appearanceError.value = '';
@@ -1260,6 +1308,47 @@ function clearAppearanceError() {
     appearanceSaved.value = false;
 }
 
+function publishSite() {
+    if (editorWriteInProgress.value || hasUnsavedEditorChanges.value) return;
+    publishError.value = '';
+    publishStatus.value = '';
+    if (!props.site.slug) {
+        publishError.value =
+            'Choose and save a shareable address before publishing.';
+        if (appearanceDetails.value) appearanceDetails.value.open = true;
+        nextTick(() => siteSlugInput.value?.focus());
+        return;
+    }
+
+    publishForm.post('/sites/' + props.site.id + '/publish', {
+        preserveScroll: true,
+        onSuccess: () => {
+            publishStatus.value = 'Your saved draft is now published.';
+        },
+        onError: (errors) => {
+            publishError.value =
+                errors.slug ??
+                errors.publish ??
+                'We could not publish this page. Please try again.';
+            if (errors.slug) {
+                if (appearanceDetails.value)
+                    appearanceDetails.value.open = true;
+                nextTick(() => siteSlugInput.value?.focus());
+            }
+        },
+        onHttpException: () => {
+            publishError.value =
+                'We could not publish this page. Please try again.';
+            return false;
+        },
+        onNetworkError: () => {
+            publishError.value =
+                'We could not publish this page. Please try again.';
+            return false;
+        },
+    });
+}
+
 function saveAppearance() {
     if (uploadInProgress.value) return;
     if (
@@ -1280,12 +1369,22 @@ function saveAppearance() {
             preserveScroll: true,
             onSuccess: () => {
                 appearanceForm.footer.text = appearanceForm.footer.text.trim();
+                appearanceForm.slug = appearanceForm.slug.trim().toLowerCase();
+                appearanceForm.seo_title = appearanceForm.seo_title.trim();
+                appearanceForm.seo_description =
+                    appearanceForm.seo_description.trim();
                 appearanceForm.defaults();
                 appearanceSaved.value = true;
             },
             onError: (errors) => {
                 const fieldErrors = errors as Record<string, string>;
-                if (!fieldErrors.theme_key && !fieldErrors['footer.text']) {
+                if (
+                    !fieldErrors.theme_key &&
+                    !fieldErrors['footer.text'] &&
+                    !fieldErrors.slug &&
+                    !fieldErrors.seo_title &&
+                    !fieldErrors.seo_description
+                ) {
                     appearanceError.value =
                         'We could not save appearance settings. Please try again.';
                 }
@@ -1293,6 +1392,11 @@ function saveAppearance() {
                     if (fieldErrors.theme_key) themeInput.value?.focus();
                     else if (fieldErrors['footer.text'])
                         footerTextInput.value?.focus();
+                    else if (fieldErrors.slug) siteSlugInput.value?.focus();
+                    else if (fieldErrors.seo_title)
+                        seoTitleInput.value?.focus();
+                    else if (fieldErrors.seo_description)
+                        seoDescriptionInput.value?.focus();
                     else themeInput.value?.focus();
                 });
             },
@@ -1308,6 +1412,75 @@ function saveAppearance() {
             },
         }),
     );
+}
+
+function selectSocialImage(event: Event) {
+    if (editorWriteInProgress.value) return;
+    const input = event.currentTarget;
+    const file =
+        input instanceof HTMLInputElement ? input.files?.[0] : undefined;
+    if (!file) return;
+    socialImageError.value = '';
+    socialImageStatus.value = 'Uploading social preview image…';
+    socialImageForm.image = file;
+    socialImageForm.alt_text = '';
+    socialImageForm.post('/sites/' + props.site.id + '/social-image', {
+        forceFormData: true,
+        preserveScroll: true,
+        onSuccess: () => {
+            socialImageStatus.value = 'Social preview image uploaded.';
+            socialImageForm.reset();
+            if (socialImageInput.value) socialImageInput.value.value = '';
+        },
+        onError: (errors) => {
+            socialImageStatus.value = '';
+            socialImageError.value =
+                errors.image ??
+                errors.alt_text ??
+                'We could not upload this image. Please try again.';
+            nextTick(() => socialImageInput.value?.focus());
+            socialImageForm.image = null;
+            if (socialImageInput.value) socialImageInput.value.value = '';
+        },
+        onHttpException: () => {
+            socialImageStatus.value = '';
+            socialImageError.value =
+                'We could not upload this image. Please try again.';
+            return false;
+        },
+        onNetworkError: () => {
+            socialImageStatus.value = '';
+            socialImageError.value =
+                'We could not upload this image. Please try again.';
+            return false;
+        },
+    });
+}
+
+function clearSocialImage() {
+    if (!props.site.social_image || socialImageClearForm.processing) return;
+    socialImageError.value = '';
+    socialImageStatus.value = '';
+    socialImageClearForm.delete('/sites/' + props.site.id + '/social-image', {
+        preserveScroll: true,
+        onSuccess: () => {
+            socialImageStatus.value = 'Social preview image cleared.';
+        },
+        onError: () => {
+            socialImageError.value =
+                'We could not clear this image. Please try again.';
+        },
+        onHttpException: () => {
+            socialImageError.value =
+                'We could not clear this image. Please try again.';
+            return false;
+        },
+        onNetworkError: () => {
+            socialImageError.value =
+                'We could not clear this image. Please try again.';
+            return false;
+        },
+    });
 }
 
 function releaseLogoUploadPreview() {
@@ -1588,6 +1761,7 @@ defineOptions({
                                         required
                                         maxlength="255"
                                         autocomplete="off"
+                                        :disabled="nameForm.processing"
                                         :aria-invalid="
                                             Boolean(nameForm.errors.name)
                                         "
@@ -1848,7 +2022,7 @@ defineOptions({
                             </div>
                         </div>
                     </details>
-                    <details class="group relative">
+                    <details ref="appearanceDetails" class="group relative">
                         <summary
                             aria-controls="site-appearance-dropdown"
                             class="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-4 text-sm font-semibold marker:hidden hover:bg-[var(--workspace-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)]"
@@ -1887,6 +2061,7 @@ defineOptions({
                                         id="site-theme"
                                         ref="themeInput"
                                         v-model="appearanceForm.theme_key"
+                                        :disabled="appearanceForm.processing"
                                         :aria-invalid="
                                             Boolean(
                                                 appearanceForm.errors.theme_key,
@@ -1941,6 +2116,7 @@ defineOptions({
                                         v-model="appearanceForm.footer.text"
                                         type="text"
                                         autocomplete="off"
+                                        :disabled="appearanceForm.processing"
                                         :aria-invalid="
                                             Boolean(
                                                 appearanceForm.errors[
@@ -1976,6 +2152,217 @@ defineOptions({
                                         }}
                                     </p>
                                 </div>
+                                <div>
+                                    <label
+                                        for="site-slug"
+                                        class="mb-2 block text-sm font-semibold"
+                                        >Shareable address</label
+                                    >
+                                    <div
+                                        class="flex min-h-11 items-center rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-soft)] px-3 text-sm text-[var(--workspace-muted)]"
+                                    >
+                                        <span>/s/</span>
+                                        <input
+                                            id="site-slug"
+                                            ref="siteSlugInput"
+                                            v-model="appearanceForm.slug"
+                                            type="text"
+                                            maxlength="100"
+                                            pattern="[a-z0-9]+(-[a-z0-9]+)*"
+                                            :disabled="
+                                                Boolean(
+                                                    props.site.published_at,
+                                                ) || appearanceForm.processing
+                                            "
+                                            :aria-invalid="
+                                                Boolean(
+                                                    appearanceForm.errors.slug,
+                                                )
+                                            "
+                                            :aria-describedby="
+                                                appearanceForm.errors.slug
+                                                    ? 'site-slug-help site-slug-error'
+                                                    : 'site-slug-help'
+                                            "
+                                            class="min-w-0 flex-1 bg-transparent px-1 text-[var(--workspace-ink)] outline-none disabled:opacity-70"
+                                            @input="clearAppearanceError"
+                                        />
+                                    </div>
+                                    <p
+                                        id="site-slug-help"
+                                        class="mt-2 text-xs text-[var(--workspace-muted)]"
+                                    >
+                                        Lowercase letters, numbers, and hyphens.
+                                        Fixed after first publication.
+                                    </p>
+                                    <p
+                                        v-if="appearanceForm.errors.slug"
+                                        id="site-slug-error"
+                                        role="alert"
+                                        class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                    >
+                                        {{ appearanceForm.errors.slug }}
+                                    </p>
+                                </div>
+                                <div>
+                                    <label
+                                        for="site-seo-title"
+                                        class="mb-2 block text-sm font-semibold"
+                                        >Page title</label
+                                    >
+                                    <input
+                                        id="site-seo-title"
+                                        ref="seoTitleInput"
+                                        v-model="appearanceForm.seo_title"
+                                        type="text"
+                                        maxlength="255"
+                                        :disabled="appearanceForm.processing"
+                                        :aria-invalid="
+                                            Boolean(
+                                                appearanceForm.errors.seo_title,
+                                            )
+                                        "
+                                        :aria-describedby="
+                                            appearanceForm.errors.seo_title
+                                                ? 'site-seo-title-error'
+                                                : undefined
+                                        "
+                                        class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-sm text-[var(--workspace-ink)]"
+                                        @input="clearAppearanceError"
+                                    />
+                                    <p
+                                        v-if="appearanceForm.errors.seo_title"
+                                        id="site-seo-title-error"
+                                        role="alert"
+                                        class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                    >
+                                        {{ appearanceForm.errors.seo_title }}
+                                    </p>
+                                </div>
+                                <div>
+                                    <label
+                                        for="site-seo-description"
+                                        class="mb-2 block text-sm font-semibold"
+                                        >Page description</label
+                                    >
+                                    <textarea
+                                        id="site-seo-description"
+                                        ref="seoDescriptionInput"
+                                        v-model="appearanceForm.seo_description"
+                                        maxlength="2000"
+                                        rows="3"
+                                        :disabled="appearanceForm.processing"
+                                        :aria-invalid="
+                                            Boolean(
+                                                appearanceForm.errors
+                                                    .seo_description,
+                                            )
+                                        "
+                                        :aria-describedby="
+                                            appearanceForm.errors
+                                                .seo_description
+                                                ? 'site-seo-description-error'
+                                                : undefined
+                                        "
+                                        class="w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 py-2 text-sm text-[var(--workspace-ink)]"
+                                        @input="clearAppearanceError"
+                                    />
+                                    <p
+                                        v-if="
+                                            appearanceForm.errors
+                                                .seo_description
+                                        "
+                                        id="site-seo-description-error"
+                                        role="alert"
+                                        class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                    >
+                                        {{
+                                            appearanceForm.errors
+                                                .seo_description
+                                        }}
+                                    </p>
+                                </div>
+                                <div>
+                                    <label
+                                        for="site-social-image"
+                                        class="mb-2 block text-sm font-semibold"
+                                        >Social preview image</label
+                                    >
+                                    <img
+                                        v-if="props.site.social_image"
+                                        :src="props.site.social_image.url"
+                                        :alt="
+                                            props.site.social_image.alt_text ??
+                                            ''
+                                        "
+                                        class="mb-3 max-h-32 rounded-lg object-contain"
+                                    />
+                                    <input
+                                        id="site-social-image"
+                                        ref="socialImageInput"
+                                        type="file"
+                                        accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                                        :disabled="editorWriteInProgress"
+                                        :aria-invalid="
+                                            Boolean(
+                                                socialImageError ||
+                                                socialImageForm.errors.image,
+                                            )
+                                        "
+                                        :aria-describedby="
+                                            socialImageError ||
+                                            socialImageForm.errors.image
+                                                ? 'site-social-image-help site-social-image-error'
+                                                : 'site-social-image-help'
+                                        "
+                                        class="block min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-2 text-sm"
+                                        @change="selectSocialImage"
+                                    />
+                                    <p
+                                        id="site-social-image-help"
+                                        class="mt-2 text-xs text-[var(--workspace-muted)]"
+                                    >
+                                        JPEG or PNG, up to 5 MB.
+                                    </p>
+                                    <p
+                                        v-if="
+                                            socialImageError ||
+                                            socialImageForm.errors.image
+                                        "
+                                        id="site-social-image-error"
+                                        role="alert"
+                                        class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                    >
+                                        {{
+                                            socialImageError ||
+                                            socialImageForm.errors.image
+                                        }}
+                                    </p>
+                                    <p
+                                        v-if="socialImageStatus"
+                                        role="status"
+                                        aria-live="polite"
+                                        class="mt-2 text-sm text-[var(--workspace-muted)]"
+                                    >
+                                        {{ socialImageStatus }}
+                                    </p>
+                                    <button
+                                        v-if="props.site.social_image"
+                                        type="button"
+                                        :disabled="
+                                            editorWriteInProgress ||
+                                            socialImageClearForm.processing
+                                        "
+                                        class="mt-2 min-h-10 rounded-lg border border-red-300 px-3 text-sm font-semibold text-red-700 disabled:opacity-50 dark:text-red-300"
+                                        @click="clearSocialImage"
+                                    >
+                                        {{
+                                            socialImageClearForm.processing
+                                                ? 'Clearing…'
+                                                : 'Clear social image'
+                                        }}
+                                    </button>
+                                </div>
                                 <p
                                     v-if="appearanceError"
                                     role="alert"
@@ -2010,6 +2397,79 @@ defineOptions({
                 </div>
             </div>
         </header>
+
+        <section
+            aria-labelledby="publishing-heading"
+            class="mb-6 rounded-[1.25rem] border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-5 shadow-[var(--workspace-shadow)] sm:flex sm:items-center sm:justify-between sm:gap-6"
+        >
+            <div>
+                <h2 id="publishing-heading" class="font-serif text-xl">
+                    Publishing
+                </h2>
+                <p
+                    v-if="!props.site.published_at"
+                    class="mt-1 text-sm text-[var(--workspace-muted)]"
+                >
+                    This page has not been published yet.
+                </p>
+                <p
+                    v-else-if="props.site.has_unpublished_changes"
+                    class="mt-1 text-sm text-[var(--workspace-muted)]"
+                >
+                    Saved draft changes are not on the published page yet.
+                </p>
+                <p v-else class="mt-1 text-sm text-[var(--workspace-muted)]">
+                    Published
+                    {{ new Date(props.site.published_at).toLocaleString() }}.
+                </p>
+                <a
+                    v-if="props.site.published_url"
+                    :href="props.site.published_url"
+                    target="_blank"
+                    rel="noreferrer"
+                    class="mt-2 inline-flex min-h-10 items-center rounded-lg border border-[var(--workspace-line)] px-3 text-sm font-semibold text-[var(--workspace-green)] underline underline-offset-2 focus:ring-2 focus:ring-[var(--workspace-green)] focus:outline-none"
+                >
+                    View published page
+                    <span class="sr-only"> (opens in a new tab)</span>
+                </a>
+                <p
+                    v-if="hasUnsavedEditorChanges"
+                    role="status"
+                    class="mt-1 text-sm text-amber-700 dark:text-amber-300"
+                >
+                    Save your pending editor changes before publishing.
+                </p>
+                <p
+                    v-if="publishError"
+                    role="alert"
+                    class="mt-1 text-sm text-red-700 dark:text-red-300"
+                >
+                    {{ publishError }}
+                </p>
+                <p
+                    v-if="publishStatus"
+                    role="status"
+                    aria-live="polite"
+                    class="mt-1 text-sm text-[var(--workspace-green)]"
+                >
+                    {{ publishStatus }}
+                </p>
+            </div>
+            <button
+                type="button"
+                :disabled="editorWriteInProgress || hasUnsavedEditorChanges"
+                class="mt-4 min-h-11 rounded-lg bg-[var(--workspace-green)] px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:mt-0"
+                @click="publishSite"
+            >
+                {{
+                    publishForm.processing
+                        ? 'Publishing…'
+                        : props.site.published_at
+                          ? 'Publish saved draft'
+                          : 'Publish page'
+                }}
+            </button>
+        </section>
 
         <div
             class="grid gap-5 lg:grid-cols-[15rem_minmax(0,1fr)_17rem] lg:items-start"

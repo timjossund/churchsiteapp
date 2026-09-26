@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\SiteBlock;
+use App\Support\VideoEmbedUrl;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -154,74 +155,6 @@ class UpdateSiteBlockRequest extends FormRequest
 
     private function isSupportedVideoUrl(string $url): bool
     {
-        $url = trim($url);
-
-        if (preg_match('/[\x00-\x1F\x7F]/', $url) === 1) {
-            return false;
-        }
-
-        $parts = parse_url($url);
-
-        if ($parts === false
-            || strtolower($parts['scheme'] ?? '') !== 'https'
-            || ! isset($parts['host'])
-            || isset($parts['user'])
-            || isset($parts['pass'])
-            || (isset($parts['port']) && $parts['port'] !== 443)) {
-            return false;
-        }
-
-        $host = strtolower($parts['host']);
-        $path = $parts['path'] ?? '';
-        $query = $this->parseVideoQuery($parts['query'] ?? '');
-
-        if ($query === null) {
-            return false;
-        }
-
-        if (in_array($host, ['youtube.com', 'www.youtube.com'], true) && $path === '/watch') {
-            return ! array_key_exists('list', $query)
-                && is_string($query['v'] ?? null)
-                && preg_match('/\A[A-Za-z0-9_-]{11}\z/', $query['v']) === 1;
-        }
-
-        if (in_array($host, ['youtu.be', 'www.youtu.be'], true)) {
-            return ! array_key_exists('list', $query)
-                && preg_match('/\A\/[A-Za-z0-9_-]{11}\z/', $path) === 1;
-        }
-
-        if (in_array($host, ['vimeo.com', 'www.vimeo.com'], true)) {
-            return preg_match('/\A\/[0-9]+\z/', $path) === 1;
-        }
-
-        return false;
-    }
-
-    /** @return array<string, string>|null */
-    private function parseVideoQuery(string $query): ?array
-    {
-        if ($query === '') {
-            return [];
-        }
-
-        $parameters = [];
-
-        foreach (explode('&', $query) as $pair) {
-            if ($pair === '') {
-                return null;
-            }
-
-            [$encodedKey, $encodedValue] = array_pad(explode('=', $pair, 2), 2, '');
-            $key = urldecode($encodedKey);
-            $value = urldecode($encodedValue);
-
-            if (preg_match('/\A[A-Za-z0-9_-]+\z/', $key) !== 1 || array_key_exists($key, $parameters)) {
-                return null;
-            }
-
-            $parameters[$key] = $value;
-        }
-
-        return $parameters;
+        return VideoEmbedUrl::from($url) !== null;
     }
 }

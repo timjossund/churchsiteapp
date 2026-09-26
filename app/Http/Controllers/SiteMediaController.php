@@ -48,16 +48,43 @@ class SiteMediaController extends Controller
         return to_route('sites.show', $site);
     }
 
+    public function uploadSocialImage(StoreSiteImageRequest $request, int $site): RedirectResponse
+    {
+        $file = $this->validatedImage($request);
+        $this->uploadAndAssign($request, $site, $file, $this->validatedAltText($request), function (Site $ownedSite, MediaAsset $asset): void {
+            $ownedSite->update(['social_image_id' => $asset->id]);
+        });
+
+        return to_route('sites.show', $site);
+    }
+
     public function clearLogo(Request $request, int $site): RedirectResponse
     {
-        $request->user()->sites()->whereKey($site)->firstOrFail()->update(['logo_media_asset_id' => null]);
+        DB::transaction(function () use ($request, $site): void {
+            $request->user()->sites()->whereKey($site)->lockForUpdate()->firstOrFail()
+                ->update(['logo_media_asset_id' => null]);
+        });
+
+        return to_route('sites.show', $site);
+    }
+
+    public function clearSocialImage(Request $request, int $site): RedirectResponse
+    {
+        DB::transaction(function () use ($request, $site): void {
+            $request->user()->sites()->whereKey($site)->lockForUpdate()->firstOrFail()
+                ->update(['social_image_id' => null]);
+        });
 
         return to_route('sites.show', $site);
     }
 
     public function updateAltText(UpdateMediaAssetRequest $request, int $site, int $mediaAsset): RedirectResponse
     {
-        $request->ownedAsset()->update($request->validated());
+        DB::transaction(function () use ($request, $site, $mediaAsset): void {
+            $ownedSite = $request->user()->sites()->whereKey($site)->lockForUpdate()->firstOrFail();
+            $ownedSite->mediaAssets()->whereKey($mediaAsset)->lockForUpdate()->firstOrFail()
+                ->update($request->validated());
+        });
 
         return to_route('sites.show', $site);
     }

@@ -28,19 +28,20 @@ class SiteController extends Controller
 
     public function store(SiteNameRequest $request): RedirectResponse
     {
-        $site = $request->user()->sites()->create($request->validated());
+        $site = DB::transaction(fn () => $request->user()->sites()->create($request->validated()));
 
         return to_route('sites.show', $site);
     }
 
-    public function show(Request $request, int $site, BuildSitePublicationSnapshot $buildSnapshot): Response
+    public function show(Request $request, int $site, BuildSitePublicationSnapshot $buildSnapshot, ?int $page = null): Response
     {
         $ownedSite = $request->user()->sites()->findOrFail($site);
-        $blocks = $ownedSite->blocks()
+        $selectedPage = $page === null ? null : $ownedSite->editorPage($page);
+        $blocks = $selectedPage?->blocks()
             ->orderBy('position')
             ->orderBy('id')
-            ->get(['id', 'type', 'position', 'content']);
-        $mediaIds = $blocks
+            ->get(['id', 'type', 'position', 'content']) ?? collect();
+        $mediaIds = $blocks->toBase()
             ->map(fn (SiteBlock $block) => $block->content['media_asset_id'] ?? null)
             ->filter(fn ($id) => is_int($id) || (is_string($id) && ctype_digit($id)))
             ->push($ownedSite->logo_media_asset_id)
@@ -60,26 +61,31 @@ class SiteController extends Controller
             && (! is_string($publishedFingerprint)
                 || ! hash_equals($publishedFingerprint, $draftFingerprint ?? ''));
 
-        return Inertia::render('Sites/Show', [
-            'site' => array_merge($ownedSite->only('id', 'name', 'theme_key', 'footer', 'slug', 'seo_title', 'seo_description', 'published_at'), [
-                'has_unpublished_changes' => $hasUnpublishedChanges,
-                'published_url' => $ownedSite->published_at === null || $ownedSite->slug === null
-                    ? null
-                    : route('sites.published.show', ['slug' => $ownedSite->slug]),
-                'logo' => $logo === null ? null : [
-                    'media_asset_id' => $logo->id,
-                    'url' => route('sites.media.show', [$ownedSite, $logo]),
-                    'alt_text' => $logo->alt_text,
-                ],
-                'social_image' => $ownedSite->social_image_id === null || ! $mediaAssets->has($ownedSite->social_image_id)
-                    ? null
-                    : [
-                        'media_asset_id' => $ownedSite->social_image_id,
-                        'url' => route('sites.media.show', [$ownedSite, $ownedSite->social_image_id]),
-                        'alt_text' => $mediaAssets->get($ownedSite->social_image_id)?->alt_text,
+        return Inertia::render($selectedPage === null ? 'Sites/Settings' : 'Sites/Show', array_merge(
+            $selectedPage === null
+                ? ['pages' => $ownedSite->pages()->orderBy('position')->orderBy('id')->get(['id', 'name', 'position', 'is_home'])]
+                : ['selected_page' => $selectedPage->only('id', 'name', 'position', 'is_home')],
+            [
+                'site' => array_merge($ownedSite->only('id', 'name', 'theme_key', 'footer', 'slug', 'seo_title', 'seo_description', 'published_at'), [
+                    'has_unpublished_changes' => $hasUnpublishedChanges,
+                    'published_url' => $ownedSite->published_at === null || $ownedSite->slug === null
+                        ? null
+                        : route('sites.published.show', ['slug' => $ownedSite->slug]),
+                    'logo' => $logo === null ? null : [
+                        'media_asset_id' => $logo->id,
+                        'url' => route('sites.media.show', [$ownedSite, $logo]),
+                        'alt_text' => $logo->alt_text,
                     ],
-            ]),
-            'blocks' => $blocks->map(function (SiteBlock $block) use ($mediaAssets, $ownedSite): array {
+                    'social_image' => $ownedSite->social_image_id === null || ! $mediaAssets->has($ownedSite->social_image_id)
+                        ? null
+                        : [
+                            'media_asset_id' => $ownedSite->social_image_id,
+                            'url' => route('sites.media.show', [$ownedSite, $ownedSite->social_image_id]),
+                            'alt_text' => $mediaAssets->get($ownedSite->social_image_id)?->alt_text,
+                        ],
+                ]),
+            ],
+            $selectedPage === null ? [] : ['blocks' => $blocks->map(function (SiteBlock $block) use ($mediaAssets, $ownedSite): array {
                 $assetId = $block->content['media_asset_id'] ?? null;
                 $asset = is_int($assetId) || (is_string($assetId) && ctype_digit($assetId))
                     ? $mediaAssets->get((int) $assetId)
@@ -94,7 +100,7 @@ class SiteController extends Controller
                     'alt_text' => $asset?->alt_text,
                 ];
             }),
-        ]);
+            ]));
     }
 
     public function update(SiteSettingsRequest $request, int $site): RedirectResponse

@@ -201,7 +201,7 @@ test('all six block types appear in page order after reordering', function () {
         'order' => array_reverse($current),
     ])->assertRedirect(route('sites.show', $site));
 
-    $this->get(route('sites.show', $site))
+    $this->get(route('sites.pages.show', [$site, $site->homePage()->firstOrFail()]))
         ->assertInertia(fn (Assert $page) => $page
             ->component('Sites/Show')
             ->has('blocks', 6)
@@ -227,7 +227,7 @@ test('hero numeric string targets reload as integers and clear on deletion', fun
         ->assertRedirect(route('sites.show', $site));
 
     expect($hero->fresh()->content)->toBe([...$content, 'target_block_id' => $target->id]);
-    $this->get(route('sites.show', $site))
+    $this->get(route('sites.pages.show', [$site, $site->homePage()->firstOrFail()]))
         ->assertInertia(fn (Assert $page) => $page
             ->component('Sites/Show')
             ->where('blocks.1.content.target_block_id', $target->id));

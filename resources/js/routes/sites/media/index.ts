@@ -7,7 +7,7 @@ import {
 } from './../../../wayfinder';
 /**
  * @see \App\Http\Controllers\SiteMediaController::update
- * @see app/Http/Controllers/SiteMediaController.php:58
+ * @see app/Http/Controllers/SiteMediaController.php:84
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 export const update = (
@@ -27,7 +27,7 @@ update.definition = {
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::update
- * @see app/Http/Controllers/SiteMediaController.php:58
+ * @see app/Http/Controllers/SiteMediaController.php:84
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 update.url = (
@@ -60,7 +60,7 @@ update.url = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::update
- * @see app/Http/Controllers/SiteMediaController.php:58
+ * @see app/Http/Controllers/SiteMediaController.php:84
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 update.patch = (
@@ -75,7 +75,7 @@ update.patch = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::update
- * @see app/Http/Controllers/SiteMediaController.php:58
+ * @see app/Http/Controllers/SiteMediaController.php:84
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 const updateForm = (
@@ -95,7 +95,7 @@ const updateForm = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::update
- * @see app/Http/Controllers/SiteMediaController.php:58
+ * @see app/Http/Controllers/SiteMediaController.php:84
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 updateForm.patch = (
@@ -117,7 +117,7 @@ update.form = updateForm;
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::show
- * @see app/Http/Controllers/SiteMediaController.php:65
+ * @see app/Http/Controllers/SiteMediaController.php:95
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 export const show = (
@@ -137,7 +137,7 @@ show.definition = {
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::show
- * @see app/Http/Controllers/SiteMediaController.php:65
+ * @see app/Http/Controllers/SiteMediaController.php:95
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 show.url = (
@@ -170,7 +170,7 @@ show.url = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::show
- * @see app/Http/Controllers/SiteMediaController.php:65
+ * @see app/Http/Controllers/SiteMediaController.php:95
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 show.get = (
@@ -185,7 +185,7 @@ show.get = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::show
- * @see app/Http/Controllers/SiteMediaController.php:65
+ * @see app/Http/Controllers/SiteMediaController.php:95
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 show.head = (
@@ -200,7 +200,7 @@ show.head = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::show
- * @see app/Http/Controllers/SiteMediaController.php:65
+ * @see app/Http/Controllers/SiteMediaController.php:95
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 const showForm = (
@@ -215,7 +215,7 @@ const showForm = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::show
- * @see app/Http/Controllers/SiteMediaController.php:65
+ * @see app/Http/Controllers/SiteMediaController.php:95
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 showForm.get = (
@@ -230,7 +230,7 @@ showForm.get = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::show
- * @see app/Http/Controllers/SiteMediaController.php:65
+ * @see app/Http/Controllers/SiteMediaController.php:95
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 showForm.head = (

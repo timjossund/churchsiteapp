@@ -11,7 +11,7 @@ class BuildSitePublicationSnapshot
     /** @return array<string, mixed> */
     public function __invoke(Site $site): array
     {
-        $blocks = $site->blocks()
+        $blocks = $site->homePage()->firstOrFail()->blocks()
             ->orderBy('position')
             ->orderBy('id')
             ->get(['id', 'type', 'position', 'content']);

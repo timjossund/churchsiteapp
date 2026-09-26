@@ -2,6 +2,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import SiteMediaController from '@/actions/App/Http/Controllers/SiteMediaController';
+import { store as uploadPageBlockImage } from '@/routes/sites/pages/blocks/image';
 import { dashboard } from '@/routes';
 
 type BlockType =
@@ -68,26 +69,25 @@ const props = defineProps<{
             alt_text: string | null;
         } | null;
     };
+    selected_page: {
+        id: number;
+        name: string;
+        position: number;
+        is_home: boolean;
+    };
     blocks: SiteBlock[];
 }>();
 
-const siteThemes: { key: SiteTheme; label: string; description: string }[] = [
-    {
-        key: 'warm',
-        label: 'Warm',
-        description: 'Traditional and welcoming',
-    },
-    {
-        key: 'clean',
-        label: 'Clean',
-        description: 'Minimal and calm',
-    },
-    {
-        key: 'bold',
-        label: 'Bold',
-        description: 'Contemporary and expressive',
-    },
-];
+function editorActionUrl(url: string): string {
+    return `${url}${url.includes('?') ? '&' : '?'}editor_page=${props.selected_page.id}`;
+}
+function confirmEditorDiscard(): boolean {
+    return discardDraft();
+}
+
+const blockBaseUrl = computed(
+    () => `/sites/${props.site.id}/pages/${props.selected_page.id}/blocks`,
+);
 
 const blockTypes: { type: BlockType; label: string; description: string }[] = [
     {
@@ -414,8 +414,9 @@ function selectImageFile(event: Event) {
 
     runOwnVisit(() =>
         imageUploadForm.post(
-            SiteMediaController.uploadBlockImage({
+            uploadPageBlockImage({
                 site: props.site.id,
+                page: props.selected_page.id,
                 block: blockId,
             }).url,
             {
@@ -490,10 +491,12 @@ function saveAltText() {
     altTextForm.alt_text = draftAltText.value;
     runOwnVisit(() =>
         altTextForm.patch(
-            SiteMediaController.updateAltText({
-                site: props.site.id,
-                mediaAsset: mediaAssetId,
-            }).url,
+            editorActionUrl(
+                SiteMediaController.updateAltText({
+                    site: props.site.id,
+                    mediaAsset: mediaAssetId,
+                }).url,
+            ),
             {
                 preserveScroll: true,
                 onSuccess: () => {
@@ -536,13 +539,13 @@ function blockPreviewAltText(block: SiteBlock): string {
 }
 
 function guardBeforeUnload(event: BeforeUnloadEvent) {
-    if (!isDirty.value && !uploadInProgress.value) return;
+    if (!hasUnsavedEditorChanges.value && !editorWriteInProgress.value) return;
     event.preventDefault();
     event.returnValue = '';
 }
 
 function guardHistory(event: PopStateEvent) {
-    if (isDirty.value && !discardDraft()) {
+    if (editorWriteInProgress.value || !confirmEditorDiscard()) {
         event.stopImmediatePropagation();
         window.history.pushState(editorHistoryState, '', editorUrl);
     }
@@ -552,12 +555,12 @@ onMounted(() => {
     editorHistoryState = window.history.state;
     editorUrl = window.location.href;
     stopBeforeListener = router.on('before', (event) => {
-        if (uploadInProgress.value) {
+        if (ownVisit) return;
+        if (editorWriteInProgress.value) {
             event.preventDefault();
             return;
         }
-        if (!ownVisit && isDirty.value && !discardDraft())
-            event.preventDefault();
+        if (!confirmEditorDiscard()) event.preventDefault();
     });
     stopNavigateListener = router.on('navigate', () => {
         editorHistoryState = window.history.state;
@@ -917,7 +920,7 @@ function saveBlock() {
     saveForm.content.style = { ...draftBlockStyle.value };
 
     runOwnVisit(() =>
-        saveForm.patch('/sites/' + props.site.id + '/blocks/' + block.id, {
+        saveForm.patch(blockBaseUrl.value + '/' + block.id, {
             preserveScroll: true,
             onSuccess: () => {
                 savedHeading.value = draftHeading.value;
@@ -1068,7 +1071,7 @@ function addBlock(type: BlockType) {
     orderSaved.value = false;
     addForm.type = type;
     runOwnVisit(() =>
-        addForm.post('/sites/' + props.site.id + '/blocks', {
+        addForm.post(blockBaseUrl.value, {
             preserveScroll: true,
             onSuccess: () => {
                 selectedBlockId.value = props.blocks.at(-1)?.id ?? null;
@@ -1120,7 +1123,7 @@ function persistOrder(nextOrder: number[]) {
     orderForm.expected_order = props.blocks.map((block) => block.id);
     orderForm.order = nextOrder;
     runOwnVisit(() =>
-        orderForm.patch('/sites/' + props.site.id + '/blocks/order', {
+        orderForm.patch(blockBaseUrl.value + '/order', {
             preserveScroll: true,
             onSuccess: () => {
                 orderSaved.value = true;
@@ -1209,7 +1212,7 @@ function removeSelectedBlock() {
     deleteError.value = '';
     orderSaved.value = false;
     runOwnVisit(() =>
-        deleteForm.delete('/sites/' + props.site.id + '/blocks/' + block.id, {
+        deleteForm.delete(blockBaseUrl.value + '/' + block.id, {
             preserveScroll: true,
             onSuccess: () => {
                 selectedBlockId.value = props.blocks[0]?.id ?? null;
@@ -1232,537 +1235,63 @@ function removeSelectedBlock() {
     );
 }
 
-const nameForm = useForm({ name: props.site.name });
-const appearanceForm = useForm<{
-    theme_key: SiteTheme;
-    footer: { text: string };
-    slug: string;
-    seo_title: string;
-    seo_description: string;
-}>({
-    theme_key: props.site.theme_key,
-    footer: { text: props.site.footer.text },
-    slug: props.site.slug ?? '',
-    seo_title: props.site.seo_title ?? '',
-    seo_description: props.site.seo_description ?? '',
-});
-const nameInput = ref<HTMLInputElement | null>(null);
-const themeInput = ref<HTMLSelectElement | null>(null);
-const footerTextInput = ref<HTMLInputElement | null>(null);
-const siteSlugInput = ref<HTMLInputElement | null>(null);
-const seoTitleInput = ref<HTMLInputElement | null>(null);
-const seoDescriptionInput = ref<HTMLTextAreaElement | null>(null);
-const socialImageInput = ref<HTMLInputElement | null>(null);
-const socialImageForm = useForm<{ image: File | null; alt_text: string }>({
-    image: null,
-    alt_text: '',
-});
-const socialImageClearForm = useForm({});
 const publishForm = useForm({});
-const socialImageError = ref('');
-const socialImageStatus = ref('');
 const publishError = ref('');
 const publishStatus = ref('');
-const appearanceDetails = ref<HTMLDetailsElement | null>(null);
-const nameSaved = ref(false);
-const nameError = ref('');
-const appearanceSaved = ref(false);
-const appearanceError = ref('');
-const logoDraftAltText = ref(props.site.logo?.alt_text ?? '');
-const logoUploadPreviewUrl = ref<string | null>(null);
-const logoUploadStatus = ref('');
-const logoUploadError = ref('');
-const logoAltTextStatus = ref('');
-const logoAltTextError = ref('');
-const logoFileInput = ref<HTMLInputElement | null>(null);
-const logoAltTextInput = ref<HTMLInputElement | null>(null);
-const logoUploadForm = useForm<{ image: File | null; alt_text: string }>({
-    image: null,
-    alt_text: '',
-});
-const logoAltTextForm = useForm<{ alt_text: string }>({ alt_text: '' });
-const logoClearForm = useForm({});
-const uploadInProgress = computed(
-    () =>
-        imageUploadForm.processing ||
-        logoUploadForm.processing ||
-        socialImageForm.processing,
-);
+const uploadInProgress = computed(() => imageUploadForm.processing);
 const editorWriteInProgress = computed(
     () =>
         uploadInProgress.value ||
-        nameForm.processing ||
-        appearanceForm.processing ||
         saveForm.processing ||
         addForm.processing ||
         orderForm.processing ||
         deleteForm.processing ||
         altTextForm.processing ||
-        logoAltTextForm.processing ||
-        logoClearForm.processing ||
-        socialImageForm.processing ||
-        socialImageClearForm.processing ||
         publishForm.processing,
 );
-const hasUnsavedEditorChanges = computed(
-    () =>
-        nameForm.name !== props.site.name ||
-        appearanceForm.isDirty ||
-        isDirty.value ||
-        isLogoAltTextDirty.value,
-);
-const isLogoAltTextDirty = computed(
-    () => logoDraftAltText.value !== (props.site.logo?.alt_text ?? ''),
-);
-
-watch(
-    () => props.site.name,
-    (name) => {
-        nameForm.name = name;
-    },
-);
-
-watch(
-    () => props.site.id,
-    () => {
-        appearanceForm.theme_key = props.site.theme_key;
-        appearanceForm.footer.text = props.site.footer.text;
-        appearanceForm.slug = props.site.slug ?? '';
-        appearanceForm.seo_title = props.site.seo_title ?? '';
-        appearanceForm.seo_description = props.site.seo_description ?? '';
-        appearanceForm.defaults();
-        appearanceForm.clearErrors();
-        appearanceError.value = '';
-        appearanceSaved.value = false;
-    },
-);
-
-function clearNameError() {
-    nameForm.clearErrors('name');
-    nameError.value = '';
-    nameSaved.value = false;
+const hasUnsavedEditorChanges = computed(() => isDirty.value);
+function logoPreviewUrl(): string | null {
+    return props.site.logo?.url ?? null;
 }
-
-function renameSite() {
-    if (uploadInProgress.value) return;
+function logoPreviewAltText(): string {
+    return props.site.logo?.alt_text || props.site.name;
+}
+function publishSite() {
     if (
-        nameForm.processing ||
-        saveForm.processing ||
-        orderForm.processing ||
-        deleteForm.processing ||
-        !discardDraft()
+        !props.selected_page.is_home ||
+        editorWriteInProgress.value ||
+        hasUnsavedEditorChanges.value
     )
         return;
-    resetDraft();
-    nameError.value = '';
-    nameSaved.value = false;
-    runOwnVisit(() =>
-        nameForm.patch('/sites/' + props.site.id, {
-            preserveScroll: true,
-            onSuccess: () => {
-                nameSaved.value = true;
-            },
-            onError: (errors) => {
-                if (!errors.name) {
-                    nameError.value =
-                        'We could not rename your site. Please try again.';
-                }
-                nextTick(() => nameInput.value?.focus());
-            },
-            onHttpException: () => {
-                nameError.value =
-                    'We could not rename your site. Please try again.';
-                return false;
-            },
-            onNetworkError: () => {
-                nameError.value =
-                    'We could not rename your site. Please try again.';
-                return false;
-            },
-        }),
-    );
-}
-
-function clearAppearanceError() {
-    appearanceForm.clearErrors();
-    appearanceError.value = '';
-    appearanceSaved.value = false;
-}
-
-function publishSite() {
-    if (editorWriteInProgress.value || hasUnsavedEditorChanges.value) return;
     publishError.value = '';
     publishStatus.value = '';
     if (!props.site.slug) {
         publishError.value =
             'Choose and save a shareable address before publishing.';
-        if (appearanceDetails.value) appearanceDetails.value.open = true;
-        nextTick(() => siteSlugInput.value?.focus());
         return;
     }
 
-    publishForm.post('/sites/' + props.site.id + '/publish', {
+    publishForm.post(editorActionUrl('/sites/' + props.site.id + '/publish'), {
         preserveScroll: true,
         onSuccess: () => {
-            publishStatus.value = 'Your saved draft is now published.';
+            publishStatus.value = 'Your saved Home draft is now published.';
         },
         onError: (errors) => {
             publishError.value =
                 errors.slug ??
                 errors.publish ??
-                'We could not publish this page. Please try again.';
-            if (errors.slug) {
-                if (appearanceDetails.value)
-                    appearanceDetails.value.open = true;
-                nextTick(() => siteSlugInput.value?.focus());
-            }
+                'We could not publish Home. Please try again.';
         },
         onHttpException: () => {
-            publishError.value =
-                'We could not publish this page. Please try again.';
+            publishError.value = 'We could not publish Home. Please try again.';
             return false;
         },
         onNetworkError: () => {
-            publishError.value =
-                'We could not publish this page. Please try again.';
+            publishError.value = 'We could not publish Home. Please try again.';
             return false;
         },
     });
 }
-
-function saveAppearance() {
-    if (uploadInProgress.value) return;
-    if (
-        appearanceForm.processing ||
-        nameForm.processing ||
-        saveForm.processing ||
-        addForm.processing ||
-        orderForm.processing ||
-        deleteForm.processing ||
-        !discardDraft()
-    )
-        return;
-    resetDraft();
-    appearanceError.value = '';
-    appearanceSaved.value = false;
-    runOwnVisit(() =>
-        appearanceForm.patch('/sites/' + props.site.id, {
-            preserveScroll: true,
-            onSuccess: () => {
-                appearanceForm.footer.text = appearanceForm.footer.text.trim();
-                appearanceForm.slug = appearanceForm.slug.trim().toLowerCase();
-                appearanceForm.seo_title = appearanceForm.seo_title.trim();
-                appearanceForm.seo_description =
-                    appearanceForm.seo_description.trim();
-                appearanceForm.defaults();
-                appearanceSaved.value = true;
-            },
-            onError: (errors) => {
-                const fieldErrors = errors as Record<string, string>;
-                if (
-                    !fieldErrors.theme_key &&
-                    !fieldErrors['footer.text'] &&
-                    !fieldErrors.slug &&
-                    !fieldErrors.seo_title &&
-                    !fieldErrors.seo_description
-                ) {
-                    appearanceError.value =
-                        'We could not save appearance settings. Please try again.';
-                }
-                nextTick(() => {
-                    if (fieldErrors.theme_key) themeInput.value?.focus();
-                    else if (fieldErrors['footer.text'])
-                        footerTextInput.value?.focus();
-                    else if (fieldErrors.slug) siteSlugInput.value?.focus();
-                    else if (fieldErrors.seo_title)
-                        seoTitleInput.value?.focus();
-                    else if (fieldErrors.seo_description)
-                        seoDescriptionInput.value?.focus();
-                    else themeInput.value?.focus();
-                });
-            },
-            onHttpException: () => {
-                appearanceError.value =
-                    'We could not save appearance settings. Please try again.';
-                return false;
-            },
-            onNetworkError: () => {
-                appearanceError.value =
-                    'We could not save appearance settings. Please try again.';
-                return false;
-            },
-        }),
-    );
-}
-
-function selectSocialImage(event: Event) {
-    if (editorWriteInProgress.value) return;
-    const input = event.currentTarget;
-    const file =
-        input instanceof HTMLInputElement ? input.files?.[0] : undefined;
-    if (!file) return;
-    socialImageError.value = '';
-    socialImageStatus.value = 'Uploading social preview image…';
-    socialImageForm.image = file;
-    socialImageForm.alt_text = '';
-    socialImageForm.post('/sites/' + props.site.id + '/social-image', {
-        forceFormData: true,
-        preserveScroll: true,
-        onSuccess: () => {
-            socialImageStatus.value = 'Social preview image uploaded.';
-            socialImageForm.reset();
-            if (socialImageInput.value) socialImageInput.value.value = '';
-        },
-        onError: (errors) => {
-            socialImageStatus.value = '';
-            socialImageError.value =
-                errors.image ??
-                errors.alt_text ??
-                'We could not upload this image. Please try again.';
-            nextTick(() => socialImageInput.value?.focus());
-            socialImageForm.image = null;
-            if (socialImageInput.value) socialImageInput.value.value = '';
-        },
-        onHttpException: () => {
-            socialImageStatus.value = '';
-            socialImageError.value =
-                'We could not upload this image. Please try again.';
-            return false;
-        },
-        onNetworkError: () => {
-            socialImageStatus.value = '';
-            socialImageError.value =
-                'We could not upload this image. Please try again.';
-            return false;
-        },
-    });
-}
-
-function clearSocialImage() {
-    if (!props.site.social_image || socialImageClearForm.processing) return;
-    socialImageError.value = '';
-    socialImageStatus.value = '';
-    socialImageClearForm.delete('/sites/' + props.site.id + '/social-image', {
-        preserveScroll: true,
-        onSuccess: () => {
-            socialImageStatus.value = 'Social preview image cleared.';
-        },
-        onError: () => {
-            socialImageError.value =
-                'We could not clear this image. Please try again.';
-        },
-        onHttpException: () => {
-            socialImageError.value =
-                'We could not clear this image. Please try again.';
-            return false;
-        },
-        onNetworkError: () => {
-            socialImageError.value =
-                'We could not clear this image. Please try again.';
-            return false;
-        },
-    });
-}
-
-function releaseLogoUploadPreview() {
-    if (logoUploadPreviewUrl.value)
-        URL.revokeObjectURL(logoUploadPreviewUrl.value);
-    logoUploadPreviewUrl.value = null;
-}
-
-function logoPreviewUrl(): string | null {
-    return logoUploadPreviewUrl.value ?? props.site.logo?.url ?? null;
-}
-
-function logoPreviewAltText(): string {
-    if (logoUploadPreviewUrl.value) return logoDraftAltText.value;
-    return props.site.logo?.alt_text || props.site.name;
-}
-
-function clearLogoUploadFeedback() {
-    logoUploadForm.clearErrors('image', 'alt_text');
-    logoUploadError.value = '';
-    logoUploadStatus.value = '';
-}
-
-function clearLogoAltTextFeedback() {
-    logoUploadForm.clearErrors('alt_text');
-    logoAltTextForm.clearErrors('alt_text');
-    logoAltTextError.value = '';
-    logoAltTextStatus.value = '';
-}
-
-function selectLogoFile(event: Event) {
-    if (editorWriteInProgress.value) return;
-    const input = event.currentTarget;
-    const file =
-        input instanceof HTMLInputElement ? input.files?.[0] : undefined;
-    if (!file) return;
-
-    releaseLogoUploadPreview();
-    clearLogoUploadFeedback();
-    if (file.size > 5 * 1024 * 1024) {
-        logoUploadError.value = 'Choose an image that is 5 MB or smaller.';
-        if (input instanceof HTMLInputElement) input.value = '';
-        nextTick(() => logoFileInput.value?.focus());
-        return;
-    }
-
-    logoUploadForm.image = file;
-    logoUploadForm.alt_text = logoDraftAltText.value;
-    logoUploadPreviewUrl.value = URL.createObjectURL(file);
-    logoUploadStatus.value = 'Uploading logo…';
-
-    runOwnVisit(() =>
-        logoUploadForm.post(
-            SiteMediaController.uploadLogo({ site: props.site.id }).url,
-            {
-                forceFormData: true,
-                preserveScroll: true,
-                onCancel: () => {
-                    logoUploadStatus.value = '';
-                    releaseLogoUploadPreview();
-                    logoUploadForm.image = null;
-                    logoUploadForm.progress = null;
-                    if (logoFileInput.value) logoFileInput.value.value = '';
-                },
-                onSuccess: () => {
-                    logoDraftAltText.value = logoUploadForm.alt_text;
-                    logoUploadStatus.value = 'Logo uploaded.';
-                    releaseLogoUploadPreview();
-                    logoUploadForm.reset();
-                    if (logoFileInput.value) logoFileInput.value.value = '';
-                },
-                onError: (errors) => {
-                    logoUploadStatus.value = '';
-                    logoUploadError.value = errors.image ?? '';
-                    nextTick(() => {
-                        if (errors.image) logoFileInput.value?.focus();
-                        else if (errors.alt_text)
-                            logoAltTextInput.value?.focus();
-                        else logoFileInput.value?.focus();
-                    });
-                    releaseLogoUploadPreview();
-                    logoUploadForm.image = null;
-                    if (logoFileInput.value) logoFileInput.value.value = '';
-                },
-                onHttpException: () => {
-                    logoUploadStatus.value = '';
-                    logoUploadError.value =
-                        'We could not upload this logo. Please try again.';
-                    releaseLogoUploadPreview();
-                    logoUploadForm.image = null;
-                    if (logoFileInput.value) logoFileInput.value.value = '';
-                    return false;
-                },
-                onNetworkError: () => {
-                    logoUploadStatus.value = '';
-                    logoUploadError.value =
-                        'We could not upload this logo. Please try again.';
-                    releaseLogoUploadPreview();
-                    logoUploadForm.image = null;
-                    if (logoFileInput.value) logoFileInput.value.value = '';
-                    return false;
-                },
-            },
-        ),
-    );
-}
-
-function saveLogoAltText() {
-    if (uploadInProgress.value) return;
-    const logo = props.site.logo;
-    if (
-        !logo ||
-        !isLogoAltTextDirty.value ||
-        logoAltTextForm.processing ||
-        logoUploadForm.processing ||
-        logoClearForm.processing
-    ) {
-        return;
-    }
-
-    logoAltTextError.value = '';
-    logoAltTextStatus.value = '';
-    logoAltTextForm.alt_text = logoDraftAltText.value;
-    runOwnVisit(() =>
-        logoAltTextForm.patch(
-            SiteMediaController.updateAltText({
-                site: props.site.id,
-                mediaAsset: logo.media_asset_id,
-            }).url,
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    logoDraftAltText.value = logoAltTextForm.alt_text;
-                    logoAltTextForm.defaults();
-                    logoAltTextStatus.value = 'Logo description saved.';
-                },
-                onError: (errors) => {
-                    logoAltTextError.value = errors.alt_text ?? '';
-                    nextTick(() => logoAltTextInput.value?.focus());
-                },
-                onHttpException: () => {
-                    logoAltTextError.value =
-                        'We could not save this logo description. Please try again.';
-                    return false;
-                },
-                onNetworkError: () => {
-                    logoAltTextError.value =
-                        'We could not save this logo description. Please try again.';
-                    return false;
-                },
-            },
-        ),
-    );
-}
-
-function clearLogo() {
-    if (uploadInProgress.value) return;
-    if (
-        !props.site.logo ||
-        logoClearForm.processing ||
-        logoUploadForm.processing ||
-        logoAltTextForm.processing
-    ) {
-        return;
-    }
-
-    logoUploadError.value = '';
-    logoUploadStatus.value = '';
-    logoAltTextError.value = '';
-    logoAltTextStatus.value = '';
-    runOwnVisit(() =>
-        logoClearForm.delete(
-            SiteMediaController.clearLogo({ site: props.site.id }).url,
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    logoDraftAltText.value = '';
-                    logoAltTextForm.reset();
-                    logoAltTextForm.clearErrors();
-                    logoUploadStatus.value = 'Logo cleared.';
-                },
-                onError: () => {
-                    logoUploadError.value =
-                        'We could not clear this logo. Please try again.';
-                },
-                onHttpException: () => {
-                    logoUploadError.value =
-                        'We could not clear this logo. Please try again.';
-                    return false;
-                },
-                onNetworkError: () => {
-                    logoUploadError.value =
-                        'We could not clear this logo. Please try again.';
-                    return false;
-                },
-            },
-        ),
-    );
-}
-
-onUnmounted(() => releaseLogoUploadPreview());
 
 defineOptions({
     layout: {
@@ -1778,729 +1307,46 @@ defineOptions({
     >
         <header class="mb-8">
             <Link
-                :href="dashboard()"
+                :href="`/sites/${props.site.id}`"
                 class="text-sm font-semibold text-[var(--workspace-green)] hover:underline"
-                >← All sites</Link
+                >← Site settings</Link
             >
             <p
                 class="mt-7 text-xs font-bold tracking-[0.14em] text-[var(--workspace-green)] uppercase"
             >
-                Page editor
+                {{ props.site.name }} / Page editor
             </p>
-            <div
-                class="relative mt-2 flex flex-wrap items-end justify-between gap-4"
-            >
-                <div>
-                    <h1 class="font-serif text-4xl tracking-tight">
-                        {{ props.site.name }}
-                    </h1>
-                    <p class="mt-2 text-sm text-[var(--workspace-muted)]">
-                        Build your page one block at a time.
-                    </p>
-                </div>
-                <div class="ml-auto flex flex-col items-end gap-4 lg:flex-row">
-                    <details class="group relative">
-                        <summary
-                            aria-controls="site-name-dropdown"
-                            class="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-4 text-sm font-semibold marker:hidden hover:bg-[var(--workspace-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)]"
-                        >
-                            <span>Rename site</span>
-                            <svg
-                                aria-hidden="true"
-                                viewBox="0 0 20 20"
-                                fill="none"
-                                class="size-4 transition-transform group-open:rotate-180"
-                            >
-                                <path
-                                    d="m5 7.5 5 5 5-5"
-                                    stroke="currentColor"
-                                    stroke-width="1.75"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                />
-                            </svg>
-                        </summary>
-                        <div
-                            id="site-name-dropdown"
-                            class="absolute top-full right-0 z-30 mt-2 w-80 max-w-[calc(100vw-2.5rem)] rounded-xl border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-5 shadow-[var(--workspace-shadow)]"
-                        >
-                            <form
-                                class="space-y-4"
-                                @submit.prevent="renameSite"
-                            >
-                                <div>
-                                    <label
-                                        for="site-name"
-                                        class="mb-2 block text-sm font-semibold"
-                                        >Site name</label
-                                    >
-                                    <input
-                                        id="site-name"
-                                        ref="nameInput"
-                                        v-model="nameForm.name"
-                                        type="text"
-                                        required
-                                        maxlength="255"
-                                        autocomplete="off"
-                                        :disabled="nameForm.processing"
-                                        :aria-invalid="
-                                            Boolean(nameForm.errors.name)
-                                        "
-                                        :aria-describedby="
-                                            nameForm.errors.name
-                                                ? 'site-name-error'
-                                                : undefined
-                                        "
-                                        class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20"
-                                        @input="clearNameError"
-                                    />
-                                    <p
-                                        v-if="nameForm.errors.name"
-                                        id="site-name-error"
-                                        role="alert"
-                                        class="mt-2 text-sm text-red-700 dark:text-red-300"
-                                    >
-                                        {{ nameForm.errors.name }}
-                                    </p>
-                                </div>
-                                <p
-                                    v-if="nameError"
-                                    role="alert"
-                                    class="text-sm text-red-700 dark:text-red-300"
-                                >
-                                    {{ nameError }}
-                                </p>
-                                <p
-                                    v-if="nameSaved"
-                                    role="status"
-                                    class="text-sm font-semibold text-[var(--workspace-green)]"
-                                >
-                                    Site name saved.
-                                </p>
-                                <button
-                                    type="submit"
-                                    :disabled="
-                                        uploadInProgress || nameForm.processing
-                                    "
-                                    class="min-h-11 w-full rounded-lg bg-[var(--workspace-green)] px-4 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60 dark:text-[var(--workspace-surface)]"
-                                >
-                                    {{
-                                        nameForm.processing
-                                            ? 'Saving…'
-                                            : 'Save name'
-                                    }}
-                                </button>
-                            </form>
-                        </div>
-                    </details>
-                    <details class="group relative">
-                        <summary
-                            aria-controls="site-logo-dropdown"
-                            class="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-4 text-sm font-semibold marker:hidden hover:bg-[var(--workspace-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)]"
-                        >
-                            <span>Site logo</span>
-                            <svg
-                                aria-hidden="true"
-                                viewBox="0 0 20 20"
-                                fill="none"
-                                class="size-4 transition-transform group-open:rotate-180"
-                            >
-                                <path
-                                    d="m5 7.5 5 5 5-5"
-                                    stroke="currentColor"
-                                    stroke-width="1.75"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                />
-                            </svg>
-                        </summary>
-                        <div
-                            id="site-logo-dropdown"
-                            class="absolute top-full right-0 z-30 mt-2 w-80 max-w-[calc(100vw-2.5rem)] rounded-xl border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-5 shadow-[var(--workspace-shadow)]"
-                        >
-                            <div class="space-y-4">
-                                <div>
-                                    <label
-                                        for="site-logo-file"
-                                        class="mb-2 block text-sm font-semibold"
-                                    >
-                                        {{
-                                            props.site.logo
-                                                ? 'Replace logo'
-                                                : 'Choose logo'
-                                        }}
-                                    </label>
-                                    <input
-                                        id="site-logo-file"
-                                        ref="logoFileInput"
-                                        type="file"
-                                        accept=".jpg,.jpeg,.png,image/jpeg,image/png"
-                                        :disabled="
-                                            editorWriteInProgress ||
-                                            logoUploadForm.processing ||
-                                            logoAltTextForm.processing ||
-                                            logoClearForm.processing
-                                        "
-                                        :aria-invalid="
-                                            Boolean(
-                                                logoUploadError ||
-                                                logoUploadForm.errors.image,
-                                            )
-                                        "
-                                        :aria-describedby="
-                                            logoUploadError ||
-                                            logoUploadForm.errors.image
-                                                ? 'site-logo-error'
-                                                : 'site-logo-help'
-                                        "
-                                        class="block min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-2 text-sm text-[var(--workspace-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-60"
-                                        @change="selectLogoFile"
-                                    />
-                                    <p
-                                        id="site-logo-help"
-                                        class="mt-2 text-xs text-[var(--workspace-muted)]"
-                                    >
-                                        JPEG or PNG, up to 5 MB. The preview
-                                        updates after upload.
-                                    </p>
-                                    <p
-                                        v-if="
-                                            logoUploadError ||
-                                            logoUploadForm.errors.image
-                                        "
-                                        id="site-logo-error"
-                                        role="alert"
-                                        class="mt-2 text-sm text-red-700 dark:text-red-300"
-                                    >
-                                        {{
-                                            logoUploadError ||
-                                            logoUploadForm.errors.image
-                                        }}
-                                    </p>
-                                </div>
-                                <p
-                                    v-if="
-                                        logoUploadForm.processing &&
-                                        logoUploadForm.progress
-                                    "
-                                    role="status"
-                                    aria-live="polite"
-                                    class="text-sm text-[var(--workspace-muted)]"
-                                >
-                                    Uploading logo:
-                                    {{ logoUploadForm.progress.percentage }}%
-                                </p>
-                                <p
-                                    v-else-if="logoUploadStatus"
-                                    role="status"
-                                    aria-live="polite"
-                                    class="text-sm text-[var(--workspace-muted)]"
-                                >
-                                    {{ logoUploadStatus }}
-                                </p>
-                                <div>
-                                    <label
-                                        for="site-logo-alt-text"
-                                        class="mb-2 block text-sm font-semibold"
-                                    >
-                                        Logo description (alt text)
-                                    </label>
-                                    <input
-                                        id="site-logo-alt-text"
-                                        ref="logoAltTextInput"
-                                        v-model="logoDraftAltText"
-                                        type="text"
-                                        maxlength="255"
-                                        placeholder="Leave blank to use the site name"
-                                        :disabled="
-                                            uploadInProgress ||
-                                            logoUploadForm.processing ||
-                                            logoAltTextForm.processing ||
-                                            logoClearForm.processing
-                                        "
-                                        :aria-invalid="
-                                            Boolean(
-                                                logoAltTextError ||
-                                                logoAltTextForm.errors
-                                                    .alt_text ||
-                                                logoUploadForm.errors.alt_text,
-                                            )
-                                        "
-                                        :aria-describedby="
-                                            logoAltTextError ||
-                                            logoAltTextForm.errors.alt_text ||
-                                            logoUploadForm.errors.alt_text
-                                                ? 'site-logo-alt-error'
-                                                : undefined
-                                        "
-                                        class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
-                                        @input="clearLogoAltTextFeedback"
-                                    />
-                                    <p
-                                        v-if="
-                                            logoAltTextError ||
-                                            logoAltTextForm.errors.alt_text ||
-                                            logoUploadForm.errors.alt_text
-                                        "
-                                        id="site-logo-alt-error"
-                                        role="alert"
-                                        class="mt-2 text-sm text-red-700 dark:text-red-300"
-                                    >
-                                        {{
-                                            logoAltTextError ||
-                                            logoAltTextForm.errors.alt_text ||
-                                            logoUploadForm.errors.alt_text
-                                        }}
-                                    </p>
-                                </div>
-                                <div class="flex flex-wrap gap-2">
-                                    <button
-                                        v-if="props.site.logo"
-                                        type="button"
-                                        :disabled="
-                                            uploadInProgress ||
-                                            !isLogoAltTextDirty ||
-                                            logoUploadForm.processing ||
-                                            logoAltTextForm.processing ||
-                                            logoClearForm.processing
-                                        "
-                                        class="min-h-10 rounded-lg border border-[var(--workspace-line)] px-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-50"
-                                        @click="saveLogoAltText"
-                                    >
-                                        {{
-                                            logoAltTextForm.processing
-                                                ? 'Saving description…'
-                                                : 'Save description'
-                                        }}
-                                    </button>
-                                    <button
-                                        v-if="props.site.logo"
-                                        type="button"
-                                        :disabled="
-                                            uploadInProgress ||
-                                            logoUploadForm.processing ||
-                                            logoAltTextForm.processing ||
-                                            logoClearForm.processing
-                                        "
-                                        class="min-h-10 rounded-lg border border-red-300 px-3 text-sm font-semibold text-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:opacity-50 dark:text-red-300"
-                                        @click="clearLogo"
-                                    >
-                                        {{
-                                            logoClearForm.processing
-                                                ? 'Clearing…'
-                                                : 'Clear logo'
-                                        }}
-                                    </button>
-                                </div>
-                                <p
-                                    v-if="logoAltTextStatus"
-                                    role="status"
-                                    aria-live="polite"
-                                    class="text-sm text-[var(--workspace-muted)]"
-                                >
-                                    {{ logoAltTextStatus }}
-                                </p>
-                            </div>
-                        </div>
-                    </details>
-                    <details ref="appearanceDetails" class="group relative">
-                        <summary
-                            aria-controls="site-appearance-dropdown"
-                            class="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-4 text-sm font-semibold marker:hidden hover:bg-[var(--workspace-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)]"
-                        >
-                            <span>Theme &amp; footer</span>
-                            <svg
-                                aria-hidden="true"
-                                viewBox="0 0 20 20"
-                                fill="none"
-                                class="size-4 transition-transform group-open:rotate-180"
-                            >
-                                <path
-                                    d="m5 7.5 5 5 5-5"
-                                    stroke="currentColor"
-                                    stroke-width="1.75"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                />
-                            </svg>
-                        </summary>
-                        <div
-                            id="site-appearance-dropdown"
-                            class="absolute top-full right-0 z-30 mt-2 w-80 max-w-[calc(100vw-2.5rem)] rounded-xl border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-5 shadow-[var(--workspace-shadow)]"
-                        >
-                            <form
-                                class="space-y-4"
-                                @submit.prevent="saveAppearance"
-                            >
-                                <div>
-                                    <label
-                                        for="site-theme"
-                                        class="mb-2 block text-sm font-semibold"
-                                        >Page theme</label
-                                    >
-                                    <select
-                                        id="site-theme"
-                                        ref="themeInput"
-                                        v-model="appearanceForm.theme_key"
-                                        :disabled="appearanceForm.processing"
-                                        :aria-invalid="
-                                            Boolean(
-                                                appearanceForm.errors.theme_key,
-                                            )
-                                        "
-                                        :aria-describedby="
-                                            appearanceForm.errors.theme_key
-                                                ? 'site-theme-help site-theme-error'
-                                                : 'site-theme-help'
-                                        "
-                                        class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20"
-                                        @change="clearAppearanceError"
-                                    >
-                                        <option
-                                            v-for="theme in siteThemes"
-                                            :key="theme.key"
-                                            :value="theme.key"
-                                        >
-                                            {{ theme.label }}
-                                        </option>
-                                    </select>
-                                    <p
-                                        id="site-theme-help"
-                                        class="mt-2 text-xs text-[var(--workspace-muted)]"
-                                    >
-                                        {{
-                                            siteThemes.find(
-                                                (theme) =>
-                                                    theme.key ===
-                                                    appearanceForm.theme_key,
-                                            )?.description
-                                        }}
-                                    </p>
-                                    <p
-                                        v-if="appearanceForm.errors.theme_key"
-                                        id="site-theme-error"
-                                        role="alert"
-                                        class="mt-2 text-sm text-red-700 dark:text-red-300"
-                                    >
-                                        {{ appearanceForm.errors.theme_key }}
-                                    </p>
-                                </div>
-                                <div>
-                                    <label
-                                        for="site-footer-text"
-                                        class="mb-2 block text-sm font-semibold"
-                                        >Footer text</label
-                                    >
-                                    <input
-                                        id="site-footer-text"
-                                        ref="footerTextInput"
-                                        v-model="appearanceForm.footer.text"
-                                        type="text"
-                                        autocomplete="off"
-                                        :disabled="appearanceForm.processing"
-                                        :aria-invalid="
-                                            Boolean(
-                                                appearanceForm.errors[
-                                                    'footer.text'
-                                                ],
-                                            )
-                                        "
-                                        :aria-describedby="
-                                            appearanceForm.errors['footer.text']
-                                                ? 'site-footer-help site-footer-error'
-                                                : 'site-footer-help'
-                                        "
-                                        class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20"
-                                        @input="clearAppearanceError"
-                                    />
-                                    <p
-                                        id="site-footer-help"
-                                        class="mt-2 text-xs text-[var(--workspace-muted)]"
-                                    >
-                                        Optional single-line text at the bottom
-                                        of your page.
-                                    </p>
-                                    <p
-                                        v-if="
-                                            appearanceForm.errors['footer.text']
-                                        "
-                                        id="site-footer-error"
-                                        role="alert"
-                                        class="mt-2 text-sm text-red-700 dark:text-red-300"
-                                    >
-                                        {{
-                                            appearanceForm.errors['footer.text']
-                                        }}
-                                    </p>
-                                </div>
-                                <div>
-                                    <label
-                                        for="site-slug"
-                                        class="mb-2 block text-sm font-semibold"
-                                        >Shareable address</label
-                                    >
-                                    <div
-                                        class="flex min-h-11 items-center rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-soft)] px-3 text-sm text-[var(--workspace-muted)]"
-                                    >
-                                        <span>/s/</span>
-                                        <input
-                                            id="site-slug"
-                                            ref="siteSlugInput"
-                                            v-model="appearanceForm.slug"
-                                            type="text"
-                                            maxlength="100"
-                                            pattern="[a-z0-9]+(-[a-z0-9]+)*"
-                                            :disabled="
-                                                Boolean(
-                                                    props.site.published_at,
-                                                ) || appearanceForm.processing
-                                            "
-                                            :aria-invalid="
-                                                Boolean(
-                                                    appearanceForm.errors.slug,
-                                                )
-                                            "
-                                            :aria-describedby="
-                                                appearanceForm.errors.slug
-                                                    ? 'site-slug-help site-slug-error'
-                                                    : 'site-slug-help'
-                                            "
-                                            class="min-w-0 flex-1 bg-transparent px-1 text-[var(--workspace-ink)] outline-none disabled:opacity-70"
-                                            @input="clearAppearanceError"
-                                        />
-                                    </div>
-                                    <p
-                                        id="site-slug-help"
-                                        class="mt-2 text-xs text-[var(--workspace-muted)]"
-                                    >
-                                        Lowercase letters, numbers, and hyphens.
-                                        Fixed after first publication.
-                                    </p>
-                                    <p
-                                        v-if="appearanceForm.errors.slug"
-                                        id="site-slug-error"
-                                        role="alert"
-                                        class="mt-2 text-sm text-red-700 dark:text-red-300"
-                                    >
-                                        {{ appearanceForm.errors.slug }}
-                                    </p>
-                                </div>
-                                <div>
-                                    <label
-                                        for="site-seo-title"
-                                        class="mb-2 block text-sm font-semibold"
-                                        >Page title</label
-                                    >
-                                    <input
-                                        id="site-seo-title"
-                                        ref="seoTitleInput"
-                                        v-model="appearanceForm.seo_title"
-                                        type="text"
-                                        maxlength="255"
-                                        :disabled="appearanceForm.processing"
-                                        :aria-invalid="
-                                            Boolean(
-                                                appearanceForm.errors.seo_title,
-                                            )
-                                        "
-                                        :aria-describedby="
-                                            appearanceForm.errors.seo_title
-                                                ? 'site-seo-title-error'
-                                                : undefined
-                                        "
-                                        class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-sm text-[var(--workspace-ink)]"
-                                        @input="clearAppearanceError"
-                                    />
-                                    <p
-                                        v-if="appearanceForm.errors.seo_title"
-                                        id="site-seo-title-error"
-                                        role="alert"
-                                        class="mt-2 text-sm text-red-700 dark:text-red-300"
-                                    >
-                                        {{ appearanceForm.errors.seo_title }}
-                                    </p>
-                                </div>
-                                <div>
-                                    <label
-                                        for="site-seo-description"
-                                        class="mb-2 block text-sm font-semibold"
-                                        >Page description</label
-                                    >
-                                    <textarea
-                                        id="site-seo-description"
-                                        ref="seoDescriptionInput"
-                                        v-model="appearanceForm.seo_description"
-                                        maxlength="2000"
-                                        rows="3"
-                                        :disabled="appearanceForm.processing"
-                                        :aria-invalid="
-                                            Boolean(
-                                                appearanceForm.errors
-                                                    .seo_description,
-                                            )
-                                        "
-                                        :aria-describedby="
-                                            appearanceForm.errors
-                                                .seo_description
-                                                ? 'site-seo-description-error'
-                                                : undefined
-                                        "
-                                        class="w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 py-2 text-sm text-[var(--workspace-ink)]"
-                                        @input="clearAppearanceError"
-                                    />
-                                    <p
-                                        v-if="
-                                            appearanceForm.errors
-                                                .seo_description
-                                        "
-                                        id="site-seo-description-error"
-                                        role="alert"
-                                        class="mt-2 text-sm text-red-700 dark:text-red-300"
-                                    >
-                                        {{
-                                            appearanceForm.errors
-                                                .seo_description
-                                        }}
-                                    </p>
-                                </div>
-                                <div>
-                                    <label
-                                        for="site-social-image"
-                                        class="mb-2 block text-sm font-semibold"
-                                        >Social preview image</label
-                                    >
-                                    <img
-                                        v-if="props.site.social_image"
-                                        :src="props.site.social_image.url"
-                                        :alt="
-                                            props.site.social_image.alt_text ??
-                                            ''
-                                        "
-                                        class="mb-3 max-h-32 rounded-lg object-contain"
-                                    />
-                                    <input
-                                        id="site-social-image"
-                                        ref="socialImageInput"
-                                        type="file"
-                                        accept=".jpg,.jpeg,.png,image/jpeg,image/png"
-                                        :disabled="editorWriteInProgress"
-                                        :aria-invalid="
-                                            Boolean(
-                                                socialImageError ||
-                                                socialImageForm.errors.image,
-                                            )
-                                        "
-                                        :aria-describedby="
-                                            socialImageError ||
-                                            socialImageForm.errors.image
-                                                ? 'site-social-image-help site-social-image-error'
-                                                : 'site-social-image-help'
-                                        "
-                                        class="block min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-2 text-sm"
-                                        @change="selectSocialImage"
-                                    />
-                                    <p
-                                        id="site-social-image-help"
-                                        class="mt-2 text-xs text-[var(--workspace-muted)]"
-                                    >
-                                        JPEG or PNG, up to 5 MB.
-                                    </p>
-                                    <p
-                                        v-if="
-                                            socialImageError ||
-                                            socialImageForm.errors.image
-                                        "
-                                        id="site-social-image-error"
-                                        role="alert"
-                                        class="mt-2 text-sm text-red-700 dark:text-red-300"
-                                    >
-                                        {{
-                                            socialImageError ||
-                                            socialImageForm.errors.image
-                                        }}
-                                    </p>
-                                    <p
-                                        v-if="socialImageStatus"
-                                        role="status"
-                                        aria-live="polite"
-                                        class="mt-2 text-sm text-[var(--workspace-muted)]"
-                                    >
-                                        {{ socialImageStatus }}
-                                    </p>
-                                    <button
-                                        v-if="props.site.social_image"
-                                        type="button"
-                                        :disabled="
-                                            editorWriteInProgress ||
-                                            socialImageClearForm.processing
-                                        "
-                                        class="mt-2 min-h-10 rounded-lg border border-red-300 px-3 text-sm font-semibold text-red-700 disabled:opacity-50 dark:text-red-300"
-                                        @click="clearSocialImage"
-                                    >
-                                        {{
-                                            socialImageClearForm.processing
-                                                ? 'Clearing…'
-                                                : 'Clear social image'
-                                        }}
-                                    </button>
-                                </div>
-                                <p
-                                    v-if="appearanceError"
-                                    role="alert"
-                                    class="text-sm text-red-700 dark:text-red-300"
-                                >
-                                    {{ appearanceError }}
-                                </p>
-                                <p
-                                    v-if="appearanceSaved"
-                                    role="status"
-                                    class="text-sm font-semibold text-[var(--workspace-green)]"
-                                >
-                                    Page appearance saved.
-                                </p>
-                                <button
-                                    type="submit"
-                                    :disabled="
-                                        uploadInProgress ||
-                                        appearanceForm.processing
-                                    "
-                                    class="min-h-11 w-full rounded-lg bg-[var(--workspace-green)] px-4 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60 dark:text-[var(--workspace-surface)]"
-                                >
-                                    {{
-                                        appearanceForm.processing
-                                            ? 'Saving…'
-                                            : 'Save appearance'
-                                    }}
-                                </button>
-                            </form>
-                        </div>
-                    </details>
-                </div>
-            </div>
+            <h1 class="mt-2 font-serif text-4xl tracking-tight">
+                {{ props.selected_page.name }}
+            </h1>
+            <p class="mt-2 text-sm text-[var(--workspace-muted)]">
+                Edit this page's blocks and preview. Shared styles, header, and
+                footer are managed in site settings.
+            </p>
         </header>
-
         <section
+            v-if="props.selected_page.is_home"
             aria-labelledby="publishing-heading"
             class="mb-6 rounded-[1.25rem] border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-5 shadow-[var(--workspace-shadow)] sm:flex sm:items-center sm:justify-between sm:gap-6"
         >
             <div>
                 <h2 id="publishing-heading" class="font-serif text-xl">
-                    Publishing
+                    Home publishing
                 </h2>
                 <p
                     v-if="!props.site.published_at"
                     class="mt-1 text-sm text-[var(--workspace-muted)]"
                 >
-                    This page has not been published yet.
+                    Home has not been published yet.
                 </p>
                 <p
                     v-else-if="props.site.has_unpublished_changes"
                     class="mt-1 text-sm text-[var(--workspace-muted)]"
                 >
-                    Saved draft changes are not on the published page yet.
+                    Saved Home or shared site changes are not published yet.
                 </p>
                 <p v-else class="mt-1 text-sm text-[var(--workspace-muted)]">
-                    Published
+                    Home published
                     {{ new Date(props.site.published_at).toLocaleString() }}.
                 </p>
                 <a
@@ -2510,9 +1356,19 @@ defineOptions({
                     rel="noreferrer"
                     class="mt-2 inline-flex min-h-10 items-center rounded-lg border border-[var(--workspace-line)] px-3 text-sm font-semibold text-[var(--workspace-green)] underline underline-offset-2 focus:ring-2 focus:ring-[var(--workspace-green)] focus:outline-none"
                 >
-                    View published page
+                    View published Home
                     <span class="sr-only"> (opens in a new tab)</span>
                 </a>
+                <p class="mt-2 text-sm text-[var(--workspace-muted)]">
+                    Publish updates Home and shared site settings only. Other
+                    pages remain drafts.
+                </p>
+                <Link
+                    v-if="!props.site.slug"
+                    :href="`/sites/${props.site.id}`"
+                    class="mt-2 inline-block font-semibold text-[var(--workspace-green)] underline"
+                    >Set your shareable address in site settings</Link
+                >
                 <p
                     v-if="hasUnsavedEditorChanges"
                     role="status"
@@ -2539,17 +1395,32 @@ defineOptions({
             <button
                 type="button"
                 :disabled="editorWriteInProgress || hasUnsavedEditorChanges"
-                class="mt-4 min-h-11 rounded-lg bg-[var(--workspace-green)] px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:mt-0"
+                class="mt-4 min-h-11 rounded-lg bg-[var(--workspace-green)] px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:mt-0 dark:text-[var(--workspace-surface)]"
                 @click="publishSite"
             >
                 {{
                     publishForm.processing
                         ? 'Publishing…'
                         : props.site.published_at
-                          ? 'Publish saved draft'
-                          : 'Publish page'
+                          ? 'Publish saved Home draft'
+                          : 'Publish Home'
                 }}
             </button>
+        </section>
+
+        <section
+            v-if="!props.selected_page.is_home"
+            aria-labelledby="draft-publishing-heading"
+            class="mb-6 rounded-[1.25rem] border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-5"
+        >
+            <h2 id="draft-publishing-heading" class="font-serif text-xl">
+                Publishing
+            </h2>
+            <p class="mt-2 text-sm text-[var(--workspace-muted)]">
+                This page is a private draft. Publishing additional pages will
+                be available with multi-page publishing. Your saved edits stay
+                here.
+            </p>
         </section>
 
         <section

@@ -16,7 +16,7 @@ class StoreSiteImageRequest extends FormRequest
             return true;
         }
 
-        $block = $site->blocks()->whereKey($blockId)->firstOrFail();
+        $block = $site->editorPage($this->route('page'))->blocks()->whereKey($blockId)->firstOrFail();
 
         return in_array($block->type, ['image', 'text_image'], true);
     }
@@ -35,7 +35,7 @@ class StoreSiteImageRequest extends FormRequest
     {
         return [function (Validator $validator): void {
             foreach (array_keys($this->all()) as $key) {
-                if (! in_array($key, ['image', 'alt_text', '_token', '_method'], true)) {
+                if (! in_array($key, ['image', 'alt_text', '_token', '_method', 'editor_page'], true)) {
                     $validator->errors()->add($key, 'This field is not allowed.');
                 }
             }

@@ -31,7 +31,7 @@ class UpdateMediaAssetRequest extends FormRequest
     {
         return [function (Validator $validator): void {
             foreach (array_keys($this->all()) as $key) {
-                if (! in_array($key, ['alt_text', '_token', '_method'], true)) {
+                if (! in_array($key, ['alt_text', '_token', '_method', 'editor_page'], true)) {
                     $validator->errors()->add($key, 'This field is not allowed.');
                 }
             }

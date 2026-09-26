@@ -321,7 +321,7 @@ home.form = homeForm;
 
 /**
  * @see \App\Http\Controllers\SiteController::dashboard
- * @see app/Http/Controllers/SiteController.php:15
+ * @see app/Http/Controllers/SiteController.php:20
  * @route '/dashboard'
  */
 export const dashboard = (
@@ -338,7 +338,7 @@ dashboard.definition = {
 
 /**
  * @see \App\Http\Controllers\SiteController::dashboard
- * @see app/Http/Controllers/SiteController.php:15
+ * @see app/Http/Controllers/SiteController.php:20
  * @route '/dashboard'
  */
 dashboard.url = (options?: RouteQueryOptions) => {
@@ -347,7 +347,7 @@ dashboard.url = (options?: RouteQueryOptions) => {
 
 /**
  * @see \App\Http\Controllers\SiteController::dashboard
- * @see app/Http/Controllers/SiteController.php:15
+ * @see app/Http/Controllers/SiteController.php:20
  * @route '/dashboard'
  */
 dashboard.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -357,7 +357,7 @@ dashboard.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 
 /**
  * @see \App\Http\Controllers\SiteController::dashboard
- * @see app/Http/Controllers/SiteController.php:15
+ * @see app/Http/Controllers/SiteController.php:20
  * @route '/dashboard'
  */
 dashboard.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -367,7 +367,7 @@ dashboard.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
 /**
  * @see \App\Http\Controllers\SiteController::dashboard
- * @see app/Http/Controllers/SiteController.php:15
+ * @see app/Http/Controllers/SiteController.php:20
  * @route '/dashboard'
  */
 const dashboardForm = (
@@ -379,7 +379,7 @@ const dashboardForm = (
 
 /**
  * @see \App\Http\Controllers\SiteController::dashboard
- * @see app/Http/Controllers/SiteController.php:15
+ * @see app/Http/Controllers/SiteController.php:20
  * @route '/dashboard'
  */
 dashboardForm.get = (
@@ -391,7 +391,7 @@ dashboardForm.get = (
 
 /**
  * @see \App\Http\Controllers\SiteController::dashboard
- * @see app/Http/Controllers/SiteController.php:15
+ * @see app/Http/Controllers/SiteController.php:20
  * @route '/dashboard'
  */
 dashboardForm.head = (

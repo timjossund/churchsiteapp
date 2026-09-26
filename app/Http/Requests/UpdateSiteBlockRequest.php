@@ -16,7 +16,7 @@ class UpdateSiteBlockRequest extends FormRequest
     public function authorize(): bool
     {
         $ownedSite = $this->user()->sites()->whereKey($this->route('site'))->firstOrFail();
-        $this->ownedBlock = $ownedSite->blocks()->whereKey($this->route('block'))->firstOrFail();
+        $this->ownedBlock = $ownedSite->editorPage($this->route('page'))->blocks()->whereKey($this->route('block'))->firstOrFail();
 
         return true;
     }
@@ -78,7 +78,8 @@ class UpdateSiteBlockRequest extends FormRequest
                 $rules['content.target_block_id'][] = 'required';
                 $rules['content.target_block_id'][] = Rule::notIn([$this->ownedBlock()->id]);
                 $rules['content.target_block_id'][] = Rule::exists('site_blocks', 'id')
-                    ->where('site_id', $this->ownedBlock()->site_id);
+                    ->where('site_id', $this->ownedBlock()->site_id)
+                    ->where('page_id', $this->ownedBlock()->page_id);
                 $rules['content.external_url'][] = Rule::in(['']);
             } elseif ($linkType === 'external') {
                 $rules['content.button_label'][] = 'required';

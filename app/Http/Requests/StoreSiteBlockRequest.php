@@ -10,9 +10,8 @@ class StoreSiteBlockRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        if (! $this->user()->sites()->whereKey($this->route('site'))->exists()) {
-            abort(404);
-        }
+        $this->user()->sites()->whereKey($this->route('site'))->firstOrFail()
+            ->editorPage($this->route('page'));
 
         return true;
     }

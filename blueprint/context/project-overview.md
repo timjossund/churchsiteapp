@@ -1,6 +1,6 @@
 # Churchsite - Project Overview
 
-<!-- blueprint:source-hash 62d566970302c490ce423c1859d0043abbd9e332703629edf6a1703e60234b65 -->
+<!-- blueprint:source-hash 531fdc27370b40ac2f52ce7af3609e82b59e736ca657a5a1e3e3954bd994172d -->
 
 > A block-based church website builder with shareable multi-page previews and later paid custom domains.
 
@@ -18,15 +18,20 @@ Churches need modern websites, while the people responsible for them may have li
 
 ## Features in build order
 
-1. **Site workspace** - Self-service accounts create and manage multiple blank, singly owned sites.
-2. **Block page editor** - Add, edit in a side panel, remove, and reorder hero, about, plain text, heading and text, structured service times, contact links, image, text and image, and YouTube/Vimeo embed blocks. Hero buttons link to a section or external URL.
-3. **Themes and site shell** - Warm/traditional, clean/minimal, and bold/contemporary themes style an editable header, footer, church name or logo, and section navigation without changing content order.
-4. **Image uploads** - Users upload images from their devices into IONOS buckets for image-bearing blocks and site presentation.
-5. **Drafts, publishing, and preview** - Explicit Publish creates a stable Blade-rendered page on a shareable, non-indexed `churchsite.app` subdirectory URL; edits remain drafts until the next publication. Include page title, description, and social preview image.
-6. **Block styling and options** - Improve block styling and expand the options users can configure for the blocks in their sites.
-7. **Multi-page sites** - Add pages, navigation, and page-specific published content.
-8. **Per-site subscriptions** - Spark and Stripe provide monthly and annual billing for each site independently.
-9. **Custom domains and SSL** - Paid sites connect a BYO `www` hostname through Cloudflare for SaaS, receive DNS instructions and status, and serve their published pages over HTTPS. Inactive subscriptions lose hostname access.
+- **1.** **Site workspace** - Let signed-in users create and manage multiple blank sites, with one account owning and editing each site.
+- **2.** **Block page editor** - Let users add, edit in a side panel, remove, and freely reorder the agreed landing-page blocks, including structured service times, hero links, and YouTube/Vimeo video embeds.
+    - **2a.** **Editor foundation** - Save ordered blocks and provide the page preview, block list, and side-panel editing for about, plain text, and heading-and-text blocks.
+    - **2b.** **Church details** - Add hero blocks with section or external links, structured service times, and contact blocks with email and phone links.
+    - **2c.** **Media blocks** - Add image, text-and-image, and YouTube/Vimeo video blocks; image placeholders await uploads in Feature 4.
+- **3.** **Themes and site shell** - Add the initial theme choices plus editable header, footer, logo or church name, and section navigation without changing block content or order.
+- **4.** **Image uploads** - Let users upload images for the relevant blocks and store them in IONOS buckets.
+- **5.** **Drafts, publishing, and preview** - Publish a stable Blade-rendered version to a shareable, non-indexed `churchsite.app` subdirectory page while later edits remain drafts; add page title, description, and social preview image.
+- **9.** **Block styling and options** - Improve block styling and expand the options users can configure for the blocks in their sites.
+- **8.** **Multi-page sites** - Let users add and manage pages within a site, with navigation and page-specific published content.
+    - **8a.** **Page management** - Preserve existing content as a protected Home page; add, rename, reorder, delete, and edit other draft pages while retaining Home publishing. Separate shared site settings and page management from the focused page editor.
+    - **8b.** **Navigation and publishing** - Publish all pages together, add page navigation alongside section links, editable page paths, and page-specific metadata; keep Home at the existing URL and apply public page deletions only on Publish.
+- **6.** **Per-site subscriptions** - Integrate Spark with Stripe so each site can have its own monthly or annual subscription and billing status.
+- **7.** **Custom domains and SSL** - Let a subscribed site connect a BYO `www` hostname through Cloudflare for SaaS, show DNS instructions and connection status, serve its published Blade page over HTTPS, and remove custom-domain access when the subscription becomes inactive.
 
 ## Data model
 
@@ -44,6 +49,12 @@ These are the initial logical shapes; later feature specs choose migrations and 
 - Draft site presentation: `header` and `footer` (structured data), `seo_title` and `seo_description` (strings), `social_image_id` (nullable media reference).
 - Published snapshot (structured data, nullable) and `published_at` (nullable timestamp) keep the visitor-facing version stable while draft fields and blocks change.
 - Has many blocks and media assets; has a customer hostname and site-specific billing state when configured.
+
+### Page
+
+- `id` and `site_id` (integers), `name` (string), `position` (integer), and Home identity. Each site has ordered pages, each with its own ordered blocks.
+- Existing content becomes Home, which cannot be deleted and retains `/s/{site-slug}`. Other pages receive editable paths such as `/s/church/about` in Feature 8b.
+- Feature 8a supplies draft page management and preserves Home publishing. Feature 8b publishes all pages together, including page navigation alongside current-page section links and page-specific title, description, and social image. Public deletions take effect only after Publish.
 
 ### SiteBlock
 
@@ -82,7 +93,7 @@ Users can create and publish shareable subdirectory sites before paying. Each si
 
 ## UI and experience
 
-- A site opens in a page editor with a visible preview, page navigation, block list, free reordering, and a side panel for the selected block.
+- Dashboard opens site settings with shared styles, header/logo, footer, and page management. Opening a page shows publishing, preview, block list, free reordering, and the selected block’s side panel.
 - Users can configure expanded block-specific styling and options in addition to choosing a site theme.
 - An explicit Publish action distinguishes drafts from the version visitors see.
 - Initial themes span warm/traditional, clean/minimal, and bold/contemporary styles. Switching themes changes styling, not content or order.

@@ -26,11 +26,22 @@ A typical user:
 
 ### Site editor
 
+- Dashboard opens site settings for shared styles, header/logo, footer, and page management. Opening a page leads to its focused publishing, block editor, and preview screen.
+
 - New sites start blank.
 - Users can add, remove, and freely reorder blocks.
 - Selecting a block opens its fields in a side panel beside the page preview.
 - Saved edits remain in draft until the user presses **Publish**.
 - The currently published version stays visible while the user edits a draft.
+
+### Multi-page sites
+
+- Preserve each existing site's content as its Home page. Home keeps the existing public URL and cannot be deleted.
+- Add, rename, reorder, delete, and edit other pages within a site.
+- Deliver draft page management first, preserving existing Home publishing; multi-page publication follows in the next feature.
+- Publish all pages together. Page deletion changes the public site only after Publish.
+- Add page navigation alongside links to sections on the current page.
+- Other pages have editable paths such as `/s/church/about`; each page has its own title, description, and social preview image.
 
 ### Blocks
 

@@ -5,12 +5,15 @@ import {
     type RouteFormDefinition,
     applyUrlDefaults,
 } from './../../wayfinder';
+import published from './published';
+import pages from './pages';
 import blocks from './blocks';
 import logo from './logo';
+import socialImage from './social-image';
 import media from './media';
 /**
  * @see \App\Http\Controllers\SiteController::store
- * @see app/Http/Controllers/SiteController.php:24
+ * @see app/Http/Controllers/SiteController.php:29
  * @route '/sites'
  */
 export const store = (
@@ -27,7 +30,7 @@ store.definition = {
 
 /**
  * @see \App\Http\Controllers\SiteController::store
- * @see app/Http/Controllers/SiteController.php:24
+ * @see app/Http/Controllers/SiteController.php:29
  * @route '/sites'
  */
 store.url = (options?: RouteQueryOptions) => {
@@ -36,7 +39,7 @@ store.url = (options?: RouteQueryOptions) => {
 
 /**
  * @see \App\Http\Controllers\SiteController::store
- * @see app/Http/Controllers/SiteController.php:24
+ * @see app/Http/Controllers/SiteController.php:29
  * @route '/sites'
  */
 store.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -46,7 +49,7 @@ store.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
  * @see \App\Http\Controllers\SiteController::store
- * @see app/Http/Controllers/SiteController.php:24
+ * @see app/Http/Controllers/SiteController.php:29
  * @route '/sites'
  */
 const storeForm = (
@@ -58,7 +61,7 @@ const storeForm = (
 
 /**
  * @see \App\Http\Controllers\SiteController::store
- * @see app/Http/Controllers/SiteController.php:24
+ * @see app/Http/Controllers/SiteController.php:29
  * @route '/sites'
  */
 storeForm.post = (
@@ -72,7 +75,7 @@ store.form = storeForm;
 
 /**
  * @see \App\Http\Controllers\SiteController::show
- * @see app/Http/Controllers/SiteController.php:31
+ * @see app/Http/Controllers/SiteController.php:36
  * @route '/sites/{site}'
  */
 export const show = (
@@ -90,7 +93,7 @@ show.definition = {
 
 /**
  * @see \App\Http\Controllers\SiteController::show
- * @see app/Http/Controllers/SiteController.php:31
+ * @see app/Http/Controllers/SiteController.php:36
  * @route '/sites/{site}'
  */
 show.url = (
@@ -122,7 +125,7 @@ show.url = (
 
 /**
  * @see \App\Http\Controllers\SiteController::show
- * @see app/Http/Controllers/SiteController.php:31
+ * @see app/Http/Controllers/SiteController.php:36
  * @route '/sites/{site}'
  */
 show.get = (
@@ -135,7 +138,7 @@ show.get = (
 
 /**
  * @see \App\Http\Controllers\SiteController::show
- * @see app/Http/Controllers/SiteController.php:31
+ * @see app/Http/Controllers/SiteController.php:36
  * @route '/sites/{site}'
  */
 show.head = (
@@ -148,7 +151,7 @@ show.head = (
 
 /**
  * @see \App\Http\Controllers\SiteController::show
- * @see app/Http/Controllers/SiteController.php:31
+ * @see app/Http/Controllers/SiteController.php:36
  * @route '/sites/{site}'
  */
 const showForm = (
@@ -161,7 +164,7 @@ const showForm = (
 
 /**
  * @see \App\Http\Controllers\SiteController::show
- * @see app/Http/Controllers/SiteController.php:31
+ * @see app/Http/Controllers/SiteController.php:36
  * @route '/sites/{site}'
  */
 showForm.get = (
@@ -174,7 +177,7 @@ showForm.get = (
 
 /**
  * @see \App\Http\Controllers\SiteController::show
- * @see app/Http/Controllers/SiteController.php:31
+ * @see app/Http/Controllers/SiteController.php:36
  * @route '/sites/{site}'
  */
 showForm.head = (
@@ -194,7 +197,7 @@ show.form = showForm;
 
 /**
  * @see \App\Http\Controllers\SiteController::update
- * @see app/Http/Controllers/SiteController.php:76
+ * @see app/Http/Controllers/SiteController.php:106
  * @route '/sites/{site}'
  */
 export const update = (
@@ -212,7 +215,7 @@ update.definition = {
 
 /**
  * @see \App\Http\Controllers\SiteController::update
- * @see app/Http/Controllers/SiteController.php:76
+ * @see app/Http/Controllers/SiteController.php:106
  * @route '/sites/{site}'
  */
 update.url = (
@@ -244,7 +247,7 @@ update.url = (
 
 /**
  * @see \App\Http\Controllers\SiteController::update
- * @see app/Http/Controllers/SiteController.php:76
+ * @see app/Http/Controllers/SiteController.php:106
  * @route '/sites/{site}'
  */
 update.patch = (
@@ -257,7 +260,7 @@ update.patch = (
 
 /**
  * @see \App\Http\Controllers\SiteController::update
- * @see app/Http/Controllers/SiteController.php:76
+ * @see app/Http/Controllers/SiteController.php:106
  * @route '/sites/{site}'
  */
 const updateForm = (
@@ -275,7 +278,7 @@ const updateForm = (
 
 /**
  * @see \App\Http\Controllers\SiteController::update
- * @see app/Http/Controllers/SiteController.php:76
+ * @see app/Http/Controllers/SiteController.php:106
  * @route '/sites/{site}'
  */
 updateForm.patch = (
@@ -293,12 +296,107 @@ updateForm.patch = (
 
 update.form = updateForm;
 
+/**
+ * @see \App\Http\Controllers\SitePublishingController::publish
+ * @see app/Http/Controllers/SitePublishingController.php:13
+ * @route '/sites/{site}/publish'
+ */
+export const publish = (
+    args: { site: string | number } | [site: string | number] | string | number,
+    options?: RouteQueryOptions,
+): RouteDefinition<'post'> => ({
+    url: publish.url(args, options),
+    method: 'post',
+});
+
+publish.definition = {
+    methods: ['post'],
+    url: '/sites/{site}/publish',
+} satisfies RouteDefinition<['post']>;
+
+/**
+ * @see \App\Http\Controllers\SitePublishingController::publish
+ * @see app/Http/Controllers/SitePublishingController.php:13
+ * @route '/sites/{site}/publish'
+ */
+publish.url = (
+    args: { site: string | number } | [site: string | number] | string | number,
+    options?: RouteQueryOptions,
+) => {
+    if (typeof args === 'string' || typeof args === 'number') {
+        args = { site: args };
+    }
+
+    if (Array.isArray(args)) {
+        args = {
+            site: args[0],
+        };
+    }
+
+    args = applyUrlDefaults(args);
+
+    const parsedArgs = {
+        site: args.site,
+    };
+
+    return (
+        publish.definition.url
+            .replace('{site}', parsedArgs.site.toString())
+            .replace(/\/+$/, '') + queryParams(options)
+    );
+};
+
+/**
+ * @see \App\Http\Controllers\SitePublishingController::publish
+ * @see app/Http/Controllers/SitePublishingController.php:13
+ * @route '/sites/{site}/publish'
+ */
+publish.post = (
+    args: { site: string | number } | [site: string | number] | string | number,
+    options?: RouteQueryOptions,
+): RouteDefinition<'post'> => ({
+    url: publish.url(args, options),
+    method: 'post',
+});
+
+/**
+ * @see \App\Http\Controllers\SitePublishingController::publish
+ * @see app/Http/Controllers/SitePublishingController.php:13
+ * @route '/sites/{site}/publish'
+ */
+const publishForm = (
+    args: { site: string | number } | [site: string | number] | string | number,
+    options?: RouteQueryOptions,
+): RouteFormDefinition<'post'> => ({
+    action: publish.url(args, options),
+    method: 'post',
+});
+
+/**
+ * @see \App\Http\Controllers\SitePublishingController::publish
+ * @see app/Http/Controllers/SitePublishingController.php:13
+ * @route '/sites/{site}/publish'
+ */
+publishForm.post = (
+    args: { site: string | number } | [site: string | number] | string | number,
+    options?: RouteQueryOptions,
+): RouteFormDefinition<'post'> => ({
+    action: publish.url(args, options),
+    method: 'post',
+});
+
+publish.form = publishForm;
+
 const sites = {
+    published: Object.assign(published, published),
     store: Object.assign(store, store),
     show: Object.assign(show, show),
     update: Object.assign(update, update),
+    pages: Object.assign(pages, pages),
+    publish: Object.assign(publish, publish),
     blocks: Object.assign(blocks, blocks),
     logo: Object.assign(logo, logo),
+    socialImage: Object.assign(socialImage, socialImage),
     media: Object.assign(media, media),
 };
 

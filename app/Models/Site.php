@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -36,6 +37,32 @@ class Site extends Model
 
     /** @use HasFactory<SiteFactory> */
     use HasFactory;
+
+    protected static function booted(): void
+    {
+        static::created(function (Site $site): void {
+            $site->pages()->create(['name' => 'Home', 'position' => 0, 'is_home' => true]);
+        });
+    }
+
+    /** @return HasMany<SitePage, $this> */
+    public function pages(): HasMany
+    {
+        return $this->hasMany(SitePage::class);
+    }
+
+    /** @return HasOne<SitePage, $this> */
+    public function homePage(): HasOne
+    {
+        return $this->hasOne(SitePage::class)->where('is_home', true);
+    }
+
+    public function editorPage(int|string|null $pageId): SitePage
+    {
+        return $pageId === null
+            ? $this->homePage()->firstOrFail()
+            : $this->pages()->whereKey($pageId)->firstOrFail();
+    }
 
     /** @return array<string, string> */
     protected function casts(): array

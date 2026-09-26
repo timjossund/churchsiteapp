@@ -188,7 +188,7 @@ test('the editor receives same-site private image URLs for its block and logo pr
     ]);
 
     $this->actingAs($site->user)
-        ->get(route('sites.show', $site))
+        ->get(route('sites.pages.show', [$site, $site->homePage()->firstOrFail()]))
         ->assertInertia(fn (Assert $page) => $page
             ->component('Sites/Show')
             ->where('site.logo.url', route('sites.media.show', [$site, $asset]))

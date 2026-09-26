@@ -9,7 +9,7 @@ test('an owned blank site opens with an empty block list', function () {
     $site = Site::factory()->create();
 
     $this->actingAs($site->user)
-        ->get(route('sites.show', $site))
+        ->get(route('sites.pages.show', [$site, $site->homePage()->firstOrFail()]))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('Sites/Show')
@@ -35,7 +35,7 @@ test('an owner can append each text block type and reload them in order', functi
     expect($blocks[1]->content)->toBe(['body' => '']);
     expect($blocks[2]->content)->toBe(['heading' => '', 'body' => '']);
 
-    $this->get(route('sites.show', $site))
+    $this->get(route('sites.pages.show', [$site, $site->homePage()->firstOrFail()]))
         ->assertInertia(fn (Assert $page) => $page
             ->component('Sites/Show')
             ->has('blocks', 3)
@@ -61,7 +61,7 @@ test('guests and other owners cannot read or add site blocks', function () {
         ->assertRedirect(route('login'));
 
     $this->actingAs(User::factory()->create())
-        ->get(route('sites.show', $site))
+        ->get(route('sites.pages.show', [$site, $site->homePage()->firstOrFail()]))
         ->assertNotFound();
     $this->post(route('sites.blocks.store', $site), ['type' => 'about'])
         ->assertNotFound();
@@ -142,7 +142,7 @@ test('an owner can save curated style options with existing block content', func
         'background' => 'theme',
     ]);
 
-    $this->get(route('sites.show', $site))
+    $this->get(route('sites.pages.show', [$site, $site->homePage()->firstOrFail()]))
         ->assertInertia(fn (Assert $page) => $page
             ->where('blocks.0.content.style.alignment', 'center')
             ->where('blocks.1.content.style.layout', 'image_left'));

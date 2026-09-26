@@ -17,11 +17,12 @@ class SiteBlockController extends Controller
     {
         DB::transaction(function () use ($request, $site): void {
             $ownedSite = $request->user()->sites()->lockForUpdate()->findOrFail($site);
+            $ownedPage = $ownedSite->editorPage($request->route('page'));
             $type = $request->validated('type');
 
-            $ownedSite->blocks()->create([
+            $ownedPage->blocks()->create([
                 'type' => $type,
-                'position' => ($ownedSite->blocks()->max('position') ?? -1) + 1,
+                'position' => ($ownedPage->blocks()->max('position') ?? -1) + 1,
                 'content' => match ($type) {
                     'about', 'heading_text' => ['heading' => '', 'body' => ''],
                     'plain_text' => ['body' => ''],
@@ -39,40 +40,49 @@ class SiteBlockController extends Controller
             ]);
         });
 
-        return to_route('sites.show', $site);
+        return $request->route('page') === null
+            ? to_route('sites.show', $site)
+            : to_route('sites.pages.show', [$site, $request->route('page')]);
     }
 
-    public function update(UpdateSiteBlockRequest $request, int $site, int $block): RedirectResponse
+    public function update(UpdateSiteBlockRequest $request, int $site): RedirectResponse
     {
+        $block = (int) $request->route('block');
         DB::transaction(function () use ($request, $site, $block): void {
             $ownedSite = $request->user()->sites()->whereKey($site)->lockForUpdate()->firstOrFail();
+            $ownedPage = $ownedSite->editorPage($request->route('page'));
+            $ownedBlock = $ownedPage->blocks()->whereKey($block)->firstOrFail();
             $content = $request->validated('content');
 
-            if ($request->ownedBlock()->type === 'hero' && $content['link_type'] === 'section') {
+            if ($ownedBlock->type === 'hero' && $content['link_type'] === 'section') {
                 $content['target_block_id'] = (int) $content['target_block_id'];
 
-                if (! $ownedSite->blocks()->whereKey($content['target_block_id'])->exists()) {
+                if (! $ownedPage->blocks()->whereKey($content['target_block_id'])->exists()) {
                     throw ValidationException::withMessages([
                         'content.target_block_id' => 'This section is no longer available. Choose another block.',
                     ]);
                 }
             }
 
-            $ownedSite->blocks()->whereKey($block)->firstOrFail()->update([
+            $ownedPage->blocks()->whereKey($block)->firstOrFail()->update([
                 'content' => $content,
             ]);
         });
 
-        return to_route('sites.show', $site);
+        return $request->route('page') === null
+            ? to_route('sites.show', $site)
+            : to_route('sites.pages.show', [$site, $request->route('page')]);
     }
 
-    public function destroy(Request $request, int $site, int $block): RedirectResponse
+    public function destroy(Request $request, int $site): RedirectResponse
     {
+        $block = (int) $request->route('block');
         DB::transaction(function () use ($request, $site, $block): void {
             $ownedSite = $request->user()->sites()->whereKey($site)->lockForUpdate()->firstOrFail();
-            $ownedSite->blocks()->whereKey($block)->firstOrFail()->delete();
+            $ownedPage = $ownedSite->editorPage($request->route('page'));
+            $ownedPage->blocks()->whereKey($block)->firstOrFail()->delete();
 
-            foreach ($ownedSite->blocks()->where('type', 'hero')->get() as $hero) {
+            foreach ($ownedPage->blocks()->where('type', 'hero')->get() as $hero) {
                 if ($hero->content['link_type'] !== 'section' || (int) $hero->content['target_block_id'] !== $block) {
                     continue;
                 }
@@ -85,20 +95,23 @@ class SiteBlockController extends Controller
                 $hero->update(['content' => $content]);
             }
 
-            $remaining = $ownedSite->blocks()->orderBy('position')->orderBy('id')->get(['id']);
+            $remaining = $ownedPage->blocks()->orderBy('position')->orderBy('id')->get(['id']);
             foreach ($remaining as $position => $remainingBlock) {
                 $remainingBlock->update(['position' => $position]);
             }
         });
 
-        return to_route('sites.show', $site);
+        return $request->route('page') === null
+            ? to_route('sites.show', $site)
+            : to_route('sites.pages.show', [$site, $request->route('page')]);
     }
 
     public function order(OrderSiteBlocksRequest $request, int $site): RedirectResponse
     {
         DB::transaction(function () use ($request, $site): void {
             $ownedSite = $request->user()->sites()->whereKey($site)->lockForUpdate()->firstOrFail();
-            $current = $ownedSite->blocks()->orderBy('position')->orderBy('id')->pluck('id')->all();
+            $ownedPage = $ownedSite->editorPage($request->route('page'));
+            $current = $ownedPage->blocks()->orderBy('position')->orderBy('id')->pluck('id')->all();
             $expected = $request->validated('expected_order');
             $desired = $request->validated('order');
 
@@ -112,10 +125,12 @@ class SiteBlockController extends Controller
             }
 
             foreach ($desired as $position => $blockId) {
-                $ownedSite->blocks()->whereKey($blockId)->update(['position' => $position]);
+                $ownedPage->blocks()->whereKey($blockId)->update(['position' => $position]);
             }
         });
 
-        return to_route('sites.show', $site);
+        return $request->route('page') === null
+            ? to_route('sites.show', $site)
+            : to_route('sites.pages.show', [$site, $request->route('page')]);
     }
 }

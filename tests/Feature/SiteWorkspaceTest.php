@@ -50,7 +50,7 @@ test('a user can create multiple blank sites and open the new site', function ()
     $this->get(route('sites.show', $first))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->component('Sites/Show')
+            ->component('Sites/Settings')
             ->where('site.id', $first->id)
             ->where('site.name', 'First Church'));
 });

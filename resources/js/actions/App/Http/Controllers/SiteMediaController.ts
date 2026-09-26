@@ -8,19 +8,162 @@ import {
 /**
  * @see \App\Http\Controllers\SiteMediaController::uploadBlockImage
  * @see app/Http/Controllers/SiteMediaController.php:23
+ * @route '/sites/{site}/pages/{page}/blocks/{block}/image'
+ */
+const uploadBlockImagee938e120cd41989bcc767dcdfce7bba0 = (
+    args:
+        | {
+              site: string | number;
+              page: string | number;
+              block: string | number;
+          }
+        | [
+              site: string | number,
+              page: string | number,
+              block: string | number,
+          ],
+    options?: RouteQueryOptions,
+): RouteDefinition<'post'> => ({
+    url: uploadBlockImagee938e120cd41989bcc767dcdfce7bba0.url(args, options),
+    method: 'post',
+});
+
+uploadBlockImagee938e120cd41989bcc767dcdfce7bba0.definition = {
+    methods: ['post'],
+    url: '/sites/{site}/pages/{page}/blocks/{block}/image',
+} satisfies RouteDefinition<['post']>;
+
+/**
+ * @see \App\Http\Controllers\SiteMediaController::uploadBlockImage
+ * @see app/Http/Controllers/SiteMediaController.php:23
+ * @route '/sites/{site}/pages/{page}/blocks/{block}/image'
+ */
+uploadBlockImagee938e120cd41989bcc767dcdfce7bba0.url = (
+    args:
+        | {
+              site: string | number;
+              page: string | number;
+              block: string | number;
+          }
+        | [
+              site: string | number,
+              page: string | number,
+              block: string | number,
+          ],
+    options?: RouteQueryOptions,
+) => {
+    if (Array.isArray(args)) {
+        args = {
+            site: args[0],
+            page: args[1],
+            block: args[2],
+        };
+    }
+
+    args = applyUrlDefaults(args);
+
+    const parsedArgs = {
+        site: args.site,
+        page: args.page,
+        block: args.block,
+    };
+
+    return (
+        uploadBlockImagee938e120cd41989bcc767dcdfce7bba0.definition.url
+            .replace('{site}', parsedArgs.site.toString())
+            .replace('{page}', parsedArgs.page.toString())
+            .replace('{block}', parsedArgs.block.toString())
+            .replace(/\/+$/, '') + queryParams(options)
+    );
+};
+
+/**
+ * @see \App\Http\Controllers\SiteMediaController::uploadBlockImage
+ * @see app/Http/Controllers/SiteMediaController.php:23
+ * @route '/sites/{site}/pages/{page}/blocks/{block}/image'
+ */
+uploadBlockImagee938e120cd41989bcc767dcdfce7bba0.post = (
+    args:
+        | {
+              site: string | number;
+              page: string | number;
+              block: string | number;
+          }
+        | [
+              site: string | number,
+              page: string | number,
+              block: string | number,
+          ],
+    options?: RouteQueryOptions,
+): RouteDefinition<'post'> => ({
+    url: uploadBlockImagee938e120cd41989bcc767dcdfce7bba0.url(args, options),
+    method: 'post',
+});
+
+/**
+ * @see \App\Http\Controllers\SiteMediaController::uploadBlockImage
+ * @see app/Http/Controllers/SiteMediaController.php:23
+ * @route '/sites/{site}/pages/{page}/blocks/{block}/image'
+ */
+const uploadBlockImagee938e120cd41989bcc767dcdfce7bba0Form = (
+    args:
+        | {
+              site: string | number;
+              page: string | number;
+              block: string | number;
+          }
+        | [
+              site: string | number,
+              page: string | number,
+              block: string | number,
+          ],
+    options?: RouteQueryOptions,
+): RouteFormDefinition<'post'> => ({
+    action: uploadBlockImagee938e120cd41989bcc767dcdfce7bba0.url(args, options),
+    method: 'post',
+});
+
+/**
+ * @see \App\Http\Controllers\SiteMediaController::uploadBlockImage
+ * @see app/Http/Controllers/SiteMediaController.php:23
+ * @route '/sites/{site}/pages/{page}/blocks/{block}/image'
+ */
+uploadBlockImagee938e120cd41989bcc767dcdfce7bba0Form.post = (
+    args:
+        | {
+              site: string | number;
+              page: string | number;
+              block: string | number;
+          }
+        | [
+              site: string | number,
+              page: string | number,
+              block: string | number,
+          ],
+    options?: RouteQueryOptions,
+): RouteFormDefinition<'post'> => ({
+    action: uploadBlockImagee938e120cd41989bcc767dcdfce7bba0.url(args, options),
+    method: 'post',
+});
+
+uploadBlockImagee938e120cd41989bcc767dcdfce7bba0.form =
+    uploadBlockImagee938e120cd41989bcc767dcdfce7bba0Form;
+/**
+ * @see \App\Http\Controllers\SiteMediaController::uploadBlockImage
+ * @see app/Http/Controllers/SiteMediaController.php:23
  * @route '/sites/{site}/blocks/{block}/image'
  */
-export const uploadBlockImage = (
+const uploadBlockImage69e061af860d0cc9856bec36866d6b91 = (
     args:
         | { site: string | number; block: string | number }
         | [site: string | number, block: string | number],
     options?: RouteQueryOptions,
 ): RouteDefinition<'post'> => ({
-    url: uploadBlockImage.url(args, options),
+    url: uploadBlockImage69e061af860d0cc9856bec36866d6b91.url(args, options),
     method: 'post',
 });
 
-uploadBlockImage.definition = {
+uploadBlockImage69e061af860d0cc9856bec36866d6b91.definition = {
     methods: ['post'],
     url: '/sites/{site}/blocks/{block}/image',
 } satisfies RouteDefinition<['post']>;
@@ -30,7 +173,7 @@ uploadBlockImage.definition = {
  * @see app/Http/Controllers/SiteMediaController.php:23
  * @route '/sites/{site}/blocks/{block}/image'
  */
-uploadBlockImage.url = (
+uploadBlockImage69e061af860d0cc9856bec36866d6b91.url = (
     args:
         | { site: string | number; block: string | number }
         | [site: string | number, block: string | number],
@@ -51,7 +194,7 @@ uploadBlockImage.url = (
     };
 
     return (
-        uploadBlockImage.definition.url
+        uploadBlockImage69e061af860d0cc9856bec36866d6b91.definition.url
             .replace('{site}', parsedArgs.site.toString())
             .replace('{block}', parsedArgs.block.toString())
             .replace(/\/+$/, '') + queryParams(options)
@@ -63,13 +206,13 @@ uploadBlockImage.url = (
  * @see app/Http/Controllers/SiteMediaController.php:23
  * @route '/sites/{site}/blocks/{block}/image'
  */
-uploadBlockImage.post = (
+uploadBlockImage69e061af860d0cc9856bec36866d6b91.post = (
     args:
         | { site: string | number; block: string | number }
         | [site: string | number, block: string | number],
     options?: RouteQueryOptions,
 ): RouteDefinition<'post'> => ({
-    url: uploadBlockImage.url(args, options),
+    url: uploadBlockImage69e061af860d0cc9856bec36866d6b91.url(args, options),
     method: 'post',
 });
 
@@ -78,13 +221,13 @@ uploadBlockImage.post = (
  * @see app/Http/Controllers/SiteMediaController.php:23
  * @route '/sites/{site}/blocks/{block}/image'
  */
-const uploadBlockImageForm = (
+const uploadBlockImage69e061af860d0cc9856bec36866d6b91Form = (
     args:
         | { site: string | number; block: string | number }
         | [site: string | number, block: string | number],
     options?: RouteQueryOptions,
 ): RouteFormDefinition<'post'> => ({
-    action: uploadBlockImage.url(args, options),
+    action: uploadBlockImage69e061af860d0cc9856bec36866d6b91.url(args, options),
     method: 'post',
 });
 
@@ -93,21 +236,34 @@ const uploadBlockImageForm = (
  * @see app/Http/Controllers/SiteMediaController.php:23
  * @route '/sites/{site}/blocks/{block}/image'
  */
-uploadBlockImageForm.post = (
+uploadBlockImage69e061af860d0cc9856bec36866d6b91Form.post = (
     args:
         | { site: string | number; block: string | number }
         | [site: string | number, block: string | number],
     options?: RouteQueryOptions,
 ): RouteFormDefinition<'post'> => ({
-    action: uploadBlockImage.url(args, options),
+    action: uploadBlockImage69e061af860d0cc9856bec36866d6b91.url(args, options),
     method: 'post',
 });
 
-uploadBlockImage.form = uploadBlockImageForm;
+uploadBlockImage69e061af860d0cc9856bec36866d6b91.form =
+    uploadBlockImage69e061af860d0cc9856bec36866d6b91Form;
+
+/**
+ * Multiple routes resolve to \App\Http\Controllers\SiteMediaController::uploadBlockImage, so this export is a
+ * dictionary keyed by URI rather than a callable. Call a specific route with `uploadBlockImage['<uri>'](...)`,
+ * or import the route by name from your generated `routes/` directory.
+ */
+export const uploadBlockImage = {
+    '/sites/{site}/pages/{page}/blocks/{block}/image':
+        uploadBlockImagee938e120cd41989bcc767dcdfce7bba0,
+    '/sites/{site}/blocks/{block}/image':
+        uploadBlockImage69e061af860d0cc9856bec36866d6b91,
+};
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::uploadLogo
- * @see app/Http/Controllers/SiteMediaController.php:41
+ * @see app/Http/Controllers/SiteMediaController.php:44
  * @route '/sites/{site}/logo'
  */
 export const uploadLogo = (
@@ -125,7 +281,7 @@ uploadLogo.definition = {
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::uploadLogo
- * @see app/Http/Controllers/SiteMediaController.php:41
+ * @see app/Http/Controllers/SiteMediaController.php:44
  * @route '/sites/{site}/logo'
  */
 uploadLogo.url = (
@@ -157,7 +313,7 @@ uploadLogo.url = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::uploadLogo
- * @see app/Http/Controllers/SiteMediaController.php:41
+ * @see app/Http/Controllers/SiteMediaController.php:44
  * @route '/sites/{site}/logo'
  */
 uploadLogo.post = (
@@ -170,7 +326,7 @@ uploadLogo.post = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::uploadLogo
- * @see app/Http/Controllers/SiteMediaController.php:41
+ * @see app/Http/Controllers/SiteMediaController.php:44
  * @route '/sites/{site}/logo'
  */
 const uploadLogoForm = (
@@ -183,7 +339,7 @@ const uploadLogoForm = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::uploadLogo
- * @see app/Http/Controllers/SiteMediaController.php:41
+ * @see app/Http/Controllers/SiteMediaController.php:44
  * @route '/sites/{site}/logo'
  */
 uploadLogoForm.post = (
@@ -198,7 +354,7 @@ uploadLogo.form = uploadLogoForm;
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::clearLogo
- * @see app/Http/Controllers/SiteMediaController.php:51
+ * @see app/Http/Controllers/SiteMediaController.php:64
  * @route '/sites/{site}/logo'
  */
 export const clearLogo = (
@@ -216,7 +372,7 @@ clearLogo.definition = {
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::clearLogo
- * @see app/Http/Controllers/SiteMediaController.php:51
+ * @see app/Http/Controllers/SiteMediaController.php:64
  * @route '/sites/{site}/logo'
  */
 clearLogo.url = (
@@ -248,7 +404,7 @@ clearLogo.url = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::clearLogo
- * @see app/Http/Controllers/SiteMediaController.php:51
+ * @see app/Http/Controllers/SiteMediaController.php:64
  * @route '/sites/{site}/logo'
  */
 clearLogo.delete = (
@@ -261,7 +417,7 @@ clearLogo.delete = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::clearLogo
- * @see app/Http/Controllers/SiteMediaController.php:51
+ * @see app/Http/Controllers/SiteMediaController.php:64
  * @route '/sites/{site}/logo'
  */
 const clearLogoForm = (
@@ -279,7 +435,7 @@ const clearLogoForm = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::clearLogo
- * @see app/Http/Controllers/SiteMediaController.php:51
+ * @see app/Http/Controllers/SiteMediaController.php:64
  * @route '/sites/{site}/logo'
  */
 clearLogoForm.delete = (
@@ -298,8 +454,200 @@ clearLogoForm.delete = (
 clearLogo.form = clearLogoForm;
 
 /**
+ * @see \App\Http\Controllers\SiteMediaController::uploadSocialImage
+ * @see app/Http/Controllers/SiteMediaController.php:54
+ * @route '/sites/{site}/social-image'
+ */
+export const uploadSocialImage = (
+    args: { site: string | number } | [site: string | number] | string | number,
+    options?: RouteQueryOptions,
+): RouteDefinition<'post'> => ({
+    url: uploadSocialImage.url(args, options),
+    method: 'post',
+});
+
+uploadSocialImage.definition = {
+    methods: ['post'],
+    url: '/sites/{site}/social-image',
+} satisfies RouteDefinition<['post']>;
+
+/**
+ * @see \App\Http\Controllers\SiteMediaController::uploadSocialImage
+ * @see app/Http/Controllers/SiteMediaController.php:54
+ * @route '/sites/{site}/social-image'
+ */
+uploadSocialImage.url = (
+    args: { site: string | number } | [site: string | number] | string | number,
+    options?: RouteQueryOptions,
+) => {
+    if (typeof args === 'string' || typeof args === 'number') {
+        args = { site: args };
+    }
+
+    if (Array.isArray(args)) {
+        args = {
+            site: args[0],
+        };
+    }
+
+    args = applyUrlDefaults(args);
+
+    const parsedArgs = {
+        site: args.site,
+    };
+
+    return (
+        uploadSocialImage.definition.url
+            .replace('{site}', parsedArgs.site.toString())
+            .replace(/\/+$/, '') + queryParams(options)
+    );
+};
+
+/**
+ * @see \App\Http\Controllers\SiteMediaController::uploadSocialImage
+ * @see app/Http/Controllers/SiteMediaController.php:54
+ * @route '/sites/{site}/social-image'
+ */
+uploadSocialImage.post = (
+    args: { site: string | number } | [site: string | number] | string | number,
+    options?: RouteQueryOptions,
+): RouteDefinition<'post'> => ({
+    url: uploadSocialImage.url(args, options),
+    method: 'post',
+});
+
+/**
+ * @see \App\Http\Controllers\SiteMediaController::uploadSocialImage
+ * @see app/Http/Controllers/SiteMediaController.php:54
+ * @route '/sites/{site}/social-image'
+ */
+const uploadSocialImageForm = (
+    args: { site: string | number } | [site: string | number] | string | number,
+    options?: RouteQueryOptions,
+): RouteFormDefinition<'post'> => ({
+    action: uploadSocialImage.url(args, options),
+    method: 'post',
+});
+
+/**
+ * @see \App\Http\Controllers\SiteMediaController::uploadSocialImage
+ * @see app/Http/Controllers/SiteMediaController.php:54
+ * @route '/sites/{site}/social-image'
+ */
+uploadSocialImageForm.post = (
+    args: { site: string | number } | [site: string | number] | string | number,
+    options?: RouteQueryOptions,
+): RouteFormDefinition<'post'> => ({
+    action: uploadSocialImage.url(args, options),
+    method: 'post',
+});
+
+uploadSocialImage.form = uploadSocialImageForm;
+
+/**
+ * @see \App\Http\Controllers\SiteMediaController::clearSocialImage
+ * @see app/Http/Controllers/SiteMediaController.php:74
+ * @route '/sites/{site}/social-image'
+ */
+export const clearSocialImage = (
+    args: { site: string | number } | [site: string | number] | string | number,
+    options?: RouteQueryOptions,
+): RouteDefinition<'delete'> => ({
+    url: clearSocialImage.url(args, options),
+    method: 'delete',
+});
+
+clearSocialImage.definition = {
+    methods: ['delete'],
+    url: '/sites/{site}/social-image',
+} satisfies RouteDefinition<['delete']>;
+
+/**
+ * @see \App\Http\Controllers\SiteMediaController::clearSocialImage
+ * @see app/Http/Controllers/SiteMediaController.php:74
+ * @route '/sites/{site}/social-image'
+ */
+clearSocialImage.url = (
+    args: { site: string | number } | [site: string | number] | string | number,
+    options?: RouteQueryOptions,
+) => {
+    if (typeof args === 'string' || typeof args === 'number') {
+        args = { site: args };
+    }
+
+    if (Array.isArray(args)) {
+        args = {
+            site: args[0],
+        };
+    }
+
+    args = applyUrlDefaults(args);
+
+    const parsedArgs = {
+        site: args.site,
+    };
+
+    return (
+        clearSocialImage.definition.url
+            .replace('{site}', parsedArgs.site.toString())
+            .replace(/\/+$/, '') + queryParams(options)
+    );
+};
+
+/**
+ * @see \App\Http\Controllers\SiteMediaController::clearSocialImage
+ * @see app/Http/Controllers/SiteMediaController.php:74
+ * @route '/sites/{site}/social-image'
+ */
+clearSocialImage.delete = (
+    args: { site: string | number } | [site: string | number] | string | number,
+    options?: RouteQueryOptions,
+): RouteDefinition<'delete'> => ({
+    url: clearSocialImage.url(args, options),
+    method: 'delete',
+});
+
+/**
+ * @see \App\Http\Controllers\SiteMediaController::clearSocialImage
+ * @see app/Http/Controllers/SiteMediaController.php:74
+ * @route '/sites/{site}/social-image'
+ */
+const clearSocialImageForm = (
+    args: { site: string | number } | [site: string | number] | string | number,
+    options?: RouteQueryOptions,
+): RouteFormDefinition<'post'> => ({
+    action: clearSocialImage.url(args, {
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'DELETE',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        },
+    }),
+    method: 'post',
+});
+
+/**
+ * @see \App\Http\Controllers\SiteMediaController::clearSocialImage
+ * @see app/Http/Controllers/SiteMediaController.php:74
+ * @route '/sites/{site}/social-image'
+ */
+clearSocialImageForm.delete = (
+    args: { site: string | number } | [site: string | number] | string | number,
+    options?: RouteQueryOptions,
+): RouteFormDefinition<'post'> => ({
+    action: clearSocialImage.url(args, {
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'DELETE',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        },
+    }),
+    method: 'post',
+});
+
+clearSocialImage.form = clearSocialImageForm;
+
+/**
  * @see \App\Http\Controllers\SiteMediaController::updateAltText
- * @see app/Http/Controllers/SiteMediaController.php:58
+ * @see app/Http/Controllers/SiteMediaController.php:84
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 export const updateAltText = (
@@ -319,7 +667,7 @@ updateAltText.definition = {
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::updateAltText
- * @see app/Http/Controllers/SiteMediaController.php:58
+ * @see app/Http/Controllers/SiteMediaController.php:84
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 updateAltText.url = (
@@ -352,7 +700,7 @@ updateAltText.url = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::updateAltText
- * @see app/Http/Controllers/SiteMediaController.php:58
+ * @see app/Http/Controllers/SiteMediaController.php:84
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 updateAltText.patch = (
@@ -367,7 +715,7 @@ updateAltText.patch = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::updateAltText
- * @see app/Http/Controllers/SiteMediaController.php:58
+ * @see app/Http/Controllers/SiteMediaController.php:84
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 const updateAltTextForm = (
@@ -387,7 +735,7 @@ const updateAltTextForm = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::updateAltText
- * @see app/Http/Controllers/SiteMediaController.php:58
+ * @see app/Http/Controllers/SiteMediaController.php:84
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 updateAltTextForm.patch = (
@@ -409,7 +757,7 @@ updateAltText.form = updateAltTextForm;
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::show
- * @see app/Http/Controllers/SiteMediaController.php:65
+ * @see app/Http/Controllers/SiteMediaController.php:95
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 export const show = (
@@ -429,7 +777,7 @@ show.definition = {
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::show
- * @see app/Http/Controllers/SiteMediaController.php:65
+ * @see app/Http/Controllers/SiteMediaController.php:95
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 show.url = (
@@ -462,7 +810,7 @@ show.url = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::show
- * @see app/Http/Controllers/SiteMediaController.php:65
+ * @see app/Http/Controllers/SiteMediaController.php:95
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 show.get = (
@@ -477,7 +825,7 @@ show.get = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::show
- * @see app/Http/Controllers/SiteMediaController.php:65
+ * @see app/Http/Controllers/SiteMediaController.php:95
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 show.head = (
@@ -492,7 +840,7 @@ show.head = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::show
- * @see app/Http/Controllers/SiteMediaController.php:65
+ * @see app/Http/Controllers/SiteMediaController.php:95
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 const showForm = (
@@ -507,7 +855,7 @@ const showForm = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::show
- * @see app/Http/Controllers/SiteMediaController.php:65
+ * @see app/Http/Controllers/SiteMediaController.php:95
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 showForm.get = (
@@ -522,7 +870,7 @@ showForm.get = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::show
- * @see app/Http/Controllers/SiteMediaController.php:65
+ * @see app/Http/Controllers/SiteMediaController.php:95
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 showForm.head = (
@@ -546,6 +894,8 @@ const SiteMediaController = {
     uploadBlockImage,
     uploadLogo,
     clearLogo,
+    uploadSocialImage,
+    clearSocialImage,
     updateAltText,
     show,
 };

@@ -20,11 +20,12 @@ use Throwable;
 
 class SiteMediaController extends Controller
 {
-    public function uploadBlockImage(StoreSiteImageRequest $request, int $site, int $block): RedirectResponse
+    public function uploadBlockImage(StoreSiteImageRequest $request, int $site): RedirectResponse
     {
+        $block = (int) $request->route('block');
         $file = $this->validatedImage($request);
-        $this->uploadAndAssign($request, $site, $file, $this->validatedAltText($request), function (Site $ownedSite, MediaAsset $asset) use ($block): void {
-            $ownedBlock = $ownedSite->blocks()->whereKey($block)->lockForUpdate()->firstOrFail();
+        $this->uploadAndAssign($request, $site, $file, $this->validatedAltText($request), function (Site $ownedSite, MediaAsset $asset) use ($request, $block): void {
+            $ownedBlock = $ownedSite->editorPage($request->route('page'))->blocks()->whereKey($block)->lockForUpdate()->firstOrFail();
 
             if (! in_array($ownedBlock->type, ['image', 'text_image'], true)) {
                 abort(404);
@@ -35,7 +36,9 @@ class SiteMediaController extends Controller
             $ownedBlock->update(['content' => $content]);
         });
 
-        return to_route('sites.show', $site);
+        return $request->route('page') === null
+            ? to_route('sites.show', $site)
+            : to_route('sites.pages.show', [$site, $request->route('page')]);
     }
 
     public function uploadLogo(StoreSiteImageRequest $request, int $site): RedirectResponse

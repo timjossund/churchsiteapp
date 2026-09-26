@@ -16,7 +16,7 @@ test('sites default to the warm theme and empty footer', function () {
         ->get(route('sites.show', $site))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->component('Sites/Show')
+            ->component('Sites/Settings')
             ->where('site.theme_key', 'warm')
             ->where('site.footer', ['text' => '']));
 });

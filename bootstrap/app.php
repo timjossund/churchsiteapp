@@ -18,7 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
         $middleware->convertEmptyStringsToNull(except: [
             fn (Request $request): bool => $request->isMethod('PATCH')
-                && preg_match('#^sites/[0-9]+/blocks/[0-9]+$#', $request->path()) === 1,
+                && preg_match('#^sites/[0-9]+/(?:pages/[0-9]+/)?blocks/[0-9]+$#', $request->path()) === 1,
         ]);
 
         $middleware->web(append: [

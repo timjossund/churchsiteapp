@@ -1,0 +1,7 @@
+# Worker-local secrets and tool output
+.dev.vars
+.dev.vars.*
+.env
+.env.*
+.wrangler/
+node_modules/

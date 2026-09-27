@@ -1,0 +1,89 @@
+{
+    "origin_endpoint": "https://churchsite.app/_domain/request",
+    "proof_host": "test.timjossund.com",
+    "secret": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "version": "1",
+    "cases": [
+        {
+            "name": "health",
+            "method": "GET",
+            "url": "https://test.timjossund.com/up",
+            "status": 200,
+            "body": {
+                "status": "ok",
+                "transport": "worker",
+                "hostname": "test.timjossund.com"
+            }
+        },
+        {
+            "name": "head health",
+            "method": "HEAD",
+            "url": "https://test.timjossund.com/up",
+            "status": 200,
+            "body": null
+        },
+        {
+            "name": "platform login",
+            "method": "GET",
+            "url": "https://test.timjossund.com/login",
+            "status": 404,
+            "body": { "error": "not_found" }
+        },
+        {
+            "name": "other host",
+            "method": "GET",
+            "url": "https://other.example.com/up",
+            "status": 404,
+            "body": { "error": "not_found" }
+        },
+        {
+            "name": "encoded path",
+            "method": "GET",
+            "url": "https://test.timjossund.com/%75p",
+            "status": 404,
+            "body": { "error": "not_found" }
+        },
+        {
+            "name": "query",
+            "method": "GET",
+            "url": "https://test.timjossund.com/up?x=1",
+            "status": 404,
+            "body": { "error": "not_found" }
+        },
+        {
+            "name": "empty query",
+            "method": "GET",
+            "url": "https://test.timjossund.com/up?",
+            "status": 404,
+            "body": { "error": "not_found" }
+        },
+        {
+            "name": "credentials",
+            "method": "GET",
+            "url": "https://user@test.timjossund.com/up",
+            "status": 400,
+            "body": { "error": "invalid_request" }
+        },
+        {
+            "name": "nonstandard port",
+            "method": "GET",
+            "url": "https://test.timjossund.com:444/up",
+            "status": 400,
+            "body": { "error": "invalid_request" }
+        },
+        {
+            "name": "fragment",
+            "method": "GET",
+            "url": "https://test.timjossund.com/up#x",
+            "status": 400,
+            "body": { "error": "invalid_request" }
+        },
+        {
+            "name": "mutation",
+            "method": "POST",
+            "url": "https://test.timjossund.com/up",
+            "status": 405,
+            "body": { "error": "method_not_allowed" }
+        }
+    ]
+}

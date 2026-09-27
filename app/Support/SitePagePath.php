@@ -15,7 +15,7 @@ class SitePagePath
         $path = rtrim(substr($base, 0, 100), '-');
         $suffix = 2;
 
-        while (DB::table('site_pages')->where('site_id', $siteId)->where('path', $path)->exists()) {
+        while (! CustomerPagePath::valid($path) || DB::table('site_pages')->where('site_id', $siteId)->where('path', $path)->exists()) {
             $ending = '-'.$suffix++;
             $path = rtrim(substr($base, 0, 100 - strlen($ending)), '-').$ending;
         }

@@ -8,6 +8,7 @@
     "vars": {
         "ORIGIN_ENDPOINT": "https://churchsite.app/_domain/request",
         "PROOF_HOST": "test.timjossund.com",
+        "CUSTOMER_DOMAINS_ENABLED": "false",
     },
     // Supply ORIGIN_SECRET privately using a Worker secret binding.
     // This example has no public routes; deployment requires separate approval.

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Site;
+use App\Support\CustomerPagePath;
+use App\Support\PublishedAssets;
 use App\Support\VideoEmbedUrl;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
@@ -13,7 +15,15 @@ class PublishedSiteController extends Controller
 {
     public function show(string $slug, ?string $path = null): Response
     {
-        $site = $this->publishedSite($slug);
+        return $this->renderSite($this->publishedSite($slug), $path);
+    }
+
+    public function renderSite(Site $site, ?string $path = null, ?string $hostname = null): Response
+    {
+        $slug = $site->slug;
+        $pageUrl = fn (?string $pagePath): string => $hostname !== null
+            ? 'https://'.$hostname.'/'.($pagePath ?? '')
+            : ($pagePath === null ? route('sites.published.show', $slug) : route('sites.published.pages.show', [$slug, $pagePath]));
         $snapshot = $this->snapshot($site);
         $page = collect($snapshot['pages'])->first(fn (array $candidate): bool => $path === null
             ? $candidate['is_home'] === true
@@ -21,7 +31,7 @@ class PublishedSiteController extends Controller
         abort_unless(is_array($page), 404);
         $media = collect($snapshot['media'])->keyBy('id');
         $mediaUrls = $media->mapWithKeys(fn (array $asset, int|string $id): array => [
-            (string) $id => route('sites.published.media.show', [$slug, $id]),
+            (string) $id => $hostname !== null ? 'https://'.$hostname.'/_media/'.$id : route('sites.published.media.show', [$slug, $id]),
         ]);
         $blockIds = collect($page['blocks'])
             ->pluck('id')
@@ -95,30 +105,55 @@ class PublishedSiteController extends Controller
         $seoTitle = $page['seo_title'] ?? null;
         $seoDescription = $page['seo_description'] ?? null;
 
-        return response()->view('sites.published', [
+        $response = response()->view('sites.published', [
+            'customDomain' => $hostname !== null,
+            'publishedAssets' => $hostname !== null ? app(PublishedAssets::class)->manifest() : null,
             'site' => $siteData,
             'blocks' => $blocks,
             'pages' => array_map(fn (array $candidate): array => [
                 'name' => $candidate['name'],
-                'url' => $candidate['is_home'] ? route('sites.published.show', $slug) : route('sites.published.pages.show', [$slug, $candidate['path']]),
+                'url' => $pageUrl($candidate['is_home'] ? null : $candidate['path']),
                 'current' => $candidate['is_home'] ? $path === null : $candidate['path'] === $path,
             ], $snapshot['pages']),
             'mediaUrls' => $mediaUrls,
             'logoAltText' => $logo['alt_text'] ?? '',
             'pageTitle' => is_string($seoTitle) && $seoTitle !== '' ? $seoTitle : ($page['is_home'] ? $siteData['name'] : $page['name'].' | '.$siteData['name']),
             'pageDescription' => is_string($seoDescription) && $seoDescription !== '' ? $seoDescription : null,
-            'pageUrl' => $path === null ? route('sites.published.show', $slug) : route('sites.published.pages.show', [$slug, $path]),
+            'pageUrl' => $pageUrl($path),
             'socialImageUrl' => $socialImage === null
                 ? null
                 : $mediaUrls->get((string) $socialImage['id']),
-        ])->header('X-Robots-Tag', 'noindex, nofollow')
-            ->header('Cache-Control', 'no-store');
+        ])->header('Cache-Control', 'no-store');
+        if ($hostname === null) {
+            $response->header('X-Robots-Tag', 'noindex, nofollow');
+        }
+
+        return $response;
     }
 
     public function media(string $slug, int $mediaAsset): StreamedResponse
     {
-        $site = $this->publishedSite($slug);
+        return $this->siteMedia($this->publishedSite($slug), $mediaAsset);
+    }
+
+    public function siteMedia(Site $site, int $mediaAsset): StreamedResponse
+    {
         $snapshot = $this->snapshot($site);
+        $references = [$snapshot['site']['logo_media_asset_id'] ?? null];
+        foreach ($snapshot['pages'] as $page) {
+            $references[] = $page['social_image_id'] ?? null;
+            foreach ($page['blocks'] as $block) {
+                $references[] = $block['content']['media_asset_id'] ?? null;
+            }
+        }
+        $referenced = false;
+        foreach ($references as $reference) {
+            if ((is_int($reference) || (is_string($reference) && ctype_digit($reference))) && (int) $reference === $mediaAsset) {
+                $referenced = true;
+                break;
+            }
+        }
+        abort_unless($referenced, 404);
         $asset = collect($snapshot['media'])->first(
             fn (array $candidate): bool => ($candidate['id'] ?? null) === $mediaAsset,
         );
@@ -130,6 +165,7 @@ class PublishedSiteController extends Controller
         $mimeType = $asset['mime_type'] ?? null;
         if (! is_string($storageKey)
             || ! str_starts_with($storageKey, "sites/{$site->id}/")
+            || preg_match('#(?:^|/)\.\.?(?:/|$)|[\\\\\x00-\x1f]#', $storageKey) === 1
             || ! in_array($mimeType, ['image/jpeg', 'image/png'], true)) {
             abort(404);
         }
@@ -145,6 +181,13 @@ class PublishedSiteController extends Controller
             'X-Content-Type-Options' => 'nosniff',
             'X-Robots-Tag' => 'noindex, nofollow',
         ], 'inline');
+    }
+
+    public function validatePublication(Site $site): void
+    {
+        foreach ($this->snapshot($site)['pages'] as $page) {
+            abort_unless($page['is_home'] || CustomerPagePath::valid($page['path']), 404);
+        }
     }
 
     private function publishedSite(string $slug): Site

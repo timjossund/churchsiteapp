@@ -62,8 +62,8 @@ test('billing management enforces owner and verified authentication before Strip
 test('settings present billing states without provider calls or private identifiers', function (string $remoteStatus, ?string $end, string $expected) {
     $site = managementSite($remoteStatus, $end === null ? null : now()->addDays(10)->toDateTimeString());
     managementStripe(fn () => throw new RuntimeException('Settings must not call Stripe'));
-    $this->actingAs($site->user)->get(route('sites.show', $site))->assertOk()->assertInertia(fn (Assert $page) => $page
-        ->component('Sites/Settings')->where('billing.status', $expected)
+    $this->actingAs($site->user)->get(route('sites.go-live', $site))->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->component('Sites/GoLive')->where('billing.status', $expected)
         ->where('billing.amount', 1500)->where('billing.interval', 'monthly')->where('billing.currency', 'USD')
         ->where('billing.can_manage', true)->missing('site.stripe_id')->missing('billing.stripe_id'));
 })->with([
@@ -74,16 +74,16 @@ test('settings present billing states without provider calls or private identifi
 
 test('free pending and annual billing summaries remain site specific', function () {
     $site = Site::factory()->create();
-    $this->actingAs($site->user)->get(route('sites.show', $site))->assertInertia(fn (Assert $page) => $page
+    $this->actingAs($site->user)->get(route('sites.go-live', $site))->assertInertia(fn (Assert $page) => $page
         ->where('billing.status', 'free')->where('billing.can_manage', false));
     $site->forceFill(['checkout_attempt' => 'pending'])->save();
-    $this->get(route('sites.show', $site).'?billing=success')->assertInertia(fn (Assert $page) => $page->where('billing.status', 'pending'));
+    $this->get(route('sites.go-live', $site).'?billing=success')->assertInertia(fn (Assert $page) => $page->where('billing.status', 'pending'));
     $annual = managementSite();
     $annual->forceFill(['user_id' => $site->user_id])->save();
     $annual->subscriptions()->first()->update(['stripe_price' => 'price_annual']);
-    $this->get(route('sites.show', $annual))->assertInertia(fn (Assert $page) => $page
+    $this->get(route('sites.go-live', $annual))->assertInertia(fn (Assert $page) => $page
         ->where('billing.interval', 'annual')->where('billing.amount', 15000));
-    $this->get(route('sites.show', $site))->assertInertia(fn (Assert $page) => $page->where('billing.status', 'pending'));
+    $this->get(route('sites.go-live', $site))->assertInertia(fn (Assert $page) => $page->where('billing.status', 'pending'));
 });
 
 test('portal uses only the selected site customer restricted configuration and server return URL', function () {
@@ -96,14 +96,14 @@ test('portal uses only the selected site customer restricted configuration and s
         expect($path)->toBe('/v1/billing_portal/sessions')->and($method)->toBe('post')
             ->and($params['customer'])->toBe($site->stripe_id)
             ->and($params['configuration'])->toBe('bpc_restricted')
-            ->and($params['return_url'])->toBe(route('sites.show', $site));
+            ->and($params['return_url'])->toBe(route('sites.go-live', $site));
 
         return ['id' => 'bps_test', 'object' => 'billing_portal.session', 'url' => 'https://billing.stripe.com/p/session/test'];
     });
     $this->actingAs($site->user)->withHeader('X-Inertia', 'true')->post(route('sites.billing.portal', $site), [
         'customer' => 'cus_other', 'configuration' => 'bpc_unsafe', 'return_url' => 'https://example.com',
     ])->assertStatus(409)->assertHeader('X-Inertia-Location', 'https://billing.stripe.com/p/session/test');
-    $this->withoutHeader('X-Inertia')->get(route('sites.show', $site))->assertInertia(fn (Assert $page) => $page->where('billing.can_cancel', false));
+    $this->withoutHeader('X-Inertia')->get(route('sites.go-live', $site))->assertInertia(fn (Assert $page) => $page->where('billing.can_cancel', false));
 });
 
 test('unsafe portal configuration is rejected before issuing a session', function (string $setting) {
@@ -115,8 +115,8 @@ test('unsafe portal configuration is rejected before issuing a session', functio
 
         return $config;
     });
-    $this->actingAs($site->user)->from(route('sites.show', $site))->post(route('sites.billing.portal', $site))
-        ->assertRedirect(route('sites.show', $site))->assertSessionHasErrors('billing');
+    $this->actingAs($site->user)->from(route('sites.go-live', $site))->post(route('sites.billing.portal', $site))
+        ->assertRedirect(route('sites.go-live', $site))->assertSessionHasErrors('billing');
 })->with(['active', 'login_page.enabled', 'features.subscription_cancel.enabled', 'features.subscription_update.enabled', 'features.customer_update.enabled', 'features.payment_method_update.enabled', 'features.invoice_history.enabled']);
 
 test('missing portal setup and provider failures yield retryable feedback', function () {
@@ -148,12 +148,12 @@ test('cancel renewal is retry safe and preserves paid access account and site', 
     });
     $this->actingAs($site->user);
     for ($i = 0; $i < 2; $i++) {
-        $this->post(route('sites.billing.cancel', $site))->assertRedirect(route('sites.show', $site))->assertSessionHasNoErrors();
+        $this->post(route('sites.billing.cancel', $site))->assertRedirect(route('sites.go-live', $site))->assertSessionHasNoErrors();
     }
     expect($writes)->toBe(1)->and($site->fresh()->hasPaidDomainAccess())->toBeTrue()
         ->and($site->user->fresh()->deletion_requested_at)->toBeNull()
         ->and($site->subscriptions()->first()->ends_at->timestamp)->toBe($end);
-    $this->get(route('sites.show', $site))->assertInertia(fn (Assert $page) => $page
+    $this->get(route('sites.go-live', $site))->assertInertia(fn (Assert $page) => $page
         ->where('billing.status', 'cancellation_scheduled')->where('billing.can_cancel', false));
 });
 

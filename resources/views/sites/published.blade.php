@@ -3,7 +3,9 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="robots" content="noindex, nofollow">
+    @unless ($customDomain)
+        <meta name="robots" content="noindex, nofollow">
+    @endunless
     <title>{{ $pageTitle }}</title>
     @if ($pageDescription)
         <meta name="description" content="{{ $pageDescription }}">
@@ -17,10 +19,19 @@
         <meta property="og:image" content="{{ $socialImageUrl }}">
     @endif
     <meta property="og:url" content="{{ $pageUrl }}">
+    @unless ($customDomain)
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     @vite(['resources/css/app.css', 'resources/js/published.ts'])
+    @else
+        @foreach ($publishedAssets['styles'] as $href)
+            <link rel="stylesheet" href="{{ $href }}">
+        @endforeach
+        @foreach ($publishedAssets['scripts'] as $src)
+            <script type="module" src="{{ $src }}"></script>
+        @endforeach
+    @endunless
 </head>
 <body class="font-sans antialiased">
     <main class="site-preview min-h-screen" data-theme="{{ $site['theme_key'] }}">

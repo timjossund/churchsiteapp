@@ -47,13 +47,13 @@ The following is an ordered checklist, not an unattended deployment script. Reso
 1. Deploy a reviewed Git commit to the application directory. The repository contains tracked dependency/build artifacts; install dependencies and rebuild instead of trusting those generated files as current production output. Keep `public/hot` absent on the server.
 2. Run `composer install --no-dev --prefer-dist --optimize-autoloader` and `composer check-platform-reqs --no-dev` using the selected PHP runtime.
 3. Run `npm ci` and `npm run build`. The build invokes Artisan for Wayfinder, so PHP dependencies and the environment must already be available. Do not use a Vite development server for production.
-4. Back up any existing database, inspect pending migrations and run `php artisan migrate --force` only on the intended application database. This initial deployment adds billing and deferred-deletion tables as well as earlier application schema.
+4. Back up any existing database, inspect pending migrations and run `php artisan migrate --force` only on the intended application database. For Feature 7b, the pending domain migrations add the custom-hostname table and reconciliation fields; inspect the actual pending list instead of rerunning earlier migrations.
 5. Run `php artisan config:cache` and `php artisan view:cache`. Restart existing queue workers after a deployment if workers are configured.
 6. Configure the scheduler under the application user to run `php artisan schedule:run` every minute, using the absolute PHP/application paths. Its hourly deletion finalizer permanently removes eligible accounts; use only disposable users for the initial test. See `billing-operations.md`.
 7. Establish HTTPS to the platform origin. Configure Cloudflare's platform DNS record with the actual origin address and validate strict origin TLS before public cutover. Preserve existing mail/DNS records when changing DNS.
 8. Verify `/up`, signup, email verification, login, site editing, IONOS upload, publication, public media and multi-page links. `/up` alone does not prove database, mail or storage readiness. Confirm public responses never expose `.env` or application source, and that HTTPS URLs/cookies work through the proxy.
 
-No queue-dependent domain job is implemented yet. Confirm existing queued work before deciding whether a long-running worker is needed; do not add a worker system speculatively.
+Domain reconciliation runs directly from the scheduler; it does not require a queue worker. Confirm existing queued work before deciding whether a long-running worker is needed; do not add a worker system speculatively.
 
 ## 4. Prepare Cloudflare for SaaS
 
@@ -67,8 +67,8 @@ Record the test hostname, origin selection, incoming Host/SNI behavior, valid or
 
 ## 5. Continue Feature 7
 
-The local 7a implementation provides authenticated Worker ingress and host isolation, but no custom-hostname persistence or published customer-site routing. The controlled transport proof cannot demonstrate a paid church site served at a customer domain.
+The completed 7a transport proof demonstrates authenticated Worker ingress and host isolation. The local 7b implementation now adds hostname persistence, ownership checks, billing handoff, reconciliation, the setup interface, and published customer content. The earlier transport proof does not verify these new behaviors.
 
-The completed controlled Worker rollout and proof are recorded in [Worker connection operations](worker-domain-proxy.md) for Feature 7a. Carry forward exact origin configuration, account/API capability, CNAME target and deployment observations into the later 7b spec. Feature 7b owns hostname ownership, billing handoff, provider reconciliation, DNS/status UI, published-site routing and paid-access enforcement. Keep checkout disabled until that complete customer flow exists.
+The completed controlled Worker rollout and proof are recorded in [Worker connection operations](worker-domain-proxy.md) for Feature 7a. Follow its Feature 7b staged rollout checklist for migrations, exact environment names, scheduler checks, deployment order, browser/network evidence, and rollback. Feature 7b owns hostname ownership, billing handoff, provider reconciliation, DNS/status UI, published-site routing and paid-access enforcement. Keep checkout disabled until that complete customer flow exists.
 
 Confirmed application root: `/var/www/vhosts/churchsite.app/httpdocs`, with document root `httpdocs/public`. Remaining operational details for customer rollout include database arrangement, exact PHP binary and repeatable deployment commands, and Cloudflare API access configuration. The controlled Worker proof does not establish these remaining details.

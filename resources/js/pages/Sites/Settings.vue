@@ -3,13 +3,10 @@ import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import SiteMediaController from '@/actions/App/Http/Controllers/SiteMediaController';
 import PageManager from '@/components/sites/PageManager.vue';
-import SiteBillingPanel, {
-    type BillingSummary,
-} from '@/components/sites/SiteBillingPanel.vue';
 import { dashboard } from '@/routes';
+import { goLive } from '@/routes/sites';
 type SiteTheme = 'warm' | 'clean' | 'bold';
 const props = defineProps<{
-    billing: BillingSummary;
     site: {
         id: number;
         name: string;
@@ -47,7 +44,6 @@ const siteThemes: { key: SiteTheme; label: string; description: string }[] = [
 ];
 
 const pagePending = ref(false);
-const billingPending = ref(false);
 const pageNamesDirty = ref(false);
 let ownVisit = false;
 function runOwnVisit(submit: () => void) {
@@ -136,7 +132,6 @@ const uploadInProgress = computed(() => logoUploadForm.processing);
 const editorWriteInProgress = computed(
     () =>
         pagePending.value ||
-        billingPending.value ||
         uploadInProgress.value ||
         nameForm.processing ||
         appearanceForm.processing ||
@@ -496,22 +491,23 @@ defineOptions({
             >
                 Site settings
             </p>
-            <h1 class="mt-2 font-serif text-4xl tracking-tight">
-                {{ props.site.name }}
-            </h1>
+            <div class="mt-2 flex flex-wrap items-center justify-between gap-4">
+                <h1
+                    class="min-w-0 font-serif text-4xl tracking-tight break-words"
+                >
+                    {{ props.site.name }}
+                </h1>
+                <Link
+                    :href="goLive(props.site.id)"
+                    class="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg bg-[var(--workspace-green)] px-5 py-2 text-sm font-semibold text-white hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)]"
+                    >Go Live</Link
+                >
+            </div>
             <p class="mt-3 text-[var(--workspace-muted)]">
                 Manage your pages and the settings they share. Open a page to
                 edit its content.
             </p>
         </header>
-        <SiteBillingPanel
-            :billing="props.billing"
-            :site-id="props.site.id"
-            :busy="editorWriteInProgress"
-            :confirm-leave="confirmEditorDiscard"
-            :run-visit="runOwnVisit"
-            @busy="billingPending = $event"
-        />
         <PageManager
             :site-id="props.site.id"
             :pages="props.pages"
@@ -523,7 +519,7 @@ defineOptions({
         />
         <h2 class="mb-4 font-serif text-2xl">Shared site settings</h2>
         <section
-            :inert="pagePending || billingPending"
+            :inert="pagePending"
             aria-label="Shared site settings"
             class="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]"
         >

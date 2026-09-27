@@ -2,13 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CustomHostname;
+use App\Rules\CustomerHostname;
+use App\Support\CustomerPagePath;
 use App\Support\DomainProxyResponse;
-use Illuminate\Http\JsonResponse;
+use App\Support\PublishedAssets;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+use Symfony\Component\HttpFoundation\Response;
 
 class DomainProxyController extends Controller
 {
-    public function __invoke(Request $request): JsonResponse
+    public function __invoke(Request $request): Response
     {
         $secret = config('domain-proxy.secret');
         $proofHost = config('domain-proxy.proof_host');
@@ -30,7 +35,8 @@ class DomainProxyController extends Controller
         }
 
         $url = $request->header('X-Churchsite-Original-Url');
-        if ($request->header('X-Churchsite-Proxy-Version') !== '1'
+        $version = $request->header('X-Churchsite-Proxy-Version');
+        if (! in_array($version, ['1', '2'], true)
             || ! is_string($url)
             || preg_match('/[\x00-\x20\x7f-\xff\\\\]/', $url) === 1) {
             return DomainProxyResponse::error($request, 400);
@@ -46,14 +52,52 @@ class DomainProxyController extends Controller
             || preg_match('/%(?![a-fA-F0-9]{2})/', $url) === 1) {
             return DomainProxyResponse::error($request, 400);
         }
-        if ($host !== $proofHost || ($parts['path'] ?? null) !== '/up'
-            || array_key_exists('query', $parts)) {
+        $path = $parts['path'] ?? '';
+        if ($version === '1') {
+            if ($host !== $proofHost || $path !== '/up' || array_key_exists('query', $parts)) {
+                return DomainProxyResponse::error($request, 404);
+            }
+
+            return DomainProxyResponse::make($request, [
+                'status' => 'ok', 'transport' => 'worker', 'hostname' => $host,
+            ]);
+        }
+        if ($host === $proofHost) {
+            return DomainProxyResponse::error($request, 400);
+        }
+        if (config('customer-domains.enabled') !== true
+            || Validator::make(['hostname' => $host], ['hostname' => [new CustomerHostname]])->fails()) {
             return DomainProxyResponse::error($request, 404);
         }
+        $domain = CustomHostname::query()->where('hostname', $host)->first();
+        if ($domain === null || ! $domain->isReadyToServe() || $domain->site->published_at === null) {
+            return DomainProxyResponse::error($request, 404);
+        }
+        $renderer = app(PublishedSiteController::class);
+        // Validate the frozen publication for every response, including its asset and media requests.
+        $renderer->validatePublication($domain->site);
+        if (preg_match('#\A/_media/([1-9][0-9]*)\z#', $path, $matches) === 1) {
+            $response = $renderer->siteMedia($domain->site, (int) $matches[1]);
+            $kind = 'media';
+        } elseif (str_starts_with($path, '/build/assets/')) {
+            $response = app(PublishedAssets::class)->response($path);
+            $kind = 'asset';
+        } elseif ($path === '/' || (str_starts_with($path, '/') && CustomerPagePath::valid(substr($path, 1)))) {
+            $response = $renderer->renderSite($domain->site, $path === '/' ? null : substr($path, 1), $host);
+            $kind = 'html';
+        } else {
+            return DomainProxyResponse::error($request, 404);
+        }
+        $response->headers->set('X-Churchsite-Content', $kind);
+        $response->headers->set('X-Churchsite-Hostname', $host);
+        $response->headers->set('X-Churchsite-Response-Version', '2');
+        $response->headers->set('Cache-Control', 'no-store');
+        $response->headers->set('X-Content-Type-Options', 'nosniff');
+        if ($request->isMethod('HEAD')) {
+            return (new Response('', $response->getStatusCode(), $response->headers->all()))->prepare($request);
+        }
 
-        return DomainProxyResponse::make($request, [
-            'status' => 'ok', 'transport' => 'worker', 'hostname' => $host,
-        ]);
+        return $response;
     }
 
     private function validHostname(string $host): bool

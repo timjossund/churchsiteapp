@@ -1,5 +1,8 @@
 <?php
 
+use App\Actions\DisconnectCustomHostname;
+use App\Actions\ReconcileCustomHostname;
+use App\Actions\ReserveCustomHostname;
 use App\Actions\SiteBillingSummary;
 use App\Actions\StartSiteCheckout;
 use App\Models\Site;
@@ -73,9 +76,10 @@ test('checkout is closed by default and enforces authentication and site ownersh
 
 test('checkout retry reuses a persisted session without creating another subscription', function () {
     $site = Site::factory()->create();
+    app(ReserveCustomHostname::class)->handle($site->user, $site->id, 'www.example.org');
     $created = 0;
     $session = ['id' => 'cs_site', 'object' => 'checkout.session', 'status' => 'open', 'url' => 'https://checkout.stripe.com/c/pay/test'];
-    fakeBillingStripe(function ($method, $path, $params, $headers) use (&$created, $session) {
+    fakeBillingStripe(function ($method, $path, $params, $headers) use (&$created, $session, $site) {
         if ($path === '/v1/prices/price_monthly') {
             return billingPriceData();
         }
@@ -90,7 +94,10 @@ test('checkout retry reuses a persisted session without creating another subscri
         }
         if ($path === '/v1/checkout/sessions') {
             $created++;
-            expect($params['customer'])->toBe('cus_site')
+            expect($params['success_url'])->toBe(route('sites.go-live', $site).'?billing=processing')
+                ->and($params['cancel_url'])->toBe(route('sites.go-live', $site).'?billing=canceled')
+                ->and($params['customer'])->toBe('cus_site')
+                ->and($params['managed_payments'])->toBe(['enabled' => 'false'])
                 ->and($params['line_items'])->toBe([['price' => 'price_monthly', 'quantity' => 1]])
                 ->and($params['subscription_data'])->not->toHaveKeys(['trial_end', 'trial_period_days'])
                 ->and(implode(' ', $headers))->toContain('site-checkout-');
@@ -104,12 +111,13 @@ test('checkout retry reuses a persisted session without creating another subscri
     $second = $action->handle($site->user, $site->id, 'monthly');
     expect($first->id)->toBe($second->id)->and($created)->toBe(1)
         ->and($site->fresh()->hasPaidDomainAccess())->toBeFalse();
-    $this->actingAs($site->user)->get(route('sites.show', $site).'?billing=processing')->assertOk();
+    $this->actingAs($site->user)->get(route('sites.go-live', $site).'?billing=processing')->assertOk();
     expect($site->fresh()->hasPaidDomainAccess())->toBeFalse();
 });
 
 test('checkout timeout retains customer and idempotency identity for retry', function () {
     $site = Site::factory()->create();
+    app(ReserveCustomHostname::class)->handle($site->user, $site->id, 'www.example.org');
     $keys = [];
     fakeBillingStripe(function ($method, $path, $params, $headers) use (&$keys) {
         if ($path === '/v1/prices/price_monthly') {
@@ -140,6 +148,7 @@ test('checkout timeout retains customer and idempotency identity for retry', fun
 
 test('uncertain checkout older than idempotency retention is not replayed', function () {
     $site = Site::factory()->create();
+    app(ReserveCustomHostname::class)->handle($site->user, $site->id, 'www.example.org');
     $site->forceFill(['checkout_attempt' => 'old', 'checkout_started_at' => now()->subDay(), 'checkout_price_id' => 'price_monthly'])->save();
     fakeBillingStripe(function ($method, $path) {
         expect($path)->toBe('/v1/prices/price_monthly');
@@ -217,6 +226,7 @@ test('Stripe read failures cause webhook retry without granting access', functio
 
 test('an ended subscription can start a replacement checkout and retries reuse it', function (string $terminalStatus) {
     $site = Site::factory()->create();
+    app(ReserveCustomHostname::class)->handle($site->user, $site->id, 'www.example.org');
     $site->forceFill(['stripe_id' => 'cus_site', 'checkout_attempt' => 'old-attempt', 'checkout_started_at' => now()->subYear(), 'checkout_price_id' => 'price_annual', 'checkout_session_id' => 'cs_old'])->save();
     $site->subscriptions()->create(['type' => 'default', 'stripe_id' => 'sub_old', 'stripe_status' => $terminalStatus]);
     $writes = 0;
@@ -257,6 +267,7 @@ test('an ended subscription can start a replacement checkout and retries reuse i
 
 test('completed checkout cannot be replaced while its provider commitment is unresolved', function (string $scenario) {
     $site = Site::factory()->create();
+    app(ReserveCustomHostname::class)->handle($site->user, $site->id, 'www.example.org');
     $site->forceFill(['stripe_id' => 'cus_site', 'checkout_attempt' => 'old-attempt', 'checkout_started_at' => now()->subYear(), 'checkout_price_id' => 'price_monthly', 'checkout_session_id' => 'cs_old'])->save();
     fakeBillingStripe(function ($method, $path) use ($scenario) {
         expect($method)->toBe('get');
@@ -336,4 +347,128 @@ test('billing selection isolates sites and types and orders terminal history by 
     expect($site->billingSubscription()->id)->toBe($latest->id);
     $pending = $site->subscriptions()->create(['type' => 'default', 'stripe_id' => 'sub_pending', 'stripe_status' => 'incomplete']);
     expect($site->billingSubscription()->id)->toBe($pending->id);
+});
+
+function fakeDomainCheckout(): void
+{
+    fakeBillingStripe(function ($method, $path) {
+        return match ($path) {
+            '/v1/prices/price_monthly' => billingPriceData(),
+            '/v1/customers' => ['id' => 'cus_site', 'object' => 'customer'],
+            '/v1/subscriptions' => ['object' => 'list', 'data' => [], 'has_more' => false],
+            '/v1/checkout/sessions', '/v1/checkout/sessions/cs_domain' => [
+                'id' => 'cs_domain', 'object' => 'checkout.session', 'status' => 'open', 'url' => 'https://checkout.stripe.com/c/pay/domain',
+            ],
+            default => throw new RuntimeException('Unexpected Stripe request'),
+        };
+    });
+}
+
+test('checkout requires valid retained domain intent before any Stripe request', function (string $intent) {
+    config(['site-billing.checkout_enabled' => true, 'customer-domains.enabled' => true]);
+    $site = Site::factory()->create();
+    if ($intent !== 'missing') {
+        $domain = app(ReserveCustomHostname::class)->handle($site->user, $site->id, 'www.example.org');
+        $domain->forceFill($intent === 'removing' ? ['state' => 'removing'] : ['hostname' => 'invalid'])->save();
+    }
+    fakeBillingStripe(fn () => throw new RuntimeException('No Stripe request allowed'));
+    $this->actingAs($site->user)->postJson(route('sites.billing.checkout', $site), ['interval' => 'monthly'])
+        ->assertUnprocessable()->assertJsonValidationErrors('hostname');
+})->with(['missing', 'removing', 'invalid']);
+
+test('domain connection starts immediate checkout and repeated submissions resume the same session', function () {
+    config(['site-billing.checkout_enabled' => true, 'customer-domains.enabled' => true]);
+    $site = Site::factory()->create();
+    fakeDomainCheckout();
+    $this->actingAs($site->user)->withHeader('X-Inertia', 'true');
+    for ($i = 0; $i < 2; $i++) {
+        $this->post(route('sites.domain.store', $site), ['hostname' => 'www.example.org', 'interval' => 'monthly'])
+            ->assertStatus(409)->assertHeader('X-Inertia-Location', 'https://checkout.stripe.com/c/pay/domain');
+    }
+    expect($site->customHostname()->count())->toBe(1)->and($site->fresh()->checkout_session_id)->toBe('cs_domain')
+        ->and($site->fresh()->hasPaidDomainAccess())->toBeFalse();
+    $this->withoutHeader('X-Inertia')->get(route('sites.go-live', $site).'?billing=success')->assertOk();
+    expect($site->fresh()->hasPaidDomainAccess())->toBeFalse()->and($site->customHostname()->first()->verified_at)->toBeNull();
+});
+
+test('a canceled checkout return retains intent and can resume checkout', function () {
+    config(['site-billing.checkout_enabled' => true, 'customer-domains.enabled' => true]);
+    $site = Site::factory()->create();
+    fakeDomainCheckout();
+    $this->actingAs($site->user)->post(route('sites.domain.store', $site), ['hostname' => 'www.example.org', 'interval' => 'monthly'])->assertRedirect();
+    $operation = $site->customHostname()->first()->operation_id;
+    $this->get(route('sites.show', $site))->assertOk();
+    $this->post(route('sites.billing.checkout', $site), ['interval' => 'monthly'])->assertRedirect();
+    expect($site->customHostname()->first()->operation_id)->toBe($operation)
+        ->and($site->fresh()->checkout_session_id)->toBe('cs_domain')->and($site->fresh()->hasPaidDomainAccess())->toBeFalse();
+});
+
+test('failed payment setup keeps resumable domain intent', function () {
+    config(['site-billing.checkout_enabled' => true, 'customer-domains.enabled' => true]);
+    $site = Site::factory()->create();
+    fakeBillingStripe(fn () => throw new ApiConnectionException('offline'));
+    $this->actingAs($site->user)->from(route('sites.show', $site))->post(route('sites.domain.store', $site), ['hostname' => 'www.example.org', 'interval' => 'monthly'])
+        ->assertRedirect(route('sites.show', $site))->assertSessionHasErrors('billing');
+    $operation = $site->customHostname()->first()->operation_id;
+    fakeDomainCheckout();
+    $this->post(route('sites.billing.checkout', $site), ['interval' => 'monthly'])->assertRedirect();
+    expect($site->customHostname()->first()->operation_id)->toBe($operation);
+});
+
+test('paid connection and replacement reuse billing without Stripe calls', function () {
+    config(['customer-domains.enabled' => true]);
+    $site = Site::factory()->create();
+    $subscription = $site->subscriptions()->create(['type' => 'default', 'stripe_id' => 'sub_paid', 'stripe_status' => 'active', 'paid_until' => now()->addMonth()]);
+    $before = $subscription->fresh()->getAttributes();
+    fakeBillingStripe(fn () => throw new RuntimeException('A second subscription must not be created'));
+    $this->actingAs($site->user)->post(route('sites.domain.store', $site), ['hostname' => 'www.first.org'])->assertSessionHasNoErrors();
+    $first = $site->customHostname()->first();
+    $this->delete(route('sites.domain.destroy', $site))->assertSessionHasNoErrors();
+    expect($first->fresh()->state)->toBe('removing');
+    app(ReconcileCustomHostname::class)->handle($first->id);
+    $this->post(route('sites.domain.store', $site), ['hostname' => 'www.second.org'])->assertSessionHasNoErrors();
+    expect($site->customHostname()->first()->hostname)->toBe('www.second.org')
+        ->and($subscription->fresh()->getAttributes())->toBe($before)->and($site->subscriptions()->count())->toBe(1);
+});
+
+test('paid time expiry denies serving immediately and resubscription requires fresh readiness', function () {
+    $this->freezeTime();
+    $site = Site::factory()->create();
+    $site->forceFill(['stripe_id' => 'cus_site'])->save();
+    $domain = app(ReserveCustomHostname::class)->handle($site->user, $site->id, 'www.example.org');
+    $domain->forceFill(['state' => 'ready', 'cloudflare_id' => 'managed', 'hostname_status' => 'active', 'ssl_status' => 'active', 'verified_at' => now(), 'cname_matches' => true])->save();
+    $site->subscriptions()->create(['type' => 'default', 'stripe_id' => 'sub_old', 'stripe_status' => 'active', 'paid_until' => now()->addMinute()]);
+    expect($domain->isReadyToServe())->toBeTrue();
+    $this->travel(2)->minutes();
+    expect($domain->fresh()->isReadyToServe())->toBeFalse()->and($domain->fresh()->cloudflare_id)->toBe('managed');
+    fakeBillingStripe(fn () => billingSubscriptionData());
+    signedBillingEvent(billingSubscriptionData())->assertOk();
+    expect($site->fresh()->hasPaidDomainAccess())->toBeTrue()
+        ->and($domain->fresh()->state)->toBe('pending')->and($domain->fresh()->verified_at)->toBeNull()
+        ->and($domain->fresh()->cloudflare_id)->toBe('managed')->and($domain->fresh()->isReadyToServe())->toBeFalse();
+});
+
+test('payment reconciliation never revives an explicitly disconnected domain', function () {
+    $site = Site::factory()->create();
+    $site->forceFill(['stripe_id' => 'cus_site'])->save();
+    $domain = app(ReserveCustomHostname::class)->handle($site->user, $site->id, 'www.example.org');
+    app(DisconnectCustomHostname::class)->handle($site->user, $site->id);
+    fakeBillingStripe(fn () => billingSubscriptionData());
+    signedBillingEvent(billingSubscriptionData())->assertOk();
+    expect($site->fresh()->hasPaidDomainAccess())->toBeTrue()->and($domain->fresh()->state)->toBe('removing');
+});
+
+test('failed payment revokes readiness while preserving the connection for recovery', function () {
+    $site = Site::factory()->create();
+    $site->forceFill(['stripe_id' => 'cus_site'])->save();
+    $domain = app(ReserveCustomHostname::class)->handle($site->user, $site->id, 'www.example.org');
+    $domain->forceFill(['state' => 'ready', 'cloudflare_id' => 'managed', 'hostname_status' => 'active', 'ssl_status' => 'active', 'verified_at' => now(), 'cname_matches' => true])->save();
+    $site->subscriptions()->create(['type' => 'default', 'stripe_id' => 'sub_site', 'stripe_status' => 'active', 'paid_until' => now()->addMonth()]);
+    $remote = billingSubscriptionData();
+    $remote['status'] = 'past_due';
+    $remote['latest_invoice']['status'] = 'open';
+    fakeBillingStripe(fn () => $remote);
+    signedBillingEvent($remote)->assertOk();
+    expect($site->fresh()->hasPaidDomainAccess())->toBeFalse()->and($domain->fresh()->isReadyToServe())->toBeFalse()
+        ->and($domain->fresh()->cloudflare_id)->toBe('managed')->and($domain->fresh()->state)->toBe('pending');
 });

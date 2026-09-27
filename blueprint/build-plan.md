@@ -17,9 +17,9 @@ Features 1-5 establish the editor and single-page publishing baseline. The next 
     - [x] 8a. **Page management** - Preserve existing content as a protected Home page; add, rename, reorder, delete, and edit other draft pages while retaining Home publishing. Separate shared site settings and page management from the focused page editor.
     - [x] 8b. **Navigation and publishing** - Publish all pages together, add page navigation alongside section links, editable page paths, and page-specific metadata; keep Home at the existing URL and apply public page deletions only on Publish.
 - [x] 6. **Per-site subscriptions** - Integrate Cashier with Stripe so each site can have its own monthly or annual subscription and billing status.
-- [ ] 7. **Custom domains and SSL** - Let a subscribed site connect a BYO `www` hostname through Cloudflare for SaaS, show DNS instructions and connection status, serve its published Blade page over HTTPS, and remove custom-domain access when the subscription becomes inactive.
+- [x] 7. **Custom domains and SSL** - Let a subscribed site connect a BYO `www` hostname through Cloudflare for SaaS, show DNS instructions and connection status, serve its published Blade page over HTTPS, and remove custom-domain access when the subscription becomes inactive.
     - [x] 7a. **Worker connection** - Establish authenticated Cloudflare Worker forwarding to Laravel, isolate public requests from platform routes, and prove the connection using an operator-owned test hostname.
-    - [ ] 7b. **Customer domains** - Add the connect-domain UI, Stripe handoff, automatic DNS/SSL status checks, and published-site routing with paid-access enforcement.
+    - [x] 7b. **Customer domains** - Add the connect-domain UI, Stripe handoff, automatic DNS/SSL status checks, and published-site routing with paid-access enforcement.
 
 ## Planning TODOs
 

@@ -54,10 +54,12 @@ class SiteBillingWebhookController extends WebhookController
                 if ($site->stripe_id !== $customer) {
                     return;
                 }
+                $hadPaidAccess = $site->hasPaidDomainAccess();
                 if ($type === 'customer.deleted') {
                     $remote = Cashier::stripe()->customers->retrieve($customer);
                     if ($remote->deleted ?? false) {
                         $site->subscriptions()->update(['stripe_status' => 'canceled', 'ends_at' => now(), 'paid_until' => null]);
+                        $this->invalidateDomainReadiness($site);
                     }
 
                     return;
@@ -77,6 +79,10 @@ class SiteBillingWebhookController extends WebhookController
                 }
                 parent::handleCustomerSubscriptionUpdated(['data' => ['object' => $data]]);
                 $site->subscriptions()->where('stripe_id', $subscriptionId)->update(['paid_until' => $paidUntil]);
+                // A lapse or a new paid period after a lapse requires fresh DNS/provider evidence.
+                if (! $hadPaidAccess || ! $site->hasPaidDomainAccess()) {
+                    $this->invalidateDomainReadiness($site);
+                }
             });
         } catch (ApiErrorException) {
             // Ask Stripe to retry; never acknowledge a failed reconciliation as successful.
@@ -84,6 +90,14 @@ class SiteBillingWebhookController extends WebhookController
         }
 
         return response('', 200);
+    }
+
+    private function invalidateDomainReadiness(Site $site): void
+    {
+        $site->customHostname()->where('state', '!=', 'removing')->update([
+            'state' => 'pending', 'verified_at' => null, 'cname_matches' => false,
+            'check_id' => null, 'check_started_at' => null,
+        ]);
     }
 
     /** @param array<string, mixed> $subscription */

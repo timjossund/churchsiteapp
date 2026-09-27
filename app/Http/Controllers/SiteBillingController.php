@@ -35,14 +35,14 @@ class SiteBillingController extends Controller
             return back()->withErrors(['billing' => 'Renewal cancellation could not be confirmed. Please retry to confirm its status.']);
         }
 
-        return to_route('sites.show', $site);
+        return to_route('sites.go-live', $site);
     }
 
     public function checkout(Request $request, int $site, StartSiteCheckout $checkout): RedirectResponse|Response
     {
         $owner = $request->user();
         $owner->sites()->findOrFail($site);
-        abort_unless(config('site-billing.checkout_enabled') === true, 404);
+        abort_unless(config('site-billing.checkout_enabled') === true && config('customer-domains.enabled') === true, 404);
         $data = $request->validate(['interval' => ['required', Rule::in(['monthly', 'annual'])]]);
 
         try {

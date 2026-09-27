@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { router, usePage } from '@inertiajs/vue3';
+import { CircleCheck } from '@lucide/vue';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import CustomHostnameController from '@/actions/App/Http/Controllers/CustomHostnameController';
 
@@ -87,6 +88,12 @@ const label = computed(
 const checkoutReturn = computed(() =>
     new URLSearchParams(page.url.split('?')[1] ?? '').get('billing'),
 );
+const verifiedRecords = computed<Record<string, boolean>>(() => ({
+    ownership: props.domain.ownership_verified,
+    connection: props.domain.dns_connected,
+    hostname: props.domain.connection_ready,
+    certificate: props.domain.ssl_ready,
+}));
 const progress = computed(() => [
     { label: 'Payment confirmed', done: props.domain.paid },
     {
@@ -403,16 +410,35 @@ onUnmounted(() => clearInterval(timer));
                         :key="`${record.type}-${record.name}-${index}`"
                         class="rounded-lg border border-[var(--workspace-line)] p-3 text-sm"
                     >
-                        <p class="font-semibold">
-                            {{ record.type }} ·
-                            {{
-                                record.purpose === 'ownership'
-                                    ? 'Ownership verification'
-                                    : record.purpose === 'connection'
-                                      ? 'Site connection'
-                                      : 'Provider validation'
-                            }}
-                        </p>
+                        <div
+                            class="flex flex-wrap items-center justify-between gap-2"
+                        >
+                            <p class="font-semibold">
+                                {{ record.type }} ·
+                                {{
+                                    record.purpose === 'ownership'
+                                        ? 'Ownership verification'
+                                        : record.purpose === 'connection'
+                                          ? 'Site connection'
+                                          : record.purpose === 'certificate'
+                                            ? 'HTTPS validation'
+                                            : 'Provider validation'
+                                }}
+                            </p>
+                            <span
+                                v-if="verifiedRecords[record.purpose]"
+                                class="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-2 py-1 text-xs font-semibold text-green-800 dark:bg-green-950 dark:text-green-200"
+                            >
+                                <CircleCheck
+                                    class="size-4"
+                                    aria-hidden="true"
+                                />
+                                Verified
+                            </span>
+                            <span v-else class="text-xs font-medium">
+                                Pending
+                            </span>
+                        </div>
                         <p class="mt-2">
                             Name:
                             <code class="break-all select-text">{{

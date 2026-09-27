@@ -1,0 +1,14 @@
+{
+    "name": "churchsite-domain-proxy",
+    "main": "worker.mjs",
+    "compatibility_date": "2026-09-27",
+    "workers_dev": false,
+    "preview_urls": false,
+    "routes": [],
+    "vars": {
+        "ORIGIN_ENDPOINT": "https://churchsite.app/_domain/request",
+        "PROOF_HOST": "test.timjossund.com",
+    },
+    // Supply ORIGIN_SECRET privately using a Worker secret binding.
+    // This example has no public routes; deployment requires separate approval.
+}

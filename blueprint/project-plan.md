@@ -92,12 +92,12 @@ A site's published content must remain stable while its draft is edited. Ownersh
 - Use one shared Laravel application and MySQL database for all church sites, with data scoped to the owning user and site.
 - Use Vue/Inertia for signup, the account dashboard, and the block editor. Use Blade to render published church pages.
 - Keep the editor preview faithful to the published page by sharing block data and theme styles with the Blade renderer.
-- Host the Laravel origin with xCloud. Use Cloudflare for SaaS to manage customer hostnames and edge SSL. Serve platform pages and subdirectory previews at `churchsite.app`.
+- Host the Laravel origin on a Plesk-managed server with administrator access to configure the web server. Use Cloudflare for SaaS to manage customer hostnames and edge SSL, with a Cloudflare Worker forwarding customer requests to a fixed HTTPS Laravel origin and securely carrying the original hostname. Serve platform pages and subdirectory previews at `churchsite.app`.
 - Store uploaded images in IONOS buckets.
 - Use Laravel Cashier with Stripe for per-site subscriptions.
 - Use the existing Laravel authentication foundation for self-service accounts.
 
-**Technical validation before the domain feature:** confirm that the xCloud origin can accept traffic for Cloudflare customer hostnames, that Laravel resolves each hostname to the correct published site, and that Cloudflare hostname and certificate status can be checked automatically. Cloudflare documents a fallback origin, a custom-hostname API, and separate hostname and certificate readiness checks. See [Cloudflare for SaaS setup](https://developers.cloudflare.com/cloudflare-for-platforms/cloudflare-for-saas/start/getting-started/) and [custom-hostname API calls](https://developers.cloudflare.com/cloudflare-for-platforms/cloudflare-for-saas/start/common-api-calls/).
+**Technical validation:** Feature 7a establishes authenticated Worker forwarding and isolated public routing, with an operator-owned test hostname. Feature 7b adds hostname-to-site resolution, automated Cloudflare hostname/certificate checks, and paid-access enforcement. The manually configured Plesk alias test proves connectivity only; Worker transport must be proved separately before customer rollout. Cloudflare documents a fallback origin, a custom-hostname API, and separate hostname and certificate readiness checks. See [Cloudflare for SaaS setup](https://developers.cloudflare.com/cloudflare-for-platforms/cloudflare-for-saas/start/getting-started/) and [custom-hostname API calls](https://developers.cloudflare.com/cloudflare-for-platforms/cloudflare-for-saas/start/common-api-calls/).
 
 ## 6. Business model
 
@@ -109,9 +109,9 @@ The builder should feel manageable for a busy user: a visible page preview, a cl
 
 ## 8. Deployment and operations
 
-Deploy the shared Laravel app on xCloud with MySQL. Place Cloudflare for SaaS in front of the xCloud origin for customer hostnames. Configure `churchsite.app` for the product, account dashboard, and preview subdirectories. Configure mail, Stripe webhooks, access to IONOS buckets, and queues or scheduled checks if the domain workflow needs them.
+Deploy the shared Laravel app on a Plesk-managed server with MySQL. Plesk administrator access is available for web-server configuration. Place Cloudflare for SaaS and a forwarding Worker in front of the Plesk origin for customer hostnames. The server also hosts other websites; use the existing application virtual host and its certificate instead of adding a Plesk alias/certificate for every customer. Authenticate forwarding metadata and isolate customer requests from account, editor, and billing routes. Configure `churchsite.app` for the product, account dashboard, and preview subdirectories. Configure mail, Stripe webhooks, access to IONOS buckets, and queues or scheduled checks if the domain workflow needs them.
 
-The MySQL hosting arrangement, exact deployment commands, origin host handling, Cloudflare configuration, and operational checks remain **TODOs** until the hosting flow is validated.
+The operator reports a live platform and a successful `test.timjossund.com/up` test using a manual Plesk alias, a Let's Encrypt certificate, and Cloudflare Full (strict). Plesk is Obsidian 18.0.81.1 on Debian 13.7, with nginx proxying to Apache and administrator/SSH access available. Worker deployment and its independent transport proof, the MySQL hosting arrangement, final deployment commands, and operational checks remain **TODOs**. The test subdomain is an operator-only infrastructure fixture; customer onboarding remains limited to `www` hostnames.
 
 ## 9. Scope and later work
 

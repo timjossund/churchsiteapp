@@ -1,6 +1,6 @@
 # Churchsite - Project Overview
 
-<!-- blueprint:source-hash 622969069313935adfe5d315270737f30b0f2b5f738cd5ab1642b20bc0f7f007 -->
+<!-- blueprint:source-hash e42eccde5d2b4af1b6e6881cecbbabf96050d96d46ab9fa2071a055a590a13b5 -->
 
 > A block-based church website builder with shareable multi-page previews and later paid custom domains.
 
@@ -32,6 +32,8 @@ Churches need modern websites, while the people responsible for them may have li
     - **8b.** **Navigation and publishing** - Publish all pages together, add page navigation alongside section links, editable page paths, and page-specific metadata; keep Home at the existing URL and apply public page deletions only on Publish.
 - **6.** **Per-site subscriptions** - Integrate Cashier with Stripe so each site can have its own monthly or annual subscription and billing status.
 - **7.** **Custom domains and SSL** - Let a subscribed site connect a BYO `www` hostname through Cloudflare for SaaS, show DNS instructions and connection status, serve its published Blade page over HTTPS, and remove custom-domain access when the subscription becomes inactive.
+    - **7a.** **Worker connection** - Authenticated Worker forwarding to Laravel, isolated public routing, and an operator-owned test hostname.
+    - **7b.** **Customer domains** - Domain UI, Stripe handoff, automatic DNS/SSL checks, and published-site routing with paid-access enforcement.
 
 ## Data model
 
@@ -84,7 +86,7 @@ These are the initial logical shapes; later feature specs choose migrations and 
 - **Blade and Tailwind 4** - Published sites and theme styles; share page and block data and styles with the editor preview to keep it faithful.
 - **Laravel Cashier and Stripe** - Per-site monthly and annual subscriptions, with Stripe-hosted Checkout and Billing Portal.
 - **IONOS buckets** - Uploaded image storage.
-- **xCloud and Cloudflare for SaaS** - Laravel origin hosting, customer-hostname routing, and edge SSL.
+- **Plesk, Cloudflare for SaaS, and Cloudflare Workers** - Shared Laravel origin hosting, customer certificates, and authenticated forwarding to the existing application virtual host.
 - **Pest** - Existing PHP test suite.
 
 ## Monetization
@@ -102,11 +104,13 @@ Users can create and publish shareable subdirectory sites before paying. Each si
 
 ## Deployment
 
-Host the shared Laravel app and MySQL arrangement on xCloud, with `churchsite.app` serving product pages and preview subdirectories. Cloudflare for SaaS manages customer `www` hostnames and edge certificates; the xCloud origin serves the correct Blade-rendered site. Configure Stripe webhooks, mail, IONOS storage access, and queues or scheduled checks if domain verification requires them.
+Host the shared Laravel application on Plesk, with `churchsite.app` serving platform routes and subdirectory previews. The server also hosts other websites. Cloudflare for SaaS manages customer certificates; an approved forwarding Worker will send customer requests to a fixed HTTPS application origin and securely identify the original hostname. Public forwarding must not expose account, editor, or billing routes. No per-customer Plesk alias or certificate is required by the intended Worker design.
 
-> TODO: Choose the MySQL hosting arrangement and final deployment commands. Validate xCloud origin host handling, Cloudflare for SaaS onboarding, and separate hostname and certificate readiness before the custom-domain feature.
+The operator reports Plesk Obsidian 18.0.81.1 on Debian 13.7, nginx proxying to Apache, administrator/SSH access, a live platform, and a successful manual alias test at `test.timjossund.com/up` with Full (strict). This proves manual connectivity only. Feature 7a proves Worker transport before Feature 7b customer rollout. The test hostname is an operator fixture; customer onboarding still requires `www`.
+
+Configure Stripe webhooks, mail, IONOS storage access, and queues or scheduled checks as needed for the domain workflow.
 
 ## Open questions
 
-- What exact xCloud origin and Cloudflare configuration supports many customer hostnames on this one Laravel application?
+- Worker deployment and its independent transport proof remain pending in Feature 7a.
 - Where will production MySQL run, and what are the final deploy and operational checks?

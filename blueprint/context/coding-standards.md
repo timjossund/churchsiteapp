@@ -32,8 +32,9 @@
 
 ## Testing and verification
 
-- Pest is configured for PHP unit and feature tests in `tests/`. `composer test` runs PHP format checks, PHP static analysis, and the PHP test suite. Tests are an active gate for logic-bearing changes.
+- Pest is configured for PHP unit and feature tests in `tests/`. `composer test` runs PHP format checks, PHP static analysis, a frontend production build, and the PHP test suite. Tests are an active gate for logic-bearing changes.
 - `composer ci:check` also runs the existing frontend lint and TypeScript checks. It is the current combined local check; there is no GitHub Actions workflow yet.
+- Both commands require installed Composer and Node dependencies and build assets once before Pest. Preserve pre-existing generated files and keep Vite/Wayfinder output out of source commits. Focused `php artisan test` runs need current assets when rendering pages.
 - For logic with meaningful edge cases, add focused tests in the existing test suite. Verify UI behavior through the running app or browser evidence when relevant.
 - Browser test automation is not configured. Do not install a runner in the middle of an unrelated feature.
 - The exact commands are listed in `AGENTS.md`.

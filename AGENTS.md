@@ -300,8 +300,13 @@ checks do not make the Blueprint unusable.
 - PHP format check: `composer lint:check`
 - PHP format fix: `composer lint`
 - PHP typecheck: `composer types:check`
-- Test: `composer test` (PHP format check, typecheck, and Pest suite)
+- Test: `composer test` (PHP format check, typecheck, frontend build, and Pest suite)
 - Combined local check: `composer ci:check` (frontend checks plus `composer test`)
+
+Both test commands require installed Composer and Node dependencies. They build
+frontend assets once before Pest and generate Vite/Wayfinder output; keep generated
+changes separate from source commits. Focused `php artisan test` runs require
+current assets when the tests render pages.
 
 Pest tests are configured and are a gate for logic-bearing work. Browser tests
 are not configured. There is no GitHub Actions workflow yet; run `/ci` or `$ci`

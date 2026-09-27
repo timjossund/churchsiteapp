@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -16,6 +17,8 @@ use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 
 /**
+ * @property CarbonImmutable|null $deletion_requested_at
+ * @property CarbonImmutable|null $deletion_scheduled_for
  * @property int $id
  * @property string $name
  * @property string $email
@@ -50,6 +53,8 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     {
         return [
             'email_verified_at' => 'datetime',
+            'deletion_requested_at' => 'immutable_datetime',
+            'deletion_scheduled_for' => 'immutable_datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
         ];

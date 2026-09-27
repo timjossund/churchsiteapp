@@ -3,9 +3,13 @@ import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import SiteMediaController from '@/actions/App/Http/Controllers/SiteMediaController';
 import PageManager from '@/components/sites/PageManager.vue';
+import SiteBillingPanel, {
+    type BillingSummary,
+} from '@/components/sites/SiteBillingPanel.vue';
 import { dashboard } from '@/routes';
 type SiteTheme = 'warm' | 'clean' | 'bold';
 const props = defineProps<{
+    billing: BillingSummary;
     site: {
         id: number;
         name: string;
@@ -43,6 +47,7 @@ const siteThemes: { key: SiteTheme; label: string; description: string }[] = [
 ];
 
 const pagePending = ref(false);
+const billingPending = ref(false);
 const pageNamesDirty = ref(false);
 let ownVisit = false;
 function runOwnVisit(submit: () => void) {
@@ -131,6 +136,7 @@ const uploadInProgress = computed(() => logoUploadForm.processing);
 const editorWriteInProgress = computed(
     () =>
         pagePending.value ||
+        billingPending.value ||
         uploadInProgress.value ||
         nameForm.processing ||
         appearanceForm.processing ||
@@ -498,6 +504,14 @@ defineOptions({
                 edit its content.
             </p>
         </header>
+        <SiteBillingPanel
+            :billing="props.billing"
+            :site-id="props.site.id"
+            :busy="editorWriteInProgress"
+            :confirm-leave="confirmEditorDiscard"
+            :run-visit="runOwnVisit"
+            @busy="billingPending = $event"
+        />
         <PageManager
             :site-id="props.site.id"
             :pages="props.pages"
@@ -509,7 +523,7 @@ defineOptions({
         />
         <h2 class="mb-4 font-serif text-2xl">Shared site settings</h2>
         <section
-            :inert="pagePending"
+            :inert="pagePending || billingPending"
             aria-label="Shared site settings"
             class="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]"
         >

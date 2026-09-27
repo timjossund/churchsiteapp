@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Actions\DeleteAccountWhenBillingEnds;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileDeleteRequest;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
@@ -22,6 +23,8 @@ class ProfileController extends Controller
         return Inertia::render('settings/Profile', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => $request->session()->get('status'),
+            'deletionRequestedAt' => $request->user()->deletion_requested_at?->toIso8601String(),
+            'deletionScheduledFor' => $request->user()->deletion_scheduled_for?->toIso8601String(),
         ]);
     }
 
@@ -46,13 +49,15 @@ class ProfileController extends Controller
     /**
      * Delete the user's profile.
      */
-    public function destroy(ProfileDeleteRequest $request): RedirectResponse
+    public function destroy(ProfileDeleteRequest $request, DeleteAccountWhenBillingEnds $deletion): RedirectResponse
     {
         $user = $request->user();
 
-        Auth::logout();
+        if (! $deletion->request($user)) {
+            return to_route('profile.edit')->with('status', 'deletion-pending');
+        }
 
-        $user->delete();
+        Auth::logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

@@ -2,17 +2,22 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Database\Factories\SiteFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
+use Laravel\Cashier\Billable;
+use Laravel\Cashier\Subscription;
 
 /**
  * @property int $id
+ * @property CarbonImmutable|null $checkout_started_at
  * @property int $user_id
  * @property string $name
  * @property string $theme_key
@@ -25,6 +30,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  */
 #[Fillable(['name', 'theme_key', 'footer', 'logo_media_asset_id', 'slug', 'published_snapshot', 'published_at'])]
+#[Hidden(['stripe_id', 'pm_type', 'pm_last_four', 'trial_ends_at', 'checkout_attempt', 'checkout_started_at', 'checkout_price_id', 'checkout_session_id'])]
 class Site extends Model
 {
     protected $attributes = [
@@ -32,8 +38,37 @@ class Site extends Model
         'footer' => '{"text":""}',
     ];
 
+    use Billable;
+
     /** @use HasFactory<SiteFactory> */
     use HasFactory;
+
+    public function billingSubscription(): ?Subscription
+    {
+        // Webhook arrival time is not subscription chronology. Current commitments take precedence.
+        return Subscription::query()
+            ->where('site_id', $this->id)
+            ->where('type', 'default')
+            ->orderByRaw("CASE WHEN stripe_status IN ('canceled', 'incomplete_expired') THEN 1 ELSE 0 END")
+            ->orderByDesc('ends_at')
+            ->orderByDesc('id')
+            ->first();
+    }
+
+    public function hasPaidDomainAccess(): bool
+    {
+        return $this->subscriptions()
+            ->where('type', 'default')
+            ->where('stripe_status', 'active')
+            ->where('paid_until', '>', now())
+            ->where(fn ($query) => $query->whereNull('ends_at')->orWhere('ends_at', '>', now()))
+            ->exists();
+    }
+
+    public function stripeEmail(): ?string
+    {
+        return $this->user?->email;
+    }
 
     protected static function booted(): void
     {
@@ -68,6 +103,8 @@ class Site extends Model
             'footer' => 'array',
             'published_snapshot' => 'array',
             'published_at' => 'immutable_datetime',
+            'trial_ends_at' => 'immutable_datetime',
+            'checkout_started_at' => 'immutable_datetime',
         ];
     }
 

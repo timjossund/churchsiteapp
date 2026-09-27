@@ -23,6 +23,11 @@ defineOptions({
     },
 });
 
+defineProps<{
+    deletionRequestedAt: string | null;
+    deletionScheduledFor: string | null;
+}>();
+
 const page = usePage();
 const user = computed(() => page.props.auth.user);
 </script>
@@ -101,5 +106,8 @@ const user = computed(() => page.props.auth.user);
         </Form>
     </div>
 
-    <DeleteUser />
+    <DeleteUser
+        :requested-at="deletionRequestedAt"
+        :scheduled-for="deletionScheduledFor"
+    />
 </template>

@@ -18,6 +18,8 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 
+defineProps<{ requestedAt: string | null; scheduledFor: string | null }>();
+
 const passwordInput = useTemplateRef('passwordInput');
 </script>
 
@@ -37,7 +39,21 @@ const passwordInput = useTemplateRef('passwordInput');
                     Please proceed with caution, this cannot be undone.
                 </p>
             </div>
-            <Dialog>
+            <p v-if="requestedAt" role="status" class="text-sm">
+                <template v-if="scheduledFor">
+                    Deletion is scheduled after
+                    {{ new Date(scheduledFor).toLocaleString() }}. Subscription
+                    renewals are canceled. Your account remains available until
+                    all paid periods end.
+                </template>
+                <template v-else>
+                    Your deletion request is saved. We are confirming
+                    subscription cancellations and pending payments. Your
+                    account remains available, and we will retry automatically.
+                    No deletion date is confirmed yet.
+                </template>
+            </p>
+            <Dialog v-if="!requestedAt">
                 <DialogTrigger as-child>
                     <Button variant="destructive" data-test="delete-user-button"
                         >Delete account</Button
@@ -62,9 +78,12 @@ const passwordInput = useTemplateRef('passwordInput');
                             <DialogDescription>
                                 Once your account is deleted, all of its
                                 resources and data will also be permanently
-                                deleted. Please enter your password to confirm
-                                you would like to permanently delete your
-                                account.
+                                deleted. If you have subscriptions, renewals
+                                will be canceled and deletion will wait until
+                                the last paid period ends. Accounts without
+                                billing commitments are deleted immediately.
+                                Enter your password to confirm this irreversible
+                                request.
                             </DialogDescription>
                         </DialogHeader>
 
@@ -77,8 +96,14 @@ const passwordInput = useTemplateRef('passwordInput');
                                 name="password"
                                 ref="passwordInput"
                                 placeholder="Password"
+                                :aria-invalid="!!errors.password"
+                                aria-describedby="delete-password-error"
                             />
-                            <InputError :message="errors.password" />
+                            <InputError
+                                id="delete-password-error"
+                                :message="errors.password"
+                                role="alert"
+                            />
                         </div>
 
                         <DialogFooter class="gap-2">

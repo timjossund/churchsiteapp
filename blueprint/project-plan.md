@@ -77,7 +77,7 @@ The site also has an editable header and footer, including a church name or logo
 - Users bring domains they already own. Domain purchasing and bare-domain support are outside the first-release scope.
 - Show the DNS records needed to connect a `www` hostname and check the connection automatically.
 - A separate paid subscription is required for each site that uses a custom hostname.
-- Use Laravel Spark with Stripe. Offer monthly and annual billing.
+- Use Laravel Cashier with Stripe. Offer monthly and annual billing.
 - If a site no longer has an active subscription, its custom hostname stops serving the site; the published subdirectory version remains available.
 
 ## 4. Data
@@ -94,14 +94,14 @@ A site's published content must remain stable while its draft is edited. Ownersh
 - Keep the editor preview faithful to the published page by sharing block data and theme styles with the Blade renderer.
 - Host the Laravel origin with xCloud. Use Cloudflare for SaaS to manage customer hostnames and edge SSL. Serve platform pages and subdirectory previews at `churchsite.app`.
 - Store uploaded images in IONOS buckets.
-- Use Laravel Spark with Stripe for per-site subscriptions.
+- Use Laravel Cashier with Stripe for per-site subscriptions.
 - Use the existing Laravel authentication foundation for self-service accounts.
 
 **Technical validation before the domain feature:** confirm that the xCloud origin can accept traffic for Cloudflare customer hostnames, that Laravel resolves each hostname to the correct published site, and that Cloudflare hostname and certificate status can be checked automatically. Cloudflare documents a fallback origin, a custom-hostname API, and separate hostname and certificate readiness checks. See [Cloudflare for SaaS setup](https://developers.cloudflare.com/cloudflare-for-platforms/cloudflare-for-saas/start/getting-started/) and [custom-hostname API calls](https://developers.cloudflare.com/cloudflare-for-platforms/cloudflare-for-saas/start/common-api-calls/).
 
 ## 6. Business model
 
-Users may create and publish shareable subdirectory sites before paying. Each site needs its own subscription to go live on a custom hostname. Monthly and annual prices are **TODOs**. Spark's billing model must associate subscription access with an individual site. See the [Spark billable-model guide](https://spark.laravel.com/docs/spark-stripe/cookbook).
+Users may create and publish shareable subdirectory sites before paying. Each site needs its own subscription to go live on a custom hostname. Each site costs USD $15/month or $150/year, with no trial. Payment starts when the owner begins connecting a custom domain. Cashier uses Site as the billable model. Account deletion cancels renewals and occurs after the last site's paid subscription ends. Use Stripe-hosted Checkout and Billing Portal. See the [Cashier documentation](https://laravel.com/framework/docs/13.x/billing).
 
 ## 7. UI and experience
 

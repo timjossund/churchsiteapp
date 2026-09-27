@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\PublishedSiteController;
+use App\Http\Controllers\SiteBillingController;
+use App\Http\Controllers\SiteBillingWebhookController;
 use App\Http\Controllers\SiteBlockController;
 use App\Http\Controllers\SiteController;
 use App\Http\Controllers\SiteMediaController;
@@ -8,6 +10,8 @@ use App\Http\Controllers\SitePageController;
 use App\Http\Controllers\SitePublishingController;
 use App\Http\Middleware\PreserveEditorPage;
 use Illuminate\Support\Facades\Route;
+
+Route::post('stripe/webhook', [SiteBillingWebhookController::class, 'handleWebhook'])->name('sites.billing.webhook');
 
 Route::inertia('/', 'Welcome')->name('home');
 
@@ -23,6 +27,9 @@ Route::get('s/{slug}/{path}', [PublishedSiteController::class, 'show'])
     ->name('sites.published.pages.show');
 
 Route::middleware(['auth', 'verified', PreserveEditorPage::class])->group(function () {
+    Route::post('sites/{site}/billing/portal', [SiteBillingController::class, 'portal'])->whereNumber('site')->name('sites.billing.portal');
+    Route::post('sites/{site}/billing/cancel', [SiteBillingController::class, 'cancel'])->whereNumber('site')->name('sites.billing.cancel');
+    Route::post('sites/{site}/billing/checkout', [SiteBillingController::class, 'checkout'])->whereNumber('site')->name('sites.billing.checkout');
     Route::get('dashboard', [SiteController::class, 'index'])->name('dashboard');
     Route::post('sites', [SiteController::class, 'store'])->name('sites.store');
     Route::get('sites/{site}', [SiteController::class, 'show'])->whereNumber('site')->name('sites.show');

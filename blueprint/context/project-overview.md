@@ -1,6 +1,6 @@
 # Churchsite - Project Overview
 
-<!-- blueprint:source-hash 531fdc27370b40ac2f52ce7af3609e82b59e736ca657a5a1e3e3954bd994172d -->
+<!-- blueprint:source-hash 622969069313935adfe5d315270737f30b0f2b5f738cd5ab1642b20bc0f7f007 -->
 
 > A block-based church website builder with shareable multi-page previews and later paid custom domains.
 
@@ -30,7 +30,7 @@ Churches need modern websites, while the people responsible for them may have li
 - **8.** **Multi-page sites** - Let users add and manage pages within a site, with navigation and page-specific published content.
     - **8a.** **Page management** - Preserve existing content as a protected Home page; add, rename, reorder, delete, and edit other draft pages while retaining Home publishing. Separate shared site settings and page management from the focused page editor.
     - **8b.** **Navigation and publishing** - Publish all pages together, add page navigation alongside section links, editable page paths, and page-specific metadata; keep Home at the existing URL and apply public page deletions only on Publish.
-- **6.** **Per-site subscriptions** - Integrate Spark with Stripe so each site can have its own monthly or annual subscription and billing status.
+- **6.** **Per-site subscriptions** - Integrate Cashier with Stripe so each site can have its own monthly or annual subscription and billing status.
 - **7.** **Custom domains and SSL** - Let a subscribed site connect a BYO `www` hostname through Cloudflare for SaaS, show DNS instructions and connection status, serve its published Blade page over HTTPS, and remove custom-domain access when the subscription becomes inactive.
 
 ## Data model
@@ -74,22 +74,22 @@ These are the initial logical shapes; later feature specs choose migrations and 
 
 ### Site subscription
 
-- Spark/Stripe-managed customer and subscription records are associated with the site as the billable unit, not with account-wide access.
-- Record or derive the plan interval and active subscription state so only that site's custom hostname is enabled. Monthly and annual prices remain to be set.
+- Cashier/Stripe-managed customer and subscription records are associated with the site as the billable unit, not with account-wide access.
+- Record or derive the plan interval and active subscription state so only that site's custom hostname is enabled. Pricing is USD $15/month or $150/year, with no trial; payment starts when domain connection begins.
 
 ## Tech stack
 
 - **Laravel 13 and MySQL** - Shared application, persistence, ownership checks, hostname resolution, and publishing.
 - **Vue 3, TypeScript, and Inertia** - Signup, account dashboard, and block editor.
 - **Blade and Tailwind 4** - Published sites and theme styles; share page and block data and styles with the editor preview to keep it faithful.
-- **Laravel Spark and Stripe** - Per-site monthly and annual subscriptions.
+- **Laravel Cashier and Stripe** - Per-site monthly and annual subscriptions, with Stripe-hosted Checkout and Billing Portal.
 - **IONOS buckets** - Uploaded image storage.
 - **xCloud and Cloudflare for SaaS** - Laravel origin hosting, customer-hostname routing, and edge SSL.
 - **Pest** - Existing PHP test suite.
 
 ## Monetization
 
-Users can create and publish shareable subdirectory sites before paying. Each site needs its own subscription for a live `www` hostname. Monthly and annual prices are TODOs; no domain-purchasing flow is planned.
+Users can create and publish shareable subdirectory sites before paying. Each site needs its own subscription for a live `www` hostname. Pricing is USD $15/month or $150/year per site, without a trial. Payment begins when the owner starts domain connection. Account deletion cancels renewals and occurs after the latest paid site subscription ends. No domain-purchasing flow is planned.
 
 ## UI and experience
 
@@ -108,6 +108,5 @@ Host the shared Laravel app and MySQL arrangement on xCloud, with `churchsite.ap
 
 ## Open questions
 
-- What are the monthly and annual per-site prices?
 - What exact xCloud origin and Cloudflare configuration supports many customer hostnames on this one Laravel application?
 - Where will production MySQL run, and what are the final deploy and operational checks?

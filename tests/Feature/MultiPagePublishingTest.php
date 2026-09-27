@@ -172,13 +172,13 @@ test('invalid media on an additional page aborts the whole publication and keeps
 
 test('page routes coexist with media routes and reject unknown or nested addresses', function () {
     Storage::fake('s3');
-    $site = Site::factory()->create(['slug' => 'route-check']);
+    $site = Site::factory()->create(['slug' => 'route-check', 'name' => "St. Mary's Church"]);
     $page = $site->pages()->create(['name' => 'Media', 'position' => 1]);
     $asset = $site->mediaAssets()->create(['storage_key' => "sites/{$site->id}/image", 'mime_type' => 'image/png']);
     Storage::disk('s3')->put($asset->storage_key, 'image');
     $page->update(['social_image_id' => $asset->id]);
     $this->actingAs($site->user)->post(route('sites.publish', $site))->assertSessionHasNoErrors();
-    $this->get('/s/route-check/media')->assertOk()->assertSee('<title>Media | '.$site->name.'</title>', false);
+    $this->get('/s/route-check/media')->assertOk()->assertSee('<title>Media | '.e($site->name).'</title>', false);
     $this->get('/s/route-check/media/'.$asset->id)->assertOk()->assertStreamedContent('image');
     foreach (['missing', 'media/deeper/path', 'unsafe_path', 'Media'] as $path) {
         $this->get('/s/route-check/'.$path)->assertNotFound();

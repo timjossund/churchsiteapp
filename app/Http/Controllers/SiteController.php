@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\BuildSitePublicationSnapshot;
+use App\Actions\SiteBillingSummary;
 use App\Http\Requests\SiteNameRequest;
 use App\Http\Requests\SiteSettingsRequest;
 use App\Models\Site;
@@ -91,7 +92,7 @@ class SiteController extends Controller
 
         return Inertia::render($selectedPage === null ? 'Sites/Settings' : 'Sites/Show', array_merge(
             $selectedPage === null
-                ? ['pages' => $ownedSite->pages()->orderBy('position')->orderBy('id')->get(['id', 'name', 'position', 'is_home'])]
+                ? ['billing' => app(SiteBillingSummary::class)->handle($ownedSite), 'pages' => $ownedSite->pages()->orderBy('position')->orderBy('id')->get(['id', 'name', 'position', 'is_home'])]
                 : ['selected_page' => array_merge($selectedPage->only('id', 'name', 'position', 'is_home', 'path', 'seo_title', 'seo_description'), [
                     'published_url' => $pagePublishedUrl,
                     'default_title' => $selectedPage->is_home ? $ownedSite->name : $selectedPage->name.' | '.$ownedSite->name,

@@ -16,11 +16,10 @@ Features 1-5 establish the editor and single-page publishing baseline. The next 
 - [x] 8. **Multi-page sites** - Let users add and manage pages within a site, with navigation and page-specific published content.
     - [x] 8a. **Page management** - Preserve existing content as a protected Home page; add, rename, reorder, delete, and edit other draft pages while retaining Home publishing. Separate shared site settings and page management from the focused page editor.
     - [x] 8b. **Navigation and publishing** - Publish all pages together, add page navigation alongside section links, editable page paths, and page-specific metadata; keep Home at the existing URL and apply public page deletions only on Publish.
-- [ ] 6. **Per-site subscriptions** - Integrate Spark with Stripe so each site can have its own monthly or annual subscription and billing status.
+- [x] 6. **Per-site subscriptions** - Integrate Cashier with Stripe so each site can have its own monthly or annual subscription and billing status.
 - [ ] 7. **Custom domains and SSL** - Let a subscribed site connect a BYO `www` hostname through Cloudflare for SaaS, show DNS instructions and connection status, serve its published Blade page over HTTPS, and remove custom-domain access when the subscription becomes inactive.
 
 ## Planning TODOs
 
-- Set monthly and annual prices.
 - Prove the xCloud origin and Cloudflare for SaaS workflow for many customer hostnames and SSL certificates on one shared Laravel app.
 - Choose the MySQL hosting arrangement and final deployment setup.

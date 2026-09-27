@@ -54,11 +54,13 @@ class SiteMediaController extends Controller
     public function uploadSocialImage(StoreSiteImageRequest $request, int $site): RedirectResponse
     {
         $file = $this->validatedImage($request);
-        $this->uploadAndAssign($request, $site, $file, $this->validatedAltText($request), function (Site $ownedSite, MediaAsset $asset): void {
-            $ownedSite->update(['social_image_id' => $asset->id]);
+        $this->uploadAndAssign($request, $site, $file, $this->validatedAltText($request), function (Site $ownedSite, MediaAsset $asset) use ($request): void {
+            $ownedSite->editorPage($request->route('page'))->update(['social_image_id' => $asset->id]);
         });
 
-        return to_route('sites.show', $site);
+        return $request->route('page') === null
+            ? to_route('sites.show', $site)
+            : to_route('sites.pages.show', [$site, $request->route('page')]);
     }
 
     public function clearLogo(Request $request, int $site): RedirectResponse
@@ -75,10 +77,12 @@ class SiteMediaController extends Controller
     {
         DB::transaction(function () use ($request, $site): void {
             $request->user()->sites()->whereKey($site)->lockForUpdate()->firstOrFail()
-                ->update(['social_image_id' => null]);
+                ->editorPage($request->route('page'))->update(['social_image_id' => null]);
         });
 
-        return to_route('sites.show', $site);
+        return $request->route('page') === null
+            ? to_route('sites.show', $site)
+            : to_route('sites.pages.show', [$site, $request->route('page')]);
     }
 
     public function updateAltText(UpdateMediaAssetRequest $request, int $site, int $mediaAsset): RedirectResponse

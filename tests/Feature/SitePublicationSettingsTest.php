@@ -7,8 +7,8 @@ test('sites start with unpublished address and metadata settings', function () {
     $site = Site::factory()->create();
 
     expect($site->slug)->toBeNull()
-        ->and($site->seo_title)->toBeNull()
-        ->and($site->seo_description)->toBeNull()
+        ->and($site->homePage()->firstOrFail()->seo_title)->toBeNull()
+        ->and($site->homePage()->firstOrFail()->seo_description)->toBeNull()
         ->and($site->published_snapshot)->toBeNull()
         ->and($site->published_at)->toBeNull();
 
@@ -16,10 +16,10 @@ test('sites start with unpublished address and metadata settings', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('site.slug', null)
-            ->where('site.seo_title', null)
-            ->where('site.seo_description', null)
+            ->missing('site.seo_title')
+            ->missing('site.seo_description')
             ->where('site.published_at', null)
-            ->where('site.social_image', null));
+            ->missing('site.social_image'));
 });
 
 test('an owner can save a normalized address and trimmed optional metadata', function () {
@@ -33,13 +33,15 @@ test('an owner can save a normalized address and trimmed optional metadata', fun
 
     $saved = $site->fresh();
     expect($saved->slug)->toBe('grace-church')
-        ->and($saved->seo_title)->toBe('Grace Church | Home')
-        ->and($saved->seo_description)->toBe('Join us Sunday.');
+        ->and($saved->homePage()->firstOrFail()->seo_title)->toBe('Grace Church | Home')
+        ->and($saved->homePage()->firstOrFail()->seo_description)->toBe('Join us Sunday.');
 });
 
 test('address and metadata validation preserve saved settings', function (array $input, string $error) {
     $site = Site::factory()->create([
         'slug' => 'grace-church',
+    ]);
+    $site->homePage()->firstOrFail()->update([
         'seo_title' => 'Saved title',
         'seo_description' => 'Saved description',
     ]);
@@ -52,8 +54,8 @@ test('address and metadata validation preserve saved settings', function (array 
         ->assertSessionHasErrors($error);
 
     expect($site->fresh()->slug)->toBe('grace-church')
-        ->and($site->seo_title)->toBe('Saved title')
-        ->and($site->seo_description)->toBe('Saved description');
+        ->and($site->homePage()->firstOrFail()->seo_title)->toBe('Saved title')
+        ->and($site->homePage()->firstOrFail()->seo_description)->toBe('Saved description');
 })->with([
     'unsupported address characters' => [['slug' => 'grace_church'], 'slug'],
     'duplicate address' => [['slug' => 'other-church', 'duplicate_site' => true], 'slug'],
@@ -66,6 +68,8 @@ test('published sites can retain their address while optional metadata is cleare
         'slug' => 'grace-church',
         'published_at' => now(),
         'published_snapshot' => ['version' => 1],
+    ]);
+    $site->homePage()->firstOrFail()->update([
         'seo_title' => 'Saved title',
         'seo_description' => 'Saved description',
     ]);
@@ -78,8 +82,8 @@ test('published sites can retain their address while optional metadata is cleare
 
     $saved = $site->fresh();
     expect($saved->slug)->toBe('grace-church')
-        ->and($saved->seo_title)->toBeNull()
-        ->and($saved->seo_description)->toBeNull();
+        ->and($saved->homePage()->firstOrFail()->seo_title)->toBeNull()
+        ->and($saved->homePage()->firstOrFail()->seo_description)->toBeNull();
 });
 
 test('a published site cannot change or clear its address', function (string $slug) {
@@ -98,6 +102,8 @@ test('a published site cannot change or clear its address', function (string $sl
 test('another owner cannot read or change publication settings', function () {
     $site = Site::factory()->create([
         'slug' => 'grace-church',
+    ]);
+    $site->homePage()->firstOrFail()->update([
         'seo_title' => 'Private draft title',
         'seo_description' => 'Private draft description',
     ]);
@@ -115,6 +121,6 @@ test('another owner cannot read or change publication settings', function () {
 
     $saved = $site->fresh();
     expect($saved->slug)->toBe('grace-church')
-        ->and($saved->seo_title)->toBe('Private draft title')
-        ->and($saved->seo_description)->toBe('Private draft description');
+        ->and($saved->homePage()->firstOrFail()->seo_title)->toBe('Private draft title')
+        ->and($saved->homePage()->firstOrFail()->seo_description)->toBe('Private draft description');
 });

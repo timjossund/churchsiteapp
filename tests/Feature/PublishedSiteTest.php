@@ -10,6 +10,8 @@ test('a visitor can view every published block type with the selected theme and 
         'slug' => "grace-{$theme}",
         'theme_key' => $theme,
         'footer' => ['text' => 'Join us this Sunday'],
+    ]);
+    $site->homePage()->firstOrFail()->update([
         'seo_title' => 'Grace Church Home',
         'seo_description' => 'A welcoming church in town.',
     ]);
@@ -21,6 +23,8 @@ test('a visitor can view every published block type with the selected theme and 
     Storage::disk('s3')->put($asset->storage_key, 'published image', ['visibility' => 'private']);
     $site->update([
         'logo_media_asset_id' => $asset->id,
+    ]);
+    $site->homePage()->firstOrFail()->update([
         'social_image_id' => $asset->id,
     ]);
     $hero = $site->blocks()->create([
@@ -91,6 +95,8 @@ test('a visitor can view every published block type with the selected theme and 
 test('public rendering escapes text and omits unsafe links and unsupported video URLs', function () {
     $site = Site::factory()->create([
         'slug' => 'safe-rendering',
+    ]);
+    $site->homePage()->firstOrFail()->update([
         'seo_title' => '<script>alert("head")</script>',
         'seo_description' => '<script>alert("description")</script>',
     ]);
@@ -154,7 +160,7 @@ test('published rendering applies curated block styles from the published snapsh
         ->assertSee('text-center bg-[var(--site-preview-soft)]', false)
         ->getContent();
 
-    expect($site->fresh()->published_snapshot['blocks'][0]['content']['style'])->toBe([
+    expect($site->fresh()->published_snapshot['pages'][0]['blocks'][0]['content']['style'])->toBe([
         'layout' => 'image_left',
         'alignment' => 'center',
         'background' => 'soft',

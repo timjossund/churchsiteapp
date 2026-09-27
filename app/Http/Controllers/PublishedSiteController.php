@@ -6,23 +6,28 @@ use App\Models\Site;
 use App\Support\VideoEmbedUrl;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PublishedSiteController extends Controller
 {
-    public function show(string $slug): Response
+    public function show(string $slug, ?string $path = null): Response
     {
         $site = $this->publishedSite($slug);
         $snapshot = $this->snapshot($site);
+        $page = collect($snapshot['pages'])->first(fn (array $candidate): bool => $path === null
+            ? $candidate['is_home'] === true
+            : $candidate['is_home'] === false && $candidate['path'] === $path);
+        abort_unless(is_array($page), 404);
         $media = collect($snapshot['media'])->keyBy('id');
         $mediaUrls = $media->mapWithKeys(fn (array $asset, int|string $id): array => [
             (string) $id => route('sites.published.media.show', [$slug, $id]),
         ]);
-        $blockIds = collect($snapshot['blocks'])
+        $blockIds = collect($page['blocks'])
             ->pluck('id')
             ->filter(fn ($id): bool => is_int($id) && $id > 0)
             ->all();
-        $blocks = collect($snapshot['blocks'])->map(function (array $block) use ($blockIds, $media, $mediaUrls): array {
+        $blocks = collect($page['blocks'])->map(function (array $block) use ($blockIds, $media, $mediaUrls): array {
             $content = is_array($block['content'] ?? null) ? $block['content'] : [];
             $type = is_string($block['type'] ?? null) ? $block['type'] : '';
             $id = is_int($block['id'] ?? null) ? $block['id'] : 0;
@@ -71,7 +76,6 @@ class PublishedSiteController extends Controller
                 'position' => $block['position'] ?? 0,
                 'content' => $content,
                 'heading' => $heading !== '' ? $heading : $fallback,
-                'navigation_label' => $heading !== '' ? $heading : $fallback,
                 'hero_href' => $heroHref,
                 'hero_external' => $heroExternal,
                 'email_href' => filter_var($email, FILTER_VALIDATE_EMAIL) !== false
@@ -86,19 +90,24 @@ class PublishedSiteController extends Controller
         $siteData = $snapshot['site'];
         $logoId = $siteData['logo_media_asset_id'] ?? null;
         $logo = is_int($logoId) ? $media->get($logoId) : null;
-        $socialImageId = $siteData['social_image_id'] ?? null;
+        $socialImageId = $page['social_image_id'] ?? null;
         $socialImage = is_int($socialImageId) ? $media->get($socialImageId) : null;
-        $seoTitle = $siteData['seo_title'] ?? null;
-        $seoDescription = $siteData['seo_description'] ?? null;
+        $seoTitle = $page['seo_title'] ?? null;
+        $seoDescription = $page['seo_description'] ?? null;
 
         return response()->view('sites.published', [
             'site' => $siteData,
             'blocks' => $blocks,
+            'pages' => array_map(fn (array $candidate): array => [
+                'name' => $candidate['name'],
+                'url' => $candidate['is_home'] ? route('sites.published.show', $slug) : route('sites.published.pages.show', [$slug, $candidate['path']]),
+                'current' => $candidate['is_home'] ? $path === null : $candidate['path'] === $path,
+            ], $snapshot['pages']),
             'mediaUrls' => $mediaUrls,
             'logoAltText' => $logo['alt_text'] ?? '',
-            'pageTitle' => is_string($seoTitle) && $seoTitle !== '' ? $seoTitle : $siteData['name'],
+            'pageTitle' => is_string($seoTitle) && $seoTitle !== '' ? $seoTitle : ($page['is_home'] ? $siteData['name'] : $page['name'].' | '.$siteData['name']),
             'pageDescription' => is_string($seoDescription) && $seoDescription !== '' ? $seoDescription : null,
-            'pageUrl' => route('sites.published.show', $slug),
+            'pageUrl' => $path === null ? route('sites.published.show', $slug) : route('sites.published.pages.show', [$slug, $path]),
             'socialImageUrl' => $socialImage === null
                 ? null
                 : $mediaUrls->get((string) $socialImage['id']),
@@ -148,36 +157,72 @@ class PublishedSiteController extends Controller
         return $site;
     }
 
-    /**
-     * @return array{
-     *     version: 1,
-     *     site: array<string, mixed>,
-     *     blocks: list<array<string, mixed>>,
-     *     media: list<array<string, mixed>>
-     * }
-     */
+    /** @return array{site: array<string, mixed>, pages: list<array{name: string, is_home: bool, path: string|null, blocks: array<array-key, array<string, mixed>>, ...}>, media: list<array<string, mixed>>} */
     private function snapshot(Site $site): array
     {
         $snapshot = $site->published_snapshot;
-        abort_unless(
-            is_array($snapshot)
-                && ($snapshot['version'] ?? null) === 1
-                && is_array($snapshot['site'] ?? null)
-                && is_array($snapshot['blocks'] ?? null)
-                && is_array($snapshot['media'] ?? null),
-            404,
-        );
-
-        $blocks = array_values(array_filter($snapshot['blocks'], 'is_array'));
-        $media = array_values(array_filter($snapshot['media'], 'is_array'));
-        abort_unless(count($blocks) === count($snapshot['blocks']) && count($media) === count($snapshot['media']), 404);
-
-        return [
-            'version' => 1,
-            'site' => $snapshot['site'],
-            'blocks' => $blocks,
-            'media' => $media,
+        abort_unless(is_array($snapshot) && in_array($snapshot['version'] ?? null, [1, 2], true), 404);
+        if ($snapshot['version'] === 1) {
+            // Adapt the frozen legacy content in memory; never read draft page rows here.
+            $snapshot['pages'] = [[
+                'id' => 0, 'name' => 'Home', 'is_home' => true, 'path' => null,
+                'seo_title' => $snapshot['site']['seo_title'] ?? null,
+                'seo_description' => $snapshot['site']['seo_description'] ?? null,
+                'social_image_id' => $snapshot['site']['social_image_id'] ?? null,
+                'blocks' => $snapshot['blocks'] ?? null,
+            ]];
+        }
+        $rules = [
+            'site' => ['required', 'array'],
+            'site.name' => ['required', 'string'],
+            'site.theme_key' => ['required', 'in:warm,clean,bold'],
+            'site.footer' => ['required', 'array'],
+            'site.footer.text' => ['present', 'string'],
+            'site.logo_media_asset_id' => ['nullable', 'integer'],
+            'pages' => ['required', 'array', 'min:1'],
+            'pages.*' => ['required', 'array'],
+            'pages.*.id' => ['required', 'integer', 'distinct'],
+            'pages.*.name' => ['required', 'string'],
+            'pages.*.is_home' => ['required', 'boolean'],
+            'pages.*.path' => ['present', 'nullable', 'string', 'max:100', 'regex:/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/'],
+            'pages.*.seo_title' => ['nullable', 'string'],
+            'pages.*.seo_description' => ['nullable', 'string'],
+            'pages.*.social_image_id' => ['nullable', 'integer'],
+            'pages.*.blocks' => ['present', 'array'],
+            'pages.*.blocks.*' => ['required', 'array'],
+            'pages.*.blocks.*.id' => ['required', 'integer'],
+            'pages.*.blocks.*.type' => ['required', 'string'],
+            'pages.*.blocks.*.content' => ['present', 'array'],
+            'media' => ['present', 'array'],
+            'media.*' => ['required', 'array'],
+            'media.*.id' => ['required', 'integer', 'distinct'],
+            'media.*.storage_key' => ['required', 'string'],
+            'media.*.mime_type' => ['required', 'in:image/jpeg,image/png'],
+            'media.*.alt_text' => ['nullable', 'string'],
         ];
+        // Text and service-time fields are printed by Blade; reject malformed containers.
+        foreach (['heading', 'body', 'button_label', 'email', 'phone'] as $field) {
+            $rules['pages.*.blocks.*.content.'.$field] = ['nullable', 'string'];
+        }
+        $rules['pages.*.blocks.*.content.entries'] = ['sometimes', 'array'];
+        foreach (['day', 'time', 'label'] as $field) {
+            $rules['pages.*.blocks.*.content.entries.*.'.$field] = ['present', 'string'];
+        }
+        abort_if(Validator::make($snapshot, $rules)->fails(), 404);
+        $pages = array_values($snapshot['pages']);
+        abort_unless(count(array_filter($pages, fn (array $page): bool => $page['is_home'] === true)) === 1, 404);
+        $paths = [];
+        foreach ($pages as $page) {
+            abort_unless(is_bool($page['is_home']) && ($page['is_home']
+                ? $page['path'] === null
+                : is_string($page['path']) && preg_match('/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/', $page['path']) === 1), 404);
+            if (! $page['is_home']) {
+                abort_if(in_array($page['path'], $paths, true), 404);
+                $paths[] = $page['path'];
+            }
+        }
+
+        return ['site' => $snapshot['site'], 'pages' => $pages, 'media' => array_values($snapshot['media'])];
     }
 
     private function safeExternalUrl(mixed $value): ?string

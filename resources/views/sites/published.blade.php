@@ -20,36 +20,57 @@
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-    @vite('resources/css/app.css')
+    @vite(['resources/css/app.css', 'resources/js/published.ts'])
 </head>
 <body class="font-sans antialiased">
     <main class="site-preview min-h-screen" data-theme="{{ $site['theme_key'] }}">
-        <header class="border-b border-[var(--site-preview-border)] px-6 py-7 sm:px-10">
-            <div class="mx-auto flex max-w-5xl items-center gap-3">
-                @if (! empty($site['logo_media_asset_id']) && isset($mediaUrls[(string) $site['logo_media_asset_id']]))
-                    <img
-                        src="{{ $mediaUrls[(string) $site['logo_media_asset_id']] }}"
-                        alt="{{ $logoAltText }}"
-                        class="max-h-24 max-w-40 shrink-0 object-contain object-left"
-                    >
-                @endif
-                <h1 class="min-w-0 font-serif text-2xl font-semibold tracking-tight break-words">
-                    {{ $site['name'] }}
-                </h1>
-            </div>
-            @if (count($blocks) > 0)
-                <nav aria-label="Page sections" class="mx-auto mt-4 max-w-5xl">
-                    <ul class="flex flex-wrap gap-2">
-                        @foreach ($blocks as $block)
-                            <li>
-                                <a href="#block-{{ $block['id'] }}" class="inline-flex min-h-10 items-center rounded-lg border border-[var(--site-preview-border)] bg-[var(--site-preview-soft)] px-3 py-2 text-sm font-semibold text-[var(--site-preview-accent)] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]">
-                                    {{ $block['navigation_label'] }}
+        <header data-site-header class="border-b border-[var(--site-preview-border)] px-6 py-7 sm:px-10">
+            <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-8 gap-y-4">
+                <div class="flex max-w-[calc(100%-5rem)] min-w-0 flex-wrap items-center gap-3 sm:max-w-full">
+                    @if (! empty($site['logo_media_asset_id']) && isset($mediaUrls[(string) $site['logo_media_asset_id']]))
+                        <img
+                            src="{{ $mediaUrls[(string) $site['logo_media_asset_id']] }}"
+                            alt="{{ $logoAltText }}"
+                            class="h-[75px] w-auto max-w-full shrink-0 object-contain object-left"
+                        >
+                    @endif
+                    <h1 class="min-w-0 font-serif text-2xl font-semibold tracking-tight break-words">
+                        {{ $site['name'] }}
+                    </h1>
+                </div>
+                <nav aria-label="Site pages" class="ml-auto hidden max-w-full min-w-0 sm:block">
+                    <ul class="flex flex-wrap justify-end gap-x-6 gap-y-1">
+                        @foreach ($pages as $navigationPage)
+                            <li class="min-w-0 max-w-full">
+                                <a href="{{ $navigationPage['url'] }}" @if ($navigationPage['current']) aria-current="page" @endif class="inline-flex min-h-10 max-w-full items-center py-2 text-sm font-semibold text-[var(--site-preview-accent)] underline-offset-4 hover:opacity-75 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)] {{ $navigationPage['current'] ? 'underline' : 'no-underline' }}">
+                                    <span class="min-w-0 break-words">{{ $navigationPage['name'] }}</span>
                                 </a>
                             </li>
                         @endforeach
                     </ul>
                 </nav>
-            @endif
+                <button type="button" data-menu-open aria-label="Open menu" aria-expanded="false" aria-controls="site-mobile-menu" class="site-menu-toggle ml-auto shrink-0 sm:hidden">
+                             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-6"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+                </button>
+                <dialog id="site-mobile-menu" data-menu-dialog aria-label="Site menu" class="site-menu-drawer">
+                    <div class="mb-6 flex justify-end">
+                        <button type="button" data-menu-close aria-label="Close menu" autofocus class="site-menu-toggle">
+                               <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-6"><path d="m6 6 12 12M6 18 18 6" /></svg>
+                        </button>
+                    </div>
+                    <nav aria-label="Mobile site pages">
+                        <ul class="flex flex-col gap-2">
+                            @foreach ($pages as $navigationPage)
+                                <li class="min-w-0 max-w-full">
+                                    <a href="{{ $navigationPage['url'] }}" @if ($navigationPage['current']) aria-current="page" @endif class="inline-flex min-h-10 max-w-full items-center py-2 text-sm font-semibold text-[var(--site-preview-accent)] underline-offset-4 hover:opacity-75 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)] {{ $navigationPage['current'] ? 'underline' : 'no-underline' }}">
+                                        <span class="min-w-0 break-words">{{ $navigationPage['name'] }}</span>
+                                    </a>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </nav>
+                </dialog>
+            </div>
         </header>
 
         @foreach ($blocks as $block)
@@ -132,7 +153,7 @@
                                             <span class="text-[var(--site-preview-muted)]">{{ $content['phone'] }}</span>
                                         @endif
                                     @endif
-                                </div>
+                                   </div>
                             @endif
                             @break
 
@@ -140,7 +161,7 @@
                             @if ($block['image_url'])
                                 <div class="overflow-hidden rounded-xl border border-[var(--site-preview-border)] bg-[var(--site-preview-soft)] {{ $alignment === 'center' ? 'mx-auto max-w-3xl' : '' }}">
                                     <img src="{{ $block['image_url'] }}" alt="{{ $block['image_alt'] }}" class="max-h-[32rem] w-full object-contain">
-                                </div>
+                                   </div>
                             @endif
                             @break
 
@@ -151,13 +172,13 @@
                                     @if (! empty($content['body']))
                                         <p class="mt-4 whitespace-pre-line text-[var(--site-preview-muted)]">{{ $content['body'] }}</p>
                                     @endif
-                                </div>
+                                   </div>
                                 @if ($block['image_url'])
                                     <div class="overflow-hidden rounded-xl border border-[var(--site-preview-border)] bg-[var(--site-preview-soft)] {{ $imageOnLeft ? 'md:order-1' : 'md:order-2' }}">
                                         <img src="{{ $block['image_url'] }}" alt="{{ $block['image_alt'] }}" class="max-h-[32rem] min-h-56 w-full object-contain">
-                                    </div>
+                                       </div>
                                 @endif
-                            </div>
+                               </div>
                             @break
 
                         @case('video')
@@ -165,8 +186,8 @@
                                 <div class="{{ $alignment === 'center' ? 'mx-auto' : 'mr-auto' }} max-w-3xl overflow-hidden rounded-xl bg-[var(--site-preview-soft)]">
                                     <div class="aspect-video">
                                         <iframe src="{{ $block['video_embed_url'] }}" title="YouTube or Vimeo video" loading="lazy" allowfullscreen class="h-full w-full border-0"></iframe>
-                                    </div>
-                                </div>
+                                       </div>
+                                   </div>
                             @endif
                             @break
 

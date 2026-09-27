@@ -4,6 +4,7 @@ namespace App\Actions;
 
 use App\Models\Site;
 use App\Models\SiteBlock;
+use App\Models\SitePage;
 use Illuminate\Validation\ValidationException;
 
 class BuildSitePublicationSnapshot
@@ -11,69 +12,46 @@ class BuildSitePublicationSnapshot
     /** @return array<string, mixed> */
     public function __invoke(Site $site): array
     {
-        $blocks = $site->homePage()->firstOrFail()->blocks()
-            ->orderBy('position')
-            ->orderBy('id')
-            ->get(['id', 'type', 'position', 'content']);
-
-        $mediaIds = collect([$site->logo_media_asset_id, $site->social_image_id]);
-        foreach ($blocks as $block) {
-            $mediaId = $block->content['media_asset_id'] ?? null;
-            if ($mediaId === null) {
-                continue;
-            }
-
-            if (! is_int($mediaId) && (! is_string($mediaId) || ! ctype_digit($mediaId))) {
-                throw ValidationException::withMessages([
-                    'publish' => 'A page image is no longer available. Review the draft and try again.',
-                ]);
-            }
-
-            $mediaIds->push((int) $mediaId);
+        $pages = $site->pages()->orderBy('position')->orderBy('id')
+            ->with(['blocks' => fn ($query) => $query->orderBy('position')->orderBy('id')])->get();
+        if ($pages->where('is_home', true)->count() !== 1) {
+            throw ValidationException::withMessages(['publish' => 'The site must have exactly one Home page.']);
         }
-
-        $mediaIds = $mediaIds
-            ->filter()
-            ->map(fn ($id): int => (int) $id)
-            ->unique()
-            ->values();
-        $mediaAssets = $site->mediaAssets()
-            ->whereIn('id', $mediaIds)
-            ->orderBy('id')
+        $mediaIds = collect([$site->logo_media_asset_id]);
+        foreach ($pages as $page) {
+            if ($page->is_home ? $page->path !== null : ! is_string($page->path)
+                || preg_match('/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/', $page->path) !== 1 || strlen($page->path) > 100) {
+                throw ValidationException::withMessages(['publish' => 'Review the page addresses before publishing.']);
+            }
+            $mediaIds->push($page->social_image_id);
+            foreach ($page->blocks as $block) {
+                $mediaId = $block->content['media_asset_id'] ?? null;
+                if ($mediaId === null) {
+                    continue;
+                }
+                if ((! is_int($mediaId) && (! is_string($mediaId) || ! ctype_digit($mediaId))) || (int) $mediaId < 1) {
+                    throw ValidationException::withMessages(['publish' => 'A page image is no longer available. Review the draft and try again.']);
+                }
+                $mediaIds->push((int) $mediaId);
+            }
+        }
+        $mediaIds = $mediaIds->filter()->map(fn ($id): int => (int) $id)->unique()->values();
+        $mediaAssets = $site->mediaAssets()->whereIn('id', $mediaIds)->orderBy('id')
             ->get(['id', 'storage_key', 'mime_type', 'alt_text']);
-
-        if ($mediaAssets->count() !== $mediaIds->count()) {
-            throw ValidationException::withMessages([
-                'publish' => 'A page image is no longer available. Review the draft and try again.',
-            ]);
+        if ($mediaAssets->count() !== $mediaIds->count()
+            || $mediaAssets->contains(fn ($asset): bool => ! str_starts_with($asset->storage_key, "sites/{$site->id}/")
+                || ! in_array($asset->mime_type, ['image/jpeg', 'image/png'], true))) {
+            throw ValidationException::withMessages(['publish' => 'A page image is no longer available. Review the draft and try again.']);
         }
-
-        $media = $mediaAssets->map(fn ($asset): array => [
-            'id' => $asset->id,
-            'storage_key' => $asset->storage_key,
-            'mime_type' => $asset->mime_type,
-            'alt_text' => $asset->alt_text,
-        ])->all();
 
         return [
-            'version' => 1,
-            'site' => [
-                'name' => $site->name,
-                'slug' => $site->slug,
-                'theme_key' => $site->theme_key,
-                'footer' => $site->footer,
-                'seo_title' => $site->seo_title,
-                'seo_description' => $site->seo_description,
-                'logo_media_asset_id' => $site->logo_media_asset_id,
-                'social_image_id' => $site->social_image_id,
-            ],
-            'blocks' => $blocks->map(fn (SiteBlock $block): array => [
-                'id' => $block->id,
-                'type' => $block->type,
-                'position' => $block->position,
-                'content' => $block->content,
-            ])->all(),
-            'media' => $media,
+            'version' => 2,
+            'site' => $site->only('name', 'slug', 'theme_key', 'footer', 'logo_media_asset_id'),
+            'pages' => $pages->map(fn (SitePage $page): array => array_merge(
+                $page->only('id', 'name', 'position', 'is_home', 'path', 'seo_title', 'seo_description', 'social_image_id'),
+                ['blocks' => $page->blocks->map(fn (SiteBlock $block): array => $block->only('id', 'type', 'position', 'content'))->all()],
+            ))->all(),
+            'media' => $mediaAssets->map(fn ($asset): array => $asset->only('id', 'storage_key', 'mime_type', 'alt_text'))->all(),
         ];
     }
 

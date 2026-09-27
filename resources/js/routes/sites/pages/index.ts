@@ -5,10 +5,12 @@ import {
     type RouteFormDefinition,
     applyUrlDefaults,
 } from './../../../wayfinder';
+import settings from './settings';
+import socialImage from './social-image';
 import blocks from './blocks';
 /**
  * @see \App\Http\Controllers\SitePageController::store
- * @see app/Http/Controllers/SitePageController.php:14
+ * @see app/Http/Controllers/SitePageController.php:18
  * @route '/sites/{site}/pages'
  */
 export const store = (
@@ -26,7 +28,7 @@ store.definition = {
 
 /**
  * @see \App\Http\Controllers\SitePageController::store
- * @see app/Http/Controllers/SitePageController.php:14
+ * @see app/Http/Controllers/SitePageController.php:18
  * @route '/sites/{site}/pages'
  */
 store.url = (
@@ -58,7 +60,7 @@ store.url = (
 
 /**
  * @see \App\Http\Controllers\SitePageController::store
- * @see app/Http/Controllers/SitePageController.php:14
+ * @see app/Http/Controllers/SitePageController.php:18
  * @route '/sites/{site}/pages'
  */
 store.post = (
@@ -71,7 +73,7 @@ store.post = (
 
 /**
  * @see \App\Http\Controllers\SitePageController::store
- * @see app/Http/Controllers/SitePageController.php:14
+ * @see app/Http/Controllers/SitePageController.php:18
  * @route '/sites/{site}/pages'
  */
 const storeForm = (
@@ -84,7 +86,7 @@ const storeForm = (
 
 /**
  * @see \App\Http\Controllers\SitePageController::store
- * @see app/Http/Controllers/SitePageController.php:14
+ * @see app/Http/Controllers/SitePageController.php:18
  * @route '/sites/{site}/pages'
  */
 storeForm.post = (
@@ -99,7 +101,7 @@ store.form = storeForm;
 
 /**
  * @see \App\Http\Controllers\SitePageController::order
- * @see app/Http/Controllers/SitePageController.php:39
+ * @see app/Http/Controllers/SitePageController.php:64
  * @route '/sites/{site}/pages/order'
  */
 export const order = (
@@ -117,7 +119,7 @@ order.definition = {
 
 /**
  * @see \App\Http\Controllers\SitePageController::order
- * @see app/Http/Controllers/SitePageController.php:39
+ * @see app/Http/Controllers/SitePageController.php:64
  * @route '/sites/{site}/pages/order'
  */
 order.url = (
@@ -149,7 +151,7 @@ order.url = (
 
 /**
  * @see \App\Http\Controllers\SitePageController::order
- * @see app/Http/Controllers/SitePageController.php:39
+ * @see app/Http/Controllers/SitePageController.php:64
  * @route '/sites/{site}/pages/order'
  */
 order.patch = (
@@ -162,7 +164,7 @@ order.patch = (
 
 /**
  * @see \App\Http\Controllers\SitePageController::order
- * @see app/Http/Controllers/SitePageController.php:39
+ * @see app/Http/Controllers/SitePageController.php:64
  * @route '/sites/{site}/pages/order'
  */
 const orderForm = (
@@ -180,7 +182,7 @@ const orderForm = (
 
 /**
  * @see \App\Http\Controllers\SitePageController::order
- * @see app/Http/Controllers/SitePageController.php:39
+ * @see app/Http/Controllers/SitePageController.php:64
  * @route '/sites/{site}/pages/order'
  */
 orderForm.patch = (
@@ -200,7 +202,7 @@ order.form = orderForm;
 
 /**
  * @see \App\Http\Controllers\SiteController::show
- * @see app/Http/Controllers/SiteController.php:36
+ * @see app/Http/Controllers/SiteController.php:37
  * @route '/sites/{site}/pages/{page}'
  */
 export const show = (
@@ -220,7 +222,7 @@ show.definition = {
 
 /**
  * @see \App\Http\Controllers\SiteController::show
- * @see app/Http/Controllers/SiteController.php:36
+ * @see app/Http/Controllers/SiteController.php:37
  * @route '/sites/{site}/pages/{page}'
  */
 show.url = (
@@ -253,7 +255,7 @@ show.url = (
 
 /**
  * @see \App\Http\Controllers\SiteController::show
- * @see app/Http/Controllers/SiteController.php:36
+ * @see app/Http/Controllers/SiteController.php:37
  * @route '/sites/{site}/pages/{page}'
  */
 show.get = (
@@ -268,7 +270,7 @@ show.get = (
 
 /**
  * @see \App\Http\Controllers\SiteController::show
- * @see app/Http/Controllers/SiteController.php:36
+ * @see app/Http/Controllers/SiteController.php:37
  * @route '/sites/{site}/pages/{page}'
  */
 show.head = (
@@ -283,7 +285,7 @@ show.head = (
 
 /**
  * @see \App\Http\Controllers\SiteController::show
- * @see app/Http/Controllers/SiteController.php:36
+ * @see app/Http/Controllers/SiteController.php:37
  * @route '/sites/{site}/pages/{page}'
  */
 const showForm = (
@@ -298,7 +300,7 @@ const showForm = (
 
 /**
  * @see \App\Http\Controllers\SiteController::show
- * @see app/Http/Controllers/SiteController.php:36
+ * @see app/Http/Controllers/SiteController.php:37
  * @route '/sites/{site}/pages/{page}'
  */
 showForm.get = (
@@ -313,7 +315,7 @@ showForm.get = (
 
 /**
  * @see \App\Http\Controllers\SiteController::show
- * @see app/Http/Controllers/SiteController.php:36
+ * @see app/Http/Controllers/SiteController.php:37
  * @route '/sites/{site}/pages/{page}'
  */
 showForm.head = (
@@ -335,7 +337,7 @@ show.form = showForm;
 
 /**
  * @see \App\Http\Controllers\SitePageController::update
- * @see app/Http/Controllers/SitePageController.php:29
+ * @see app/Http/Controllers/SitePageController.php:33
  * @route '/sites/{site}/pages/{page}'
  */
 export const update = (
@@ -355,7 +357,7 @@ update.definition = {
 
 /**
  * @see \App\Http\Controllers\SitePageController::update
- * @see app/Http/Controllers/SitePageController.php:29
+ * @see app/Http/Controllers/SitePageController.php:33
  * @route '/sites/{site}/pages/{page}'
  */
 update.url = (
@@ -388,7 +390,7 @@ update.url = (
 
 /**
  * @see \App\Http\Controllers\SitePageController::update
- * @see app/Http/Controllers/SitePageController.php:29
+ * @see app/Http/Controllers/SitePageController.php:33
  * @route '/sites/{site}/pages/{page}'
  */
 update.patch = (
@@ -403,7 +405,7 @@ update.patch = (
 
 /**
  * @see \App\Http\Controllers\SitePageController::update
- * @see app/Http/Controllers/SitePageController.php:29
+ * @see app/Http/Controllers/SitePageController.php:33
  * @route '/sites/{site}/pages/{page}'
  */
 const updateForm = (
@@ -423,7 +425,7 @@ const updateForm = (
 
 /**
  * @see \App\Http\Controllers\SitePageController::update
- * @see app/Http/Controllers/SitePageController.php:29
+ * @see app/Http/Controllers/SitePageController.php:33
  * @route '/sites/{site}/pages/{page}'
  */
 updateForm.patch = (
@@ -445,7 +447,7 @@ update.form = updateForm;
 
 /**
  * @see \App\Http\Controllers\SitePageController::destroy
- * @see app/Http/Controllers/SitePageController.php:57
+ * @see app/Http/Controllers/SitePageController.php:82
  * @route '/sites/{site}/pages/{page}'
  */
 export const destroy = (
@@ -465,7 +467,7 @@ destroy.definition = {
 
 /**
  * @see \App\Http\Controllers\SitePageController::destroy
- * @see app/Http/Controllers/SitePageController.php:57
+ * @see app/Http/Controllers/SitePageController.php:82
  * @route '/sites/{site}/pages/{page}'
  */
 destroy.url = (
@@ -498,7 +500,7 @@ destroy.url = (
 
 /**
  * @see \App\Http\Controllers\SitePageController::destroy
- * @see app/Http/Controllers/SitePageController.php:57
+ * @see app/Http/Controllers/SitePageController.php:82
  * @route '/sites/{site}/pages/{page}'
  */
 destroy.delete = (
@@ -513,7 +515,7 @@ destroy.delete = (
 
 /**
  * @see \App\Http\Controllers\SitePageController::destroy
- * @see app/Http/Controllers/SitePageController.php:57
+ * @see app/Http/Controllers/SitePageController.php:82
  * @route '/sites/{site}/pages/{page}'
  */
 const destroyForm = (
@@ -533,7 +535,7 @@ const destroyForm = (
 
 /**
  * @see \App\Http\Controllers\SitePageController::destroy
- * @see app/Http/Controllers/SitePageController.php:57
+ * @see app/Http/Controllers/SitePageController.php:82
  * @route '/sites/{site}/pages/{page}'
  */
 destroyForm.delete = (
@@ -559,6 +561,8 @@ const pages = {
     show: Object.assign(show, show),
     update: Object.assign(update, update),
     destroy: Object.assign(destroy, destroy),
+    settings: Object.assign(settings, settings),
+    socialImage: Object.assign(socialImage, socialImage),
     blocks: Object.assign(blocks, blocks),
 };
 

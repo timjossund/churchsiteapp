@@ -82,19 +82,26 @@ test('page backfill preserves populated and blank legacy sites and their publica
         'content' => ['heading' => 'Welcome', 'body' => '', 'button_label' => 'About', 'link_type' => 'section', 'target_block_id' => $about->id, 'external_url' => ''],
     ]);
     $snapshotBuilder = app(BuildSitePublicationSnapshot::class);
-    $snapshot = $snapshotBuilder($site);
+    $draftSnapshot = $snapshotBuilder($site);
+    $snapshot = [
+        'version' => 1, 'site' => array_merge($draftSnapshot['site'], ['seo_title' => null, 'seo_description' => null, 'social_image_id' => null]),
+        'blocks' => $draftSnapshot['pages'][0]['blocks'], 'media' => $draftSnapshot['media'],
+    ];
     $fingerprint = $snapshotBuilder->fingerprint($snapshot);
     $snapshot['draft_fingerprint'] = $fingerprint;
     $site->update(['published_snapshot' => $snapshot, 'published_at' => now()->subDay()]);
 
     // Roll back only the new schema in the isolated test database to reproduce the legacy shape.
     $migration = require database_path('migrations/2026_09_26_000001_create_site_pages_table.php');
+    $settingsMigration = require database_path('migrations/2026_09_26_000002_add_settings_to_site_pages_table.php');
+    $settingsMigration->down();
     $migration->down();
     $originalSites = DB::table('sites')->orderBy('id')->get()->toJson();
     $originalBlocks = DB::table('site_blocks')->orderBy('id')->get()->map(fn ($block) => (array) $block)->all();
     $originalMedia = DB::table('media_assets')->get()->toJson();
 
     $migration->up();
+    $settingsMigration->up();
 
     expect(DB::table('sites')->orderBy('id')->get()->toJson())->toBe($originalSites)
         ->and(DB::table('media_assets')->get()->toJson())->toBe($originalMedia)
@@ -108,7 +115,7 @@ test('page backfill preserves populated and blank legacy sites and their publica
         unset($current['page_id']);
         expect($current)->toBe($original);
     }
-    expect($snapshotBuilder->fingerprint($snapshotBuilder($site->fresh())))->toBe($fingerprint);
+    expect($snapshotBuilder($site->fresh()))->toBe($draftSnapshot);
     $this->get(route('sites.published.show', $site->slug))->assertOk()->assertSee('Original copy');
 });
 
@@ -122,7 +129,7 @@ test('the block page foreign key remains required and enforced after backfill', 
         ->toThrow(QueryException::class);
 });
 
-test('Home editor and publication exclude other draft pages and their images', function () {
+test('Home editor stays isolated while additional pages only become public on republish', function () {
     $site = Site::factory()->create(['slug' => 'home-only']);
     $homeBlock = SiteBlock::factory()->for($site)->create(['content' => ['body' => 'Public home copy']]);
     $this->actingAs($site->user)->post(route('sites.publish', $site))->assertRedirect();
@@ -137,13 +144,16 @@ test('Home editor and publication exclude other draft pages and their images', f
     $this->get(route('sites.pages.show', [$site, $site->homePage()->firstOrFail()]))->assertOk()->assertInertia(fn (Assert $page) => $page
         ->has('blocks', 1)
         ->where('blocks.0.id', $homeBlock->id)
-        ->where('site.has_unpublished_changes', false));
+        ->where('site.has_unpublished_changes', true));
     expect($site->fresh()->published_snapshot)->toBe($original);
+    $this->get(route('sites.published.pages.show', [$site->slug, $page->path]))->assertNotFound();
+    $this->get(route('sites.published.media.show', [$site->slug, $asset->id]))->assertNotFound();
     $this->post(route('sites.publish', $site))->assertRedirect();
-    expect($site->fresh()->published_snapshot)->toBe($original);
+    expect($site->fresh()->published_snapshot)->not->toBe($original);
+    $this->get(route('sites.published.pages.show', [$site->slug, $page->path]))->assertOk()->assertSee('Private page copy');
     $this->get(route('sites.published.show', $site->slug))->assertOk()
         ->assertSee('Public home copy')->assertDontSee('Private page copy');
-    $this->get(route('sites.published.media.show', [$site->slug, $asset->id]))->assertNotFound();
+    expect(array_column($site->fresh()->published_snapshot['media'], 'id'))->toContain($asset->id);
 });
 
 test('deleting a site removes its pages and blocks while preserving another site', function () {

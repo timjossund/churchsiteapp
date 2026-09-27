@@ -3,7 +3,12 @@ import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import SiteMediaController from '@/actions/App/Http/Controllers/SiteMediaController';
 import { store as uploadPageBlockImage } from '@/routes/sites/pages/blocks/image';
+import PageSettings from '@/components/sites/PageSettings.vue';
 import { dashboard } from '@/routes';
+import { mountSiteMenu } from '@/lib/site-menu';
+
+const previewHeader = ref<HTMLElement | null>(null);
+let disposeSiteMenu: (() => void) | undefined;
 
 type BlockType =
     | 'about'
@@ -53,17 +58,10 @@ const props = defineProps<{
         theme_key: SiteTheme;
         footer: { text: string };
         slug: string | null;
-        seo_title: string | null;
-        seo_description: string | null;
         published_at: string | null;
         published_url: string | null;
         has_unpublished_changes: boolean;
         logo: {
-            media_asset_id: number;
-            url: string;
-            alt_text: string | null;
-        } | null;
-        social_image: {
             media_asset_id: number;
             url: string;
             alt_text: string | null;
@@ -74,7 +72,18 @@ const props = defineProps<{
         name: string;
         position: number;
         is_home: boolean;
+        path: string | null;
+        seo_title: string | null;
+        seo_description: string | null;
+        default_title: string;
+        published_url: string | null;
+        social_image: {
+            media_asset_id: number;
+            url: string;
+            alt_text: string | null;
+        } | null;
     };
+    navigation_pages: { id: number; name: string }[];
     blocks: SiteBlock[];
 }>();
 
@@ -82,7 +91,10 @@ function editorActionUrl(url: string): string {
     return `${url}${url.includes('?') ? '&' : '?'}editor_page=${props.selected_page.id}`;
 }
 function confirmEditorDiscard(): boolean {
-    return discardDraft();
+    return (
+        !hasUnsavedEditorChanges.value ||
+        window.confirm('Discard your unsaved page changes?')
+    );
 }
 
 const blockBaseUrl = computed(
@@ -552,6 +564,8 @@ function guardHistory(event: PopStateEvent) {
 }
 
 onMounted(() => {
+    if (previewHeader.value)
+        disposeSiteMenu = mountSiteMenu(previewHeader.value);
     editorHistoryState = window.history.state;
     editorUrl = window.location.href;
     stopBeforeListener = router.on('before', (event) => {
@@ -563,6 +577,9 @@ onMounted(() => {
         if (!confirmEditorDiscard()) event.preventDefault();
     });
     stopNavigateListener = router.on('navigate', () => {
+        previewHeader.value
+            ?.querySelector<HTMLDialogElement>('[data-menu-dialog]')
+            ?.close();
         editorHistoryState = window.history.state;
         editorUrl = window.location.href;
     });
@@ -571,6 +588,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+    disposeSiteMenu?.();
     stopBeforeListener?.();
     stopNavigateListener?.();
     window.removeEventListener('beforeunload', guardBeforeUnload);
@@ -674,22 +692,8 @@ function blockBackgroundClass(block: SiteBlock): string {
         : '';
 }
 
-const previewHeadingFallbacks: Partial<Record<BlockType, string>> = {
-    hero: 'Welcome to our church',
-    about: 'Your introduction',
-    heading_text: 'Your heading',
-    service_times: 'Service times',
-    contact: 'Contact us',
-    text_image: 'Your heading',
-};
-
 function previewHeading(block: SiteBlock, fallback: string): string {
     return contentFor(block).heading?.trim() || fallback;
-}
-
-function sectionNavigationLabel(block: SiteBlock): string {
-    const fallback = previewHeadingFallbacks[block.type];
-    return fallback ? previewHeading(block, fallback) : labelFor(block.type);
 }
 
 function emailHref(block: SiteBlock): string | null {
@@ -1235,6 +1239,8 @@ function removeSelectedBlock() {
     );
 }
 
+const pageSettingsPending = ref(false);
+const pageSettingsDirty = ref(false);
 const publishForm = useForm({});
 const publishError = ref('');
 const publishStatus = ref('');
@@ -1247,9 +1253,12 @@ const editorWriteInProgress = computed(
         orderForm.processing ||
         deleteForm.processing ||
         altTextForm.processing ||
-        publishForm.processing,
+        publishForm.processing ||
+        pageSettingsPending.value,
 );
-const hasUnsavedEditorChanges = computed(() => isDirty.value);
+const hasUnsavedEditorChanges = computed(
+    () => isDirty.value || pageSettingsDirty.value,
+);
 function logoPreviewUrl(): string | null {
     return props.site.logo?.url ?? null;
 }
@@ -1257,12 +1266,7 @@ function logoPreviewAltText(): string {
     return props.site.logo?.alt_text || props.site.name;
 }
 function publishSite() {
-    if (
-        !props.selected_page.is_home ||
-        editorWriteInProgress.value ||
-        hasUnsavedEditorChanges.value
-    )
-        return;
+    if (editorWriteInProgress.value || hasUnsavedEditorChanges.value) return;
     publishError.value = '';
     publishStatus.value = '';
     if (!props.site.slug) {
@@ -1271,26 +1275,33 @@ function publishSite() {
         return;
     }
 
-    publishForm.post(editorActionUrl('/sites/' + props.site.id + '/publish'), {
-        preserveScroll: true,
-        onSuccess: () => {
-            publishStatus.value = 'Your saved Home draft is now published.';
-        },
-        onError: (errors) => {
-            publishError.value =
-                errors.slug ??
-                errors.publish ??
-                'We could not publish Home. Please try again.';
-        },
-        onHttpException: () => {
-            publishError.value = 'We could not publish Home. Please try again.';
-            return false;
-        },
-        onNetworkError: () => {
-            publishError.value = 'We could not publish Home. Please try again.';
-            return false;
-        },
-    });
+    runOwnVisit(() =>
+        publishForm.post(
+            editorActionUrl('/sites/' + props.site.id + '/publish'),
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    publishStatus.value = 'Your saved site is now published.';
+                },
+                onError: (errors) => {
+                    publishError.value =
+                        errors.slug ??
+                        errors.publish ??
+                        'We could not publish the site. Please try again.';
+                },
+                onHttpException: () => {
+                    publishError.value =
+                        'We could not publish the site. Please try again.';
+                    return false;
+                },
+                onNetworkError: () => {
+                    publishError.value =
+                        'We could not publish the site. Please try again.';
+                    return false;
+                },
+            },
+        ),
+    );
 }
 
 defineOptions({
@@ -1316,7 +1327,7 @@ defineOptions({
             >
                 {{ props.site.name }} / Page editor
             </p>
-            <h1 class="mt-2 font-serif text-4xl tracking-tight">
+            <h1 class="mt-2 font-serif text-4xl tracking-tight break-words">
                 {{ props.selected_page.name }}
             </h1>
             <p class="mt-2 text-sm text-[var(--workspace-muted)]">
@@ -1325,43 +1336,42 @@ defineOptions({
             </p>
         </header>
         <section
-            v-if="props.selected_page.is_home"
             aria-labelledby="publishing-heading"
             class="mb-6 rounded-[1.25rem] border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-5 shadow-[var(--workspace-shadow)] sm:flex sm:items-center sm:justify-between sm:gap-6"
         >
             <div>
                 <h2 id="publishing-heading" class="font-serif text-xl">
-                    Home publishing
+                    Site publishing
                 </h2>
                 <p
                     v-if="!props.site.published_at"
                     class="mt-1 text-sm text-[var(--workspace-muted)]"
                 >
-                    Home has not been published yet.
+                    This site has not been published yet.
                 </p>
                 <p
                     v-else-if="props.site.has_unpublished_changes"
                     class="mt-1 text-sm text-[var(--workspace-muted)]"
                 >
-                    Saved Home or shared site changes are not published yet.
+                    Saved site changes are not published yet.
                 </p>
                 <p v-else class="mt-1 text-sm text-[var(--workspace-muted)]">
-                    Home published
+                    Site published
                     {{ new Date(props.site.published_at).toLocaleString() }}.
                 </p>
                 <a
-                    v-if="props.site.published_url"
-                    :href="props.site.published_url"
+                    v-if="props.selected_page.published_url"
+                    :href="props.selected_page.published_url"
                     target="_blank"
                     rel="noreferrer"
                     class="mt-2 inline-flex min-h-10 items-center rounded-lg border border-[var(--workspace-line)] px-3 text-sm font-semibold text-[var(--workspace-green)] underline underline-offset-2 focus:ring-2 focus:ring-[var(--workspace-green)] focus:outline-none"
                 >
-                    View published Home
+                    View published page
                     <span class="sr-only"> (opens in a new tab)</span>
                 </a>
                 <p class="mt-2 text-sm text-[var(--workspace-muted)]">
-                    Publish updates Home and shared site settings only. Other
-                    pages remain drafts.
+                    Publish includes all saved pages and shared site settings.
+                    Save or discard your pending edits first.
                 </p>
                 <Link
                     v-if="!props.site.slug"
@@ -1398,32 +1408,22 @@ defineOptions({
                 class="mt-4 min-h-11 rounded-lg bg-[var(--workspace-green)] px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:mt-0 dark:text-[var(--workspace-surface)]"
                 @click="publishSite"
             >
-                {{
-                    publishForm.processing
-                        ? 'Publishing…'
-                        : props.site.published_at
-                          ? 'Publish saved Home draft'
-                          : 'Publish Home'
-                }}
+                {{ publishForm.processing ? 'Publishing…' : 'Publish site' }}
             </button>
         </section>
 
+        <PageSettings
+            :key="props.selected_page.id"
+            :site-id="props.site.id"
+            :site-slug="props.site.slug"
+            :page="props.selected_page"
+            :busy="editorWriteInProgress"
+            :run-visit="runOwnVisit"
+            @busy="pageSettingsPending = $event"
+            @dirty="pageSettingsDirty = $event"
+        />
         <section
-            v-if="!props.selected_page.is_home"
-            aria-labelledby="draft-publishing-heading"
-            class="mb-6 rounded-[1.25rem] border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-5"
-        >
-            <h2 id="draft-publishing-heading" class="font-serif text-xl">
-                Publishing
-            </h2>
-            <p class="mt-2 text-sm text-[var(--workspace-muted)]">
-                This page is a private draft. Publishing additional pages will
-                be available with multi-page publishing. Your saved edits stay
-                here.
-            </p>
-        </section>
-
-        <section
+            :inert="pageSettingsPending"
             aria-labelledby="add-block-heading"
             class="mb-6 rounded-[1.25rem] border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-5 shadow-[var(--workspace-shadow)]"
         >
@@ -1480,6 +1480,7 @@ defineOptions({
         </section>
 
         <div
+            :inert="pageSettingsPending"
             class="grid gap-5 lg:grid-cols-[15rem_minmax(0,1fr)_17rem] lg:items-start"
         >
             <section
@@ -1653,40 +1654,137 @@ defineOptions({
                 </div>
                 <div class="site-preview" :data-theme="props.site.theme_key">
                     <header
+                        ref="previewHeader"
                         class="border-b border-[var(--site-preview-border)] px-6 py-7 sm:px-10"
                     >
-                        <div class="flex items-center gap-2">
-                            <img
-                                v-if="logoPreviewUrl()"
-                                :src="logoPreviewUrl() ?? undefined"
-                                :alt="logoPreviewAltText()"
-                                class="max-h-24 max-w-40 shrink-0 object-contain object-left"
-                            />
-                            <h3
-                                class="min-w-0 font-serif text-2xl font-semibold tracking-tight break-words"
-                            >
-                                {{ props.site.name }}
-                            </h3>
-                        </div>
-                        <nav
-                            v-if="props.blocks.length"
-                            aria-label="Page sections"
-                            class="mt-4"
+                        <div
+                            class="flex flex-wrap items-center justify-between gap-x-8 gap-y-4"
                         >
-                            <ul class="flex flex-wrap gap-2">
-                                <li
-                                    v-for="block in props.blocks"
-                                    :key="block.id"
+                            <div
+                                class="flex max-w-[calc(100%-5rem)] min-w-0 flex-wrap items-center gap-3 sm:max-w-full"
+                            >
+                                <img
+                                    v-if="logoPreviewUrl()"
+                                    :src="logoPreviewUrl() ?? undefined"
+                                    :alt="logoPreviewAltText()"
+                                    class="h-[75px] w-auto max-w-full shrink-0 object-contain object-left"
+                                />
+                                <h3
+                                    class="min-w-0 font-serif text-2xl font-semibold tracking-tight break-words"
                                 >
-                                    <a
-                                        :href="`#block-${block.id}`"
-                                        class="inline-flex min-h-10 items-center rounded-lg border border-[var(--site-preview-border)] bg-[var(--site-preview-soft)] px-3 py-2 text-sm font-semibold text-[var(--site-preview-accent)] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]"
+                                    {{ props.site.name }}
+                                </h3>
+                            </div>
+                            <nav
+                                aria-label="Site pages"
+                                class="ml-auto hidden max-w-full min-w-0 sm:block"
+                            >
+                                <ul
+                                    class="flex flex-wrap justify-end gap-x-6 gap-y-1"
+                                >
+                                    <li
+                                        v-for="page in props.navigation_pages"
+                                        :key="page.id"
+                                        class="max-w-full min-w-0"
                                     >
-                                        {{ sectionNavigationLabel(block) }}
-                                    </a>
-                                </li>
-                            </ul>
-                        </nav>
+                                        <Link
+                                            :href="`/sites/${props.site.id}/pages/${page.id}`"
+                                            :aria-current="
+                                                page.id ===
+                                                props.selected_page.id
+                                                    ? 'page'
+                                                    : undefined
+                                            "
+                                            class="inline-flex min-h-10 max-w-full items-center py-2 text-sm font-semibold text-[var(--site-preview-accent)] underline-offset-4 hover:opacity-75 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]"
+                                            :class="{
+                                                underline:
+                                                    page.id ===
+                                                    props.selected_page.id,
+                                            }"
+                                            ><span
+                                                class="min-w-0 break-words"
+                                                >{{ page.name }}</span
+                                            ></Link
+                                        >
+                                    </li>
+                                </ul>
+                            </nav>
+                            <button
+                                type="button"
+                                data-menu-open
+                                aria-label="Open menu"
+                                aria-expanded="false"
+                                aria-controls="site-mobile-menu"
+                                class="site-menu-toggle ml-auto shrink-0 sm:hidden"
+                            >
+                                <svg
+                                    aria-hidden="true"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    class="size-6"
+                                >
+                                    <path d="M4 6h16M4 12h16M4 18h16" />
+                                </svg>
+                            </button>
+                            <dialog
+                                id="site-mobile-menu"
+                                data-menu-dialog
+                                aria-label="Site menu"
+                                class="site-menu-drawer"
+                            >
+                                <div class="mb-6 flex justify-end">
+                                    <button
+                                        type="button"
+                                        data-menu-close
+                                        aria-label="Close menu"
+                                        autofocus
+                                        class="site-menu-toggle"
+                                    >
+                                        <svg
+                                            aria-hidden="true"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            class="size-6"
+                                        >
+                                            <path d="m6 6 12 12M6 18 18 6" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                <nav aria-label="Mobile site pages">
+                                    <ul class="flex flex-col gap-2">
+                                        <li
+                                            v-for="page in props.navigation_pages"
+                                            :key="page.id"
+                                            class="max-w-full min-w-0"
+                                        >
+                                            <Link
+                                                :href="`/sites/${props.site.id}/pages/${page.id}`"
+                                                :aria-current="
+                                                    page.id ===
+                                                    props.selected_page.id
+                                                        ? 'page'
+                                                        : undefined
+                                                "
+                                                class="inline-flex min-h-10 max-w-full items-center py-2 text-sm font-semibold text-[var(--site-preview-accent)] underline-offset-4 hover:opacity-75 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]"
+                                                :class="{
+                                                    underline:
+                                                        page.id ===
+                                                        props.selected_page.id,
+                                                }"
+                                                ><span
+                                                    class="min-w-0 break-words"
+                                                    >{{ page.name }}</span
+                                                ></Link
+                                            >
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </dialog>
+                        </div>
                     </header>
                     <div
                         v-if="props.blocks.length === 0"

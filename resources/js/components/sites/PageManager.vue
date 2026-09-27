@@ -247,7 +247,8 @@ function refreshPages() {
             class="mt-1 text-sm text-[var(--workspace-muted)]"
         >
             Add and arrange pages, then open one to edit its content. Home is
-            the published landing page; additional pages are private drafts.
+            the landing page. Publish from any page editor to publish all saved
+            pages.
         </p>
         <ol aria-label="Site pages" class="mt-4 grid gap-2">
             <li

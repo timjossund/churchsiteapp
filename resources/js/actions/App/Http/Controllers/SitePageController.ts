@@ -7,7 +7,7 @@ import {
 } from './../../../../wayfinder';
 /**
  * @see \App\Http\Controllers\SitePageController::store
- * @see app/Http/Controllers/SitePageController.php:14
+ * @see app/Http/Controllers/SitePageController.php:18
  * @route '/sites/{site}/pages'
  */
 export const store = (
@@ -25,7 +25,7 @@ store.definition = {
 
 /**
  * @see \App\Http\Controllers\SitePageController::store
- * @see app/Http/Controllers/SitePageController.php:14
+ * @see app/Http/Controllers/SitePageController.php:18
  * @route '/sites/{site}/pages'
  */
 store.url = (
@@ -57,7 +57,7 @@ store.url = (
 
 /**
  * @see \App\Http\Controllers\SitePageController::store
- * @see app/Http/Controllers/SitePageController.php:14
+ * @see app/Http/Controllers/SitePageController.php:18
  * @route '/sites/{site}/pages'
  */
 store.post = (
@@ -70,7 +70,7 @@ store.post = (
 
 /**
  * @see \App\Http\Controllers\SitePageController::store
- * @see app/Http/Controllers/SitePageController.php:14
+ * @see app/Http/Controllers/SitePageController.php:18
  * @route '/sites/{site}/pages'
  */
 const storeForm = (
@@ -83,7 +83,7 @@ const storeForm = (
 
 /**
  * @see \App\Http\Controllers\SitePageController::store
- * @see app/Http/Controllers/SitePageController.php:14
+ * @see app/Http/Controllers/SitePageController.php:18
  * @route '/sites/{site}/pages'
  */
 storeForm.post = (
@@ -98,7 +98,7 @@ store.form = storeForm;
 
 /**
  * @see \App\Http\Controllers\SitePageController::order
- * @see app/Http/Controllers/SitePageController.php:39
+ * @see app/Http/Controllers/SitePageController.php:64
  * @route '/sites/{site}/pages/order'
  */
 export const order = (
@@ -116,7 +116,7 @@ order.definition = {
 
 /**
  * @see \App\Http\Controllers\SitePageController::order
- * @see app/Http/Controllers/SitePageController.php:39
+ * @see app/Http/Controllers/SitePageController.php:64
  * @route '/sites/{site}/pages/order'
  */
 order.url = (
@@ -148,7 +148,7 @@ order.url = (
 
 /**
  * @see \App\Http\Controllers\SitePageController::order
- * @see app/Http/Controllers/SitePageController.php:39
+ * @see app/Http/Controllers/SitePageController.php:64
  * @route '/sites/{site}/pages/order'
  */
 order.patch = (
@@ -161,7 +161,7 @@ order.patch = (
 
 /**
  * @see \App\Http\Controllers\SitePageController::order
- * @see app/Http/Controllers/SitePageController.php:39
+ * @see app/Http/Controllers/SitePageController.php:64
  * @route '/sites/{site}/pages/order'
  */
 const orderForm = (
@@ -179,7 +179,7 @@ const orderForm = (
 
 /**
  * @see \App\Http\Controllers\SitePageController::order
- * @see app/Http/Controllers/SitePageController.php:39
+ * @see app/Http/Controllers/SitePageController.php:64
  * @route '/sites/{site}/pages/order'
  */
 orderForm.patch = (
@@ -199,7 +199,7 @@ order.form = orderForm;
 
 /**
  * @see \App\Http\Controllers\SitePageController::update
- * @see app/Http/Controllers/SitePageController.php:29
+ * @see app/Http/Controllers/SitePageController.php:33
  * @route '/sites/{site}/pages/{page}'
  */
 export const update = (
@@ -219,7 +219,7 @@ update.definition = {
 
 /**
  * @see \App\Http\Controllers\SitePageController::update
- * @see app/Http/Controllers/SitePageController.php:29
+ * @see app/Http/Controllers/SitePageController.php:33
  * @route '/sites/{site}/pages/{page}'
  */
 update.url = (
@@ -252,7 +252,7 @@ update.url = (
 
 /**
  * @see \App\Http\Controllers\SitePageController::update
- * @see app/Http/Controllers/SitePageController.php:29
+ * @see app/Http/Controllers/SitePageController.php:33
  * @route '/sites/{site}/pages/{page}'
  */
 update.patch = (
@@ -267,7 +267,7 @@ update.patch = (
 
 /**
  * @see \App\Http\Controllers\SitePageController::update
- * @see app/Http/Controllers/SitePageController.php:29
+ * @see app/Http/Controllers/SitePageController.php:33
  * @route '/sites/{site}/pages/{page}'
  */
 const updateForm = (
@@ -287,7 +287,7 @@ const updateForm = (
 
 /**
  * @see \App\Http\Controllers\SitePageController::update
- * @see app/Http/Controllers/SitePageController.php:29
+ * @see app/Http/Controllers/SitePageController.php:33
  * @route '/sites/{site}/pages/{page}'
  */
 updateForm.patch = (
@@ -309,7 +309,7 @@ update.form = updateForm;
 
 /**
  * @see \App\Http\Controllers\SitePageController::destroy
- * @see app/Http/Controllers/SitePageController.php:57
+ * @see app/Http/Controllers/SitePageController.php:82
  * @route '/sites/{site}/pages/{page}'
  */
 export const destroy = (
@@ -329,7 +329,7 @@ destroy.definition = {
 
 /**
  * @see \App\Http\Controllers\SitePageController::destroy
- * @see app/Http/Controllers/SitePageController.php:57
+ * @see app/Http/Controllers/SitePageController.php:82
  * @route '/sites/{site}/pages/{page}'
  */
 destroy.url = (
@@ -362,7 +362,7 @@ destroy.url = (
 
 /**
  * @see \App\Http\Controllers\SitePageController::destroy
- * @see app/Http/Controllers/SitePageController.php:57
+ * @see app/Http/Controllers/SitePageController.php:82
  * @route '/sites/{site}/pages/{page}'
  */
 destroy.delete = (
@@ -377,7 +377,7 @@ destroy.delete = (
 
 /**
  * @see \App\Http\Controllers\SitePageController::destroy
- * @see app/Http/Controllers/SitePageController.php:57
+ * @see app/Http/Controllers/SitePageController.php:82
  * @route '/sites/{site}/pages/{page}'
  */
 const destroyForm = (
@@ -397,7 +397,7 @@ const destroyForm = (
 
 /**
  * @see \App\Http\Controllers\SitePageController::destroy
- * @see app/Http/Controllers/SitePageController.php:57
+ * @see app/Http/Controllers/SitePageController.php:82
  * @route '/sites/{site}/pages/{page}'
  */
 destroyForm.delete = (
@@ -417,6 +417,116 @@ destroyForm.delete = (
 
 destroy.form = destroyForm;
 
-const SitePageController = { store, order, update, destroy };
+/**
+ * @see \App\Http\Controllers\SitePageController::settings
+ * @see app/Http/Controllers/SitePageController.php:43
+ * @route '/sites/{site}/pages/{page}/settings'
+ */
+export const settings = (
+    args:
+        | { site: string | number; page: string | number }
+        | [site: string | number, page: string | number],
+    options?: RouteQueryOptions,
+): RouteDefinition<'patch'> => ({
+    url: settings.url(args, options),
+    method: 'patch',
+});
+
+settings.definition = {
+    methods: ['patch'],
+    url: '/sites/{site}/pages/{page}/settings',
+} satisfies RouteDefinition<['patch']>;
+
+/**
+ * @see \App\Http\Controllers\SitePageController::settings
+ * @see app/Http/Controllers/SitePageController.php:43
+ * @route '/sites/{site}/pages/{page}/settings'
+ */
+settings.url = (
+    args:
+        | { site: string | number; page: string | number }
+        | [site: string | number, page: string | number],
+    options?: RouteQueryOptions,
+) => {
+    if (Array.isArray(args)) {
+        args = {
+            site: args[0],
+            page: args[1],
+        };
+    }
+
+    args = applyUrlDefaults(args);
+
+    const parsedArgs = {
+        site: args.site,
+        page: args.page,
+    };
+
+    return (
+        settings.definition.url
+            .replace('{site}', parsedArgs.site.toString())
+            .replace('{page}', parsedArgs.page.toString())
+            .replace(/\/+$/, '') + queryParams(options)
+    );
+};
+
+/**
+ * @see \App\Http\Controllers\SitePageController::settings
+ * @see app/Http/Controllers/SitePageController.php:43
+ * @route '/sites/{site}/pages/{page}/settings'
+ */
+settings.patch = (
+    args:
+        | { site: string | number; page: string | number }
+        | [site: string | number, page: string | number],
+    options?: RouteQueryOptions,
+): RouteDefinition<'patch'> => ({
+    url: settings.url(args, options),
+    method: 'patch',
+});
+
+/**
+ * @see \App\Http\Controllers\SitePageController::settings
+ * @see app/Http/Controllers/SitePageController.php:43
+ * @route '/sites/{site}/pages/{page}/settings'
+ */
+const settingsForm = (
+    args:
+        | { site: string | number; page: string | number }
+        | [site: string | number, page: string | number],
+    options?: RouteQueryOptions,
+): RouteFormDefinition<'post'> => ({
+    action: settings.url(args, {
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'PATCH',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        },
+    }),
+    method: 'post',
+});
+
+/**
+ * @see \App\Http\Controllers\SitePageController::settings
+ * @see app/Http/Controllers/SitePageController.php:43
+ * @route '/sites/{site}/pages/{page}/settings'
+ */
+settingsForm.patch = (
+    args:
+        | { site: string | number; page: string | number }
+        | [site: string | number, page: string | number],
+    options?: RouteQueryOptions,
+): RouteFormDefinition<'post'> => ({
+    action: settings.url(args, {
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'PATCH',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        },
+    }),
+    method: 'post',
+});
+
+settings.form = settingsForm;
+
+const SitePageController = { store, order, update, destroy, settings };
 
 export default SitePageController;

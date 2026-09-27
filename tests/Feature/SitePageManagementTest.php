@@ -317,7 +317,12 @@ test('empty pages open with shared site images after creation', function (array 
         'mime_type' => 'image/png',
         'alt_text' => 'Church logo',
     ]);
-    $site->update(array_fill_keys($imageFields, $asset->id));
+    if (in_array('logo_media_asset_id', $imageFields, true)) {
+        $site->update(['logo_media_asset_id' => $asset->id]);
+    }
+    if (in_array('social_image_id', $imageFields, true)) {
+        $site->homePage()->firstOrFail()->update(['social_image_id' => $asset->id]);
+    }
     $this->actingAs($site->user)
         ->post(route('sites.pages.store', $site), ['name' => 'New page'])
         ->assertRedirect(route('sites.show', $site));
@@ -331,11 +336,12 @@ test('empty pages open with shared site images after creation', function (array 
                     ->where('selected_page.id', $selectedPage->id)
                     ->has('blocks', 0);
                 foreach (['logo_media_asset_id' => 'logo', 'social_image_id' => 'social_image'] as $field => $prop) {
-                    if (in_array($field, $imageFields, true)) {
-                        $page->where("site.{$prop}.media_asset_id", $asset->id)
-                            ->where("site.{$prop}.url", route('sites.media.show', [$site, $asset]));
+                    $scope = $field === 'social_image_id' ? 'selected_page' : 'site';
+                    if (in_array($field, $imageFields, true) && ($scope === 'site' || $selectedPage->is_home)) {
+                        $page->where("{$scope}.{$prop}.media_asset_id", $asset->id)
+                            ->where("{$scope}.{$prop}.url", route('sites.media.show', [$site, $asset]));
                     } else {
-                        $page->where("site.{$prop}", null);
+                        $page->where("{$scope}.{$prop}", null);
                     }
                 }
             });
@@ -346,7 +352,7 @@ test('empty pages open with shared site images after creation', function (array 
     'same image used for both' => [['logo_media_asset_id', 'social_image_id']],
 ]);
 
-test('republishing Home updates public content and media without publishing other pages', function () {
+test('republishing updates every saved page and its referenced media', function () {
     Storage::fake('s3');
     $site = Site::factory()->create(['slug' => 'republish-home']);
     $home = $site->homePage()->firstOrFail();
@@ -394,11 +400,12 @@ test('republishing Home updates public content and media without publishing othe
         ->assertDontSee('Original Home')->assertDontSee('Changed private copy')->assertDontSee('Removed private copy');
     $this->get(route('sites.published.media.show', [$site->slug, $newImage]))->assertOk();
     $this->get(route('sites.published.media.show', [$site->slug, $oldImage]))->assertNotFound();
-    $this->get(route('sites.published.media.show', [$site->slug, $privateImage]))->assertNotFound();
+    $this->get(route('sites.published.media.show', [$site->slug, $privateImage]))->assertOk();
+    $this->get(route('sites.published.pages.show', [$site->slug, $draft->path]))->assertOk()->assertSee('Changed private copy');
     $this->get(route('sites.show', $site))->assertInertia(fn (Assert $response) => $response
         ->where('site.published_url', $publishedUrl)->where('site.has_unpublished_changes', false));
-    expect(array_column($site->fresh()->published_snapshot['blocks'], 'id'))->toBe([$text->id, $image->id])
-        ->and(array_column($site->fresh()->published_snapshot['media'], 'id'))->toBe([$newImage->id]);
+    expect(array_column($site->fresh()->published_snapshot['pages'][0]['blocks'], 'id'))->toBe([$text->id, $image->id])
+        ->and(array_column($site->fresh()->published_snapshot['media'], 'id'))->toBe([$newImage->id, $privateImage->id]);
     Storage::disk('s3')->assertExists($oldImage->storage_key);
     Storage::disk('s3')->assertExists($privateImage->storage_key);
 });

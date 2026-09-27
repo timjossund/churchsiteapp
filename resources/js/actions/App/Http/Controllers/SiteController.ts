@@ -7,7 +7,7 @@ import {
 } from './../../../../wayfinder';
 /**
  * @see \App\Http\Controllers\SiteController::index
- * @see app/Http/Controllers/SiteController.php:20
+ * @see app/Http/Controllers/SiteController.php:21
  * @route '/dashboard'
  */
 export const index = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -22,7 +22,7 @@ index.definition = {
 
 /**
  * @see \App\Http\Controllers\SiteController::index
- * @see app/Http/Controllers/SiteController.php:20
+ * @see app/Http/Controllers/SiteController.php:21
  * @route '/dashboard'
  */
 index.url = (options?: RouteQueryOptions) => {
@@ -31,7 +31,7 @@ index.url = (options?: RouteQueryOptions) => {
 
 /**
  * @see \App\Http\Controllers\SiteController::index
- * @see app/Http/Controllers/SiteController.php:20
+ * @see app/Http/Controllers/SiteController.php:21
  * @route '/dashboard'
  */
 index.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -41,7 +41,7 @@ index.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 
 /**
  * @see \App\Http\Controllers\SiteController::index
- * @see app/Http/Controllers/SiteController.php:20
+ * @see app/Http/Controllers/SiteController.php:21
  * @route '/dashboard'
  */
 index.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -51,7 +51,7 @@ index.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
 /**
  * @see \App\Http\Controllers\SiteController::index
- * @see app/Http/Controllers/SiteController.php:20
+ * @see app/Http/Controllers/SiteController.php:21
  * @route '/dashboard'
  */
 const indexForm = (
@@ -63,7 +63,7 @@ const indexForm = (
 
 /**
  * @see \App\Http\Controllers\SiteController::index
- * @see app/Http/Controllers/SiteController.php:20
+ * @see app/Http/Controllers/SiteController.php:21
  * @route '/dashboard'
  */
 indexForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -73,7 +73,7 @@ indexForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
 
 /**
  * @see \App\Http\Controllers\SiteController::index
- * @see app/Http/Controllers/SiteController.php:20
+ * @see app/Http/Controllers/SiteController.php:21
  * @route '/dashboard'
  */
 indexForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -90,7 +90,7 @@ index.form = indexForm;
 
 /**
  * @see \App\Http\Controllers\SiteController::store
- * @see app/Http/Controllers/SiteController.php:29
+ * @see app/Http/Controllers/SiteController.php:30
  * @route '/sites'
  */
 export const store = (
@@ -107,7 +107,7 @@ store.definition = {
 
 /**
  * @see \App\Http\Controllers\SiteController::store
- * @see app/Http/Controllers/SiteController.php:29
+ * @see app/Http/Controllers/SiteController.php:30
  * @route '/sites'
  */
 store.url = (options?: RouteQueryOptions) => {
@@ -116,7 +116,7 @@ store.url = (options?: RouteQueryOptions) => {
 
 /**
  * @see \App\Http\Controllers\SiteController::store
- * @see app/Http/Controllers/SiteController.php:29
+ * @see app/Http/Controllers/SiteController.php:30
  * @route '/sites'
  */
 store.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -126,7 +126,7 @@ store.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
  * @see \App\Http\Controllers\SiteController::store
- * @see app/Http/Controllers/SiteController.php:29
+ * @see app/Http/Controllers/SiteController.php:30
  * @route '/sites'
  */
 const storeForm = (
@@ -138,7 +138,7 @@ const storeForm = (
 
 /**
  * @see \App\Http\Controllers\SiteController::store
- * @see app/Http/Controllers/SiteController.php:29
+ * @see app/Http/Controllers/SiteController.php:30
  * @route '/sites'
  */
 storeForm.post = (
@@ -152,7 +152,7 @@ store.form = storeForm;
 
 /**
  * @see \App\Http\Controllers\SiteController::show
- * @see app/Http/Controllers/SiteController.php:36
+ * @see app/Http/Controllers/SiteController.php:37
  * @route '/sites/{site}'
  */
 const showf191c6db5f5282fd865f0b8900f6468d = (
@@ -170,7 +170,7 @@ showf191c6db5f5282fd865f0b8900f6468d.definition = {
 
 /**
  * @see \App\Http\Controllers\SiteController::show
- * @see app/Http/Controllers/SiteController.php:36
+ * @see app/Http/Controllers/SiteController.php:37
  * @route '/sites/{site}'
  */
 showf191c6db5f5282fd865f0b8900f6468d.url = (
@@ -202,7 +202,7 @@ showf191c6db5f5282fd865f0b8900f6468d.url = (
 
 /**
  * @see \App\Http\Controllers\SiteController::show
- * @see app/Http/Controllers/SiteController.php:36
+ * @see app/Http/Controllers/SiteController.php:37
  * @route '/sites/{site}'
  */
 showf191c6db5f5282fd865f0b8900f6468d.get = (
@@ -215,7 +215,7 @@ showf191c6db5f5282fd865f0b8900f6468d.get = (
 
 /**
  * @see \App\Http\Controllers\SiteController::show
- * @see app/Http/Controllers/SiteController.php:36
+ * @see app/Http/Controllers/SiteController.php:37
  * @route '/sites/{site}'
  */
 showf191c6db5f5282fd865f0b8900f6468d.head = (
@@ -228,7 +228,7 @@ showf191c6db5f5282fd865f0b8900f6468d.head = (
 
 /**
  * @see \App\Http\Controllers\SiteController::show
- * @see app/Http/Controllers/SiteController.php:36
+ * @see app/Http/Controllers/SiteController.php:37
  * @route '/sites/{site}'
  */
 const showf191c6db5f5282fd865f0b8900f6468dForm = (
@@ -241,7 +241,7 @@ const showf191c6db5f5282fd865f0b8900f6468dForm = (
 
 /**
  * @see \App\Http\Controllers\SiteController::show
- * @see app/Http/Controllers/SiteController.php:36
+ * @see app/Http/Controllers/SiteController.php:37
  * @route '/sites/{site}'
  */
 showf191c6db5f5282fd865f0b8900f6468dForm.get = (
@@ -254,7 +254,7 @@ showf191c6db5f5282fd865f0b8900f6468dForm.get = (
 
 /**
  * @see \App\Http\Controllers\SiteController::show
- * @see app/Http/Controllers/SiteController.php:36
+ * @see app/Http/Controllers/SiteController.php:37
  * @route '/sites/{site}'
  */
 showf191c6db5f5282fd865f0b8900f6468dForm.head = (
@@ -274,7 +274,7 @@ showf191c6db5f5282fd865f0b8900f6468d.form =
     showf191c6db5f5282fd865f0b8900f6468dForm;
 /**
  * @see \App\Http\Controllers\SiteController::show
- * @see app/Http/Controllers/SiteController.php:36
+ * @see app/Http/Controllers/SiteController.php:37
  * @route '/sites/{site}/pages/{page}'
  */
 const show7b87ae99c433cd798e25390270c00445 = (
@@ -294,7 +294,7 @@ show7b87ae99c433cd798e25390270c00445.definition = {
 
 /**
  * @see \App\Http\Controllers\SiteController::show
- * @see app/Http/Controllers/SiteController.php:36
+ * @see app/Http/Controllers/SiteController.php:37
  * @route '/sites/{site}/pages/{page}'
  */
 show7b87ae99c433cd798e25390270c00445.url = (
@@ -327,7 +327,7 @@ show7b87ae99c433cd798e25390270c00445.url = (
 
 /**
  * @see \App\Http\Controllers\SiteController::show
- * @see app/Http/Controllers/SiteController.php:36
+ * @see app/Http/Controllers/SiteController.php:37
  * @route '/sites/{site}/pages/{page}'
  */
 show7b87ae99c433cd798e25390270c00445.get = (
@@ -342,7 +342,7 @@ show7b87ae99c433cd798e25390270c00445.get = (
 
 /**
  * @see \App\Http\Controllers\SiteController::show
- * @see app/Http/Controllers/SiteController.php:36
+ * @see app/Http/Controllers/SiteController.php:37
  * @route '/sites/{site}/pages/{page}'
  */
 show7b87ae99c433cd798e25390270c00445.head = (
@@ -357,7 +357,7 @@ show7b87ae99c433cd798e25390270c00445.head = (
 
 /**
  * @see \App\Http\Controllers\SiteController::show
- * @see app/Http/Controllers/SiteController.php:36
+ * @see app/Http/Controllers/SiteController.php:37
  * @route '/sites/{site}/pages/{page}'
  */
 const show7b87ae99c433cd798e25390270c00445Form = (
@@ -372,7 +372,7 @@ const show7b87ae99c433cd798e25390270c00445Form = (
 
 /**
  * @see \App\Http\Controllers\SiteController::show
- * @see app/Http/Controllers/SiteController.php:36
+ * @see app/Http/Controllers/SiteController.php:37
  * @route '/sites/{site}/pages/{page}'
  */
 show7b87ae99c433cd798e25390270c00445Form.get = (
@@ -387,7 +387,7 @@ show7b87ae99c433cd798e25390270c00445Form.get = (
 
 /**
  * @see \App\Http\Controllers\SiteController::show
- * @see app/Http/Controllers/SiteController.php:36
+ * @see app/Http/Controllers/SiteController.php:37
  * @route '/sites/{site}/pages/{page}'
  */
 show7b87ae99c433cd798e25390270c00445Form.head = (
@@ -420,7 +420,7 @@ export const show = {
 
 /**
  * @see \App\Http\Controllers\SiteController::update
- * @see app/Http/Controllers/SiteController.php:106
+ * @see app/Http/Controllers/SiteController.php:138
  * @route '/sites/{site}'
  */
 export const update = (
@@ -438,7 +438,7 @@ update.definition = {
 
 /**
  * @see \App\Http\Controllers\SiteController::update
- * @see app/Http/Controllers/SiteController.php:106
+ * @see app/Http/Controllers/SiteController.php:138
  * @route '/sites/{site}'
  */
 update.url = (
@@ -470,7 +470,7 @@ update.url = (
 
 /**
  * @see \App\Http\Controllers\SiteController::update
- * @see app/Http/Controllers/SiteController.php:106
+ * @see app/Http/Controllers/SiteController.php:138
  * @route '/sites/{site}'
  */
 update.patch = (
@@ -483,7 +483,7 @@ update.patch = (
 
 /**
  * @see \App\Http\Controllers\SiteController::update
- * @see app/Http/Controllers/SiteController.php:106
+ * @see app/Http/Controllers/SiteController.php:138
  * @route '/sites/{site}'
  */
 const updateForm = (
@@ -501,7 +501,7 @@ const updateForm = (
 
 /**
  * @see \App\Http\Controllers\SiteController::update
- * @see app/Http/Controllers/SiteController.php:106
+ * @see app/Http/Controllers/SiteController.php:138
  * @route '/sites/{site}'
  */
 updateForm.patch = (

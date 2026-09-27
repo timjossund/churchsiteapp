@@ -12,17 +12,10 @@ const props = defineProps<{
         theme_key: SiteTheme;
         footer: { text: string };
         slug: string | null;
-        seo_title: string | null;
-        seo_description: string | null;
         published_at: string | null;
         published_url: string | null;
         has_unpublished_changes: boolean;
         logo: {
-            media_asset_id: number;
-            url: string;
-            alt_text: string | null;
-        } | null;
-        social_image: {
             media_asset_id: number;
             url: string;
             alt_text: string | null;
@@ -107,29 +100,15 @@ const appearanceForm = useForm<{
     theme_key: SiteTheme;
     footer: { text: string };
     slug: string;
-    seo_title: string;
-    seo_description: string;
 }>({
     theme_key: props.site.theme_key,
     footer: { text: props.site.footer.text },
     slug: props.site.slug ?? '',
-    seo_title: props.site.seo_title ?? '',
-    seo_description: props.site.seo_description ?? '',
 });
 const nameInput = ref<HTMLInputElement | null>(null);
 const themeInput = ref<HTMLSelectElement | null>(null);
 const footerTextInput = ref<HTMLInputElement | null>(null);
 const siteSlugInput = ref<HTMLInputElement | null>(null);
-const seoTitleInput = ref<HTMLInputElement | null>(null);
-const seoDescriptionInput = ref<HTMLTextAreaElement | null>(null);
-const socialImageInput = ref<HTMLInputElement | null>(null);
-const socialImageForm = useForm<{ image: File | null; alt_text: string }>({
-    image: null,
-    alt_text: '',
-});
-const socialImageClearForm = useForm({});
-const socialImageError = ref('');
-const socialImageStatus = ref('');
 const nameSaved = ref(false);
 const nameError = ref('');
 const appearanceSaved = ref(false);
@@ -148,9 +127,7 @@ const logoUploadForm = useForm<{ image: File | null; alt_text: string }>({
 });
 const logoAltTextForm = useForm<{ alt_text: string }>({ alt_text: '' });
 const logoClearForm = useForm({});
-const uploadInProgress = computed(
-    () => logoUploadForm.processing || socialImageForm.processing,
-);
+const uploadInProgress = computed(() => logoUploadForm.processing);
 const editorWriteInProgress = computed(
     () =>
         pagePending.value ||
@@ -158,9 +135,7 @@ const editorWriteInProgress = computed(
         nameForm.processing ||
         appearanceForm.processing ||
         logoAltTextForm.processing ||
-        logoClearForm.processing ||
-        socialImageForm.processing ||
-        socialImageClearForm.processing,
+        logoClearForm.processing,
 );
 const pendingFocus = ref<HTMLElement | null>(null);
 function queueFocus(element: HTMLElement | null) {
@@ -202,8 +177,6 @@ watch(
         appearanceForm.theme_key = props.site.theme_key;
         appearanceForm.footer.text = props.site.footer.text;
         appearanceForm.slug = props.site.slug ?? '';
-        appearanceForm.seo_title = props.site.seo_title ?? '';
-        appearanceForm.seo_description = props.site.seo_description ?? '';
         appearanceForm.defaults();
         appearanceForm.clearErrors();
         appearanceError.value = '';
@@ -271,9 +244,6 @@ function saveAppearance() {
             onSuccess: () => {
                 appearanceForm.footer.text = appearanceForm.footer.text.trim();
                 appearanceForm.slug = appearanceForm.slug.trim().toLowerCase();
-                appearanceForm.seo_title = appearanceForm.seo_title.trim();
-                appearanceForm.seo_description =
-                    appearanceForm.seo_description.trim();
                 appearanceForm.defaults();
                 appearanceSaved.value = true;
             },
@@ -282,9 +252,7 @@ function saveAppearance() {
                 if (
                     !fieldErrors.theme_key &&
                     !fieldErrors['footer.text'] &&
-                    !fieldErrors.slug &&
-                    !fieldErrors.seo_title &&
-                    !fieldErrors.seo_description
+                    !fieldErrors.slug
                 ) {
                     appearanceError.value =
                         'We could not save appearance settings. Please try again.';
@@ -294,10 +262,6 @@ function saveAppearance() {
                     else if (fieldErrors['footer.text'])
                         queueFocus(footerTextInput.value);
                     else if (fieldErrors.slug) queueFocus(siteSlugInput.value);
-                    else if (fieldErrors.seo_title)
-                        queueFocus(seoTitleInput.value);
-                    else if (fieldErrors.seo_description)
-                        queueFocus(seoDescriptionInput.value);
                     else queueFocus(themeInput.value);
                 });
             },
@@ -312,82 +276,6 @@ function saveAppearance() {
                 return false;
             },
         }),
-    );
-}
-
-function selectSocialImage(event: Event) {
-    if (editorWriteInProgress.value) return;
-    const input = event.currentTarget;
-    const file =
-        input instanceof HTMLInputElement ? input.files?.[0] : undefined;
-    if (!file) return;
-    socialImageError.value = '';
-    socialImageStatus.value = 'Uploading social preview image…';
-    socialImageForm.image = file;
-    socialImageForm.alt_text = '';
-    runOwnVisit(() =>
-        socialImageForm.post('/sites/' + props.site.id + '/social-image', {
-            forceFormData: true,
-            preserveScroll: true,
-            onSuccess: () => {
-                socialImageStatus.value = 'Social preview image uploaded.';
-                socialImageForm.reset();
-                if (socialImageInput.value) socialImageInput.value.value = '';
-            },
-            onError: (errors) => {
-                socialImageStatus.value = '';
-                socialImageError.value =
-                    errors.image ??
-                    errors.alt_text ??
-                    'We could not upload this image. Please try again.';
-                nextTick(() => queueFocus(socialImageInput.value));
-                socialImageForm.image = null;
-                if (socialImageInput.value) socialImageInput.value.value = '';
-            },
-            onHttpException: () => {
-                socialImageStatus.value = '';
-                socialImageError.value =
-                    'We could not upload this image. Please try again.';
-                return false;
-            },
-            onNetworkError: () => {
-                socialImageStatus.value = '';
-                socialImageError.value =
-                    'We could not upload this image. Please try again.';
-                return false;
-            },
-        }),
-    );
-}
-
-function clearSocialImage() {
-    if (!props.site.social_image || editorWriteInProgress.value) return;
-    socialImageError.value = '';
-    socialImageStatus.value = '';
-    runOwnVisit(() =>
-        socialImageClearForm.delete(
-            '/sites/' + props.site.id + '/social-image',
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    socialImageStatus.value = 'Social preview image cleared.';
-                },
-                onError: () => {
-                    socialImageError.value =
-                        'We could not clear this image. Please try again.';
-                },
-                onHttpException: () => {
-                    socialImageError.value =
-                        'We could not clear this image. Please try again.';
-                    return false;
-                },
-                onNetworkError: () => {
-                    socialImageError.value =
-                        'We could not clear this image. Please try again.';
-                    return false;
-                },
-            },
-        ),
     );
 }
 
@@ -903,7 +791,7 @@ defineOptions({
                 class="rounded-[1.25rem] border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-5 shadow-[var(--workspace-shadow)]"
             >
                 <h3 class="text-base font-semibold">
-                    Styles, footer &amp; sharing
+                    Styles, footer &amp; site address
                 </h3>
                 <div class="mt-4 border-t border-[var(--workspace-line)] pt-4">
                     <form
@@ -913,8 +801,8 @@ defineOptions({
                         <p
                             class="text-sm text-[var(--workspace-muted)] sm:col-span-2"
                         >
-                            Theme and footer apply to every page. Search and
-                            sharing details currently apply to Home.
+                            These settings apply to every page. Edit search and
+                            sharing details inside each page.
                         </p>
                         <div>
                             <label
@@ -1057,152 +945,6 @@ defineOptions({
                             >
                                 {{ appearanceForm.errors.slug }}
                             </p>
-                        </div>
-                        <div>
-                            <label
-                                for="site-seo-title"
-                                class="mb-2 block text-sm font-semibold"
-                                >Home page title</label
-                            >
-                            <input
-                                id="site-seo-title"
-                                ref="seoTitleInput"
-                                v-model="appearanceForm.seo_title"
-                                type="text"
-                                maxlength="255"
-                                :disabled="appearanceForm.processing"
-                                :aria-invalid="
-                                    Boolean(appearanceForm.errors.seo_title)
-                                "
-                                :aria-describedby="
-                                    appearanceForm.errors.seo_title
-                                        ? 'site-seo-title-error'
-                                        : undefined
-                                "
-                                class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-sm text-[var(--workspace-ink)]"
-                                @input="clearAppearanceError"
-                            />
-                            <p
-                                v-if="appearanceForm.errors.seo_title"
-                                id="site-seo-title-error"
-                                role="alert"
-                                class="mt-2 text-sm text-red-700 dark:text-red-300"
-                            >
-                                {{ appearanceForm.errors.seo_title }}
-                            </p>
-                        </div>
-                        <div>
-                            <label
-                                for="site-seo-description"
-                                class="mb-2 block text-sm font-semibold"
-                                >Home description</label
-                            >
-                            <textarea
-                                id="site-seo-description"
-                                ref="seoDescriptionInput"
-                                v-model="appearanceForm.seo_description"
-                                maxlength="2000"
-                                rows="3"
-                                :disabled="appearanceForm.processing"
-                                :aria-invalid="
-                                    Boolean(
-                                        appearanceForm.errors.seo_description,
-                                    )
-                                "
-                                :aria-describedby="
-                                    appearanceForm.errors.seo_description
-                                        ? 'site-seo-description-error'
-                                        : undefined
-                                "
-                                class="w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 py-2 text-sm text-[var(--workspace-ink)]"
-                                @input="clearAppearanceError"
-                            />
-                            <p
-                                v-if="appearanceForm.errors.seo_description"
-                                id="site-seo-description-error"
-                                role="alert"
-                                class="mt-2 text-sm text-red-700 dark:text-red-300"
-                            >
-                                {{ appearanceForm.errors.seo_description }}
-                            </p>
-                        </div>
-                        <div>
-                            <label
-                                for="site-social-image"
-                                class="mb-2 block text-sm font-semibold"
-                                >Home social preview image</label
-                            >
-                            <img
-                                v-if="props.site.social_image"
-                                :src="props.site.social_image.url"
-                                :alt="props.site.social_image.alt_text ?? ''"
-                                class="mb-3 max-h-32 rounded-lg object-contain"
-                            />
-                            <input
-                                id="site-social-image"
-                                ref="socialImageInput"
-                                type="file"
-                                accept=".jpg,.jpeg,.png,image/jpeg,image/png"
-                                :disabled="editorWriteInProgress"
-                                :aria-invalid="
-                                    Boolean(
-                                        socialImageError ||
-                                        socialImageForm.errors.image,
-                                    )
-                                "
-                                :aria-describedby="
-                                    socialImageError ||
-                                    socialImageForm.errors.image
-                                        ? 'site-social-image-help site-social-image-error'
-                                        : 'site-social-image-help'
-                                "
-                                class="block min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-2 text-sm"
-                                @change="selectSocialImage"
-                            />
-                            <p
-                                id="site-social-image-help"
-                                class="mt-2 text-xs text-[var(--workspace-muted)]"
-                            >
-                                JPEG or PNG, up to 5 MB.
-                            </p>
-                            <p
-                                v-if="
-                                    socialImageError ||
-                                    socialImageForm.errors.image
-                                "
-                                id="site-social-image-error"
-                                role="alert"
-                                class="mt-2 text-sm text-red-700 dark:text-red-300"
-                            >
-                                {{
-                                    socialImageError ||
-                                    socialImageForm.errors.image
-                                }}
-                            </p>
-                            <p
-                                v-if="socialImageStatus"
-                                role="status"
-                                aria-live="polite"
-                                class="mt-2 text-sm text-[var(--workspace-muted)]"
-                            >
-                                {{ socialImageStatus }}
-                            </p>
-                            <button
-                                v-if="props.site.social_image"
-                                type="button"
-                                :disabled="
-                                    editorWriteInProgress ||
-                                    socialImageClearForm.processing
-                                "
-                                class="mt-2 min-h-10 rounded-lg border border-red-300 px-3 text-sm font-semibold text-red-700 disabled:opacity-50 dark:text-red-300"
-                                @click="clearSocialImage"
-                            >
-                                {{
-                                    socialImageClearForm.processing
-                                        ? 'Clearing…'
-                                        : 'Clear social image'
-                                }}
-                            </button>
                         </div>
                         <p
                             v-if="appearanceError"

@@ -4,14 +4,16 @@ import {
     type RouteDefinition,
     type RouteFormDefinition,
     applyUrlDefaults,
-} from './../../../wayfinder';
+} from './../../../../wayfinder';
 /**
  * @see \App\Http\Controllers\SiteMediaController::store
- * @see app/Http/Controllers/SiteMediaController.php:44
- * @route '/sites/{site}/logo'
+ * @see app/Http/Controllers/SiteMediaController.php:54
+ * @route '/sites/{site}/pages/{page}/social-image'
  */
 export const store = (
-    args: { site: string | number } | [site: string | number] | string | number,
+    args:
+        | { site: string | number; page: string | number }
+        | [site: string | number, page: string | number],
     options?: RouteQueryOptions,
 ): RouteDefinition<'post'> => ({
     url: store.url(args, options),
@@ -20,25 +22,24 @@ export const store = (
 
 store.definition = {
     methods: ['post'],
-    url: '/sites/{site}/logo',
+    url: '/sites/{site}/pages/{page}/social-image',
 } satisfies RouteDefinition<['post']>;
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::store
- * @see app/Http/Controllers/SiteMediaController.php:44
- * @route '/sites/{site}/logo'
+ * @see app/Http/Controllers/SiteMediaController.php:54
+ * @route '/sites/{site}/pages/{page}/social-image'
  */
 store.url = (
-    args: { site: string | number } | [site: string | number] | string | number,
+    args:
+        | { site: string | number; page: string | number }
+        | [site: string | number, page: string | number],
     options?: RouteQueryOptions,
 ) => {
-    if (typeof args === 'string' || typeof args === 'number') {
-        args = { site: args };
-    }
-
     if (Array.isArray(args)) {
         args = {
             site: args[0],
+            page: args[1],
         };
     }
 
@@ -46,22 +47,26 @@ store.url = (
 
     const parsedArgs = {
         site: args.site,
+        page: args.page,
     };
 
     return (
         store.definition.url
             .replace('{site}', parsedArgs.site.toString())
+            .replace('{page}', parsedArgs.page.toString())
             .replace(/\/+$/, '') + queryParams(options)
     );
 };
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::store
- * @see app/Http/Controllers/SiteMediaController.php:44
- * @route '/sites/{site}/logo'
+ * @see app/Http/Controllers/SiteMediaController.php:54
+ * @route '/sites/{site}/pages/{page}/social-image'
  */
 store.post = (
-    args: { site: string | number } | [site: string | number] | string | number,
+    args:
+        | { site: string | number; page: string | number }
+        | [site: string | number, page: string | number],
     options?: RouteQueryOptions,
 ): RouteDefinition<'post'> => ({
     url: store.url(args, options),
@@ -70,11 +75,13 @@ store.post = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::store
- * @see app/Http/Controllers/SiteMediaController.php:44
- * @route '/sites/{site}/logo'
+ * @see app/Http/Controllers/SiteMediaController.php:54
+ * @route '/sites/{site}/pages/{page}/social-image'
  */
 const storeForm = (
-    args: { site: string | number } | [site: string | number] | string | number,
+    args:
+        | { site: string | number; page: string | number }
+        | [site: string | number, page: string | number],
     options?: RouteQueryOptions,
 ): RouteFormDefinition<'post'> => ({
     action: store.url(args, options),
@@ -83,11 +90,13 @@ const storeForm = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::store
- * @see app/Http/Controllers/SiteMediaController.php:44
- * @route '/sites/{site}/logo'
+ * @see app/Http/Controllers/SiteMediaController.php:54
+ * @route '/sites/{site}/pages/{page}/social-image'
  */
 storeForm.post = (
-    args: { site: string | number } | [site: string | number] | string | number,
+    args:
+        | { site: string | number; page: string | number }
+        | [site: string | number, page: string | number],
     options?: RouteQueryOptions,
 ): RouteFormDefinition<'post'> => ({
     action: store.url(args, options),
@@ -98,11 +107,13 @@ store.form = storeForm;
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::destroy
- * @see app/Http/Controllers/SiteMediaController.php:66
- * @route '/sites/{site}/logo'
+ * @see app/Http/Controllers/SiteMediaController.php:76
+ * @route '/sites/{site}/pages/{page}/social-image'
  */
 export const destroy = (
-    args: { site: string | number } | [site: string | number] | string | number,
+    args:
+        | { site: string | number; page: string | number }
+        | [site: string | number, page: string | number],
     options?: RouteQueryOptions,
 ): RouteDefinition<'delete'> => ({
     url: destroy.url(args, options),
@@ -111,25 +122,24 @@ export const destroy = (
 
 destroy.definition = {
     methods: ['delete'],
-    url: '/sites/{site}/logo',
+    url: '/sites/{site}/pages/{page}/social-image',
 } satisfies RouteDefinition<['delete']>;
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::destroy
- * @see app/Http/Controllers/SiteMediaController.php:66
- * @route '/sites/{site}/logo'
+ * @see app/Http/Controllers/SiteMediaController.php:76
+ * @route '/sites/{site}/pages/{page}/social-image'
  */
 destroy.url = (
-    args: { site: string | number } | [site: string | number] | string | number,
+    args:
+        | { site: string | number; page: string | number }
+        | [site: string | number, page: string | number],
     options?: RouteQueryOptions,
 ) => {
-    if (typeof args === 'string' || typeof args === 'number') {
-        args = { site: args };
-    }
-
     if (Array.isArray(args)) {
         args = {
             site: args[0],
+            page: args[1],
         };
     }
 
@@ -137,22 +147,26 @@ destroy.url = (
 
     const parsedArgs = {
         site: args.site,
+        page: args.page,
     };
 
     return (
         destroy.definition.url
             .replace('{site}', parsedArgs.site.toString())
+            .replace('{page}', parsedArgs.page.toString())
             .replace(/\/+$/, '') + queryParams(options)
     );
 };
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::destroy
- * @see app/Http/Controllers/SiteMediaController.php:66
- * @route '/sites/{site}/logo'
+ * @see app/Http/Controllers/SiteMediaController.php:76
+ * @route '/sites/{site}/pages/{page}/social-image'
  */
 destroy.delete = (
-    args: { site: string | number } | [site: string | number] | string | number,
+    args:
+        | { site: string | number; page: string | number }
+        | [site: string | number, page: string | number],
     options?: RouteQueryOptions,
 ): RouteDefinition<'delete'> => ({
     url: destroy.url(args, options),
@@ -161,11 +175,13 @@ destroy.delete = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::destroy
- * @see app/Http/Controllers/SiteMediaController.php:66
- * @route '/sites/{site}/logo'
+ * @see app/Http/Controllers/SiteMediaController.php:76
+ * @route '/sites/{site}/pages/{page}/social-image'
  */
 const destroyForm = (
-    args: { site: string | number } | [site: string | number] | string | number,
+    args:
+        | { site: string | number; page: string | number }
+        | [site: string | number, page: string | number],
     options?: RouteQueryOptions,
 ): RouteFormDefinition<'post'> => ({
     action: destroy.url(args, {
@@ -179,11 +195,13 @@ const destroyForm = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::destroy
- * @see app/Http/Controllers/SiteMediaController.php:66
- * @route '/sites/{site}/logo'
+ * @see app/Http/Controllers/SiteMediaController.php:76
+ * @route '/sites/{site}/pages/{page}/social-image'
  */
 destroyForm.delete = (
-    args: { site: string | number } | [site: string | number] | string | number,
+    args:
+        | { site: string | number; page: string | number }
+        | [site: string | number, page: string | number],
     options?: RouteQueryOptions,
 ): RouteFormDefinition<'post'> => ({
     action: destroy.url(args, {
@@ -197,9 +215,9 @@ destroyForm.delete = (
 
 destroy.form = destroyForm;
 
-const logo = {
+const socialImage = {
     store: Object.assign(store, store),
     destroy: Object.assign(destroy, destroy),
 };
 
-export default logo;
+export default socialImage;

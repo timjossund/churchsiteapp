@@ -12,7 +12,7 @@ test('an owner can upload and clear a private social preview image', function ()
         'image' => UploadedFile::fake()->image('social.png', 20, 20),
     ])->assertRedirect(route('sites.show', $site));
 
-    $asset = $site->fresh()->socialImage;
+    $asset = $site->homePage()->firstOrFail()->socialImage;
     expect($asset)->not->toBeNull()
         ->and($asset->mime_type)->toBe('image/png');
     Storage::disk('s3')->assertExists($asset->storage_key);
@@ -20,7 +20,7 @@ test('an owner can upload and clear a private social preview image', function ()
 
     $this->delete(route('sites.social-image.destroy', $site))
         ->assertRedirect(route('sites.show', $site));
-    expect($site->fresh()->social_image_id)->toBeNull();
+    expect($site->homePage()->firstOrFail()->social_image_id)->toBeNull();
     Storage::disk('s3')->assertExists($asset->storage_key);
 });
 
@@ -39,7 +39,7 @@ test('a user cannot upload or clear another site social preview image', function
         ])->assertNotFound();
 
     $this->delete(route('sites.social-image.destroy', $otherSite))->assertNotFound();
-    expect($otherSite->fresh()->social_image_id)->toBeNull()
+    expect($otherSite->homePage()->firstOrFail()->social_image_id)->toBeNull()
         ->and($otherSite->mediaAssets()->count())->toBe(1)
         ->and($asset->exists)->toBeTrue();
 });

@@ -18,6 +18,10 @@ Route::get('s/{slug}', [PublishedSiteController::class, 'show'])
     ->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')
     ->name('sites.published.show');
 
+Route::get('s/{slug}/{path}', [PublishedSiteController::class, 'show'])
+    ->where(['slug' => '[a-z0-9]+(?:-[a-z0-9]+)*', 'path' => '[a-z0-9]+(?:-[a-z0-9]+)*'])
+    ->name('sites.published.pages.show');
+
 Route::middleware(['auth', 'verified', PreserveEditorPage::class])->group(function () {
     Route::get('dashboard', [SiteController::class, 'index'])->name('dashboard');
     Route::post('sites', [SiteController::class, 'store'])->name('sites.store');
@@ -29,6 +33,9 @@ Route::middleware(['auth', 'verified', PreserveEditorPage::class])->group(functi
         Route::get('{page}', [SiteController::class, 'show'])->whereNumber('page')->name('show');
         Route::patch('{page}', [SitePageController::class, 'update'])->whereNumber('page')->name('update');
         Route::delete('{page}', [SitePageController::class, 'destroy'])->whereNumber('page')->name('destroy');
+        Route::patch('{page}/settings', [SitePageController::class, 'settings'])->whereNumber('page')->name('settings.update');
+        Route::post('{page}/social-image', [SiteMediaController::class, 'uploadSocialImage'])->whereNumber('page')->name('social-image.store');
+        Route::delete('{page}/social-image', [SiteMediaController::class, 'clearSocialImage'])->whereNumber('page')->name('social-image.destroy');
         Route::prefix('{page}/blocks')->name('blocks.')->whereNumber('page')->group(function () {
             Route::post('/', [SiteBlockController::class, 'store'])->name('store');
             Route::patch('order', [SiteBlockController::class, 'order'])->name('order');

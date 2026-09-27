@@ -6,6 +6,446 @@ import {
     applyUrlDefaults,
 } from './../../../../wayfinder';
 /**
+ * @see \App\Http\Controllers\SiteMediaController::uploadSocialImage
+ * @see app/Http/Controllers/SiteMediaController.php:54
+ * @route '/sites/{site}/pages/{page}/social-image'
+ */
+const uploadSocialImagea52114f79518a763b87738877c19a651 = (
+    args:
+        | { site: string | number; page: string | number }
+        | [site: string | number, page: string | number],
+    options?: RouteQueryOptions,
+): RouteDefinition<'post'> => ({
+    url: uploadSocialImagea52114f79518a763b87738877c19a651.url(args, options),
+    method: 'post',
+});
+
+uploadSocialImagea52114f79518a763b87738877c19a651.definition = {
+    methods: ['post'],
+    url: '/sites/{site}/pages/{page}/social-image',
+} satisfies RouteDefinition<['post']>;
+
+/**
+ * @see \App\Http\Controllers\SiteMediaController::uploadSocialImage
+ * @see app/Http/Controllers/SiteMediaController.php:54
+ * @route '/sites/{site}/pages/{page}/social-image'
+ */
+uploadSocialImagea52114f79518a763b87738877c19a651.url = (
+    args:
+        | { site: string | number; page: string | number }
+        | [site: string | number, page: string | number],
+    options?: RouteQueryOptions,
+) => {
+    if (Array.isArray(args)) {
+        args = {
+            site: args[0],
+            page: args[1],
+        };
+    }
+
+    args = applyUrlDefaults(args);
+
+    const parsedArgs = {
+        site: args.site,
+        page: args.page,
+    };
+
+    return (
+        uploadSocialImagea52114f79518a763b87738877c19a651.definition.url
+            .replace('{site}', parsedArgs.site.toString())
+            .replace('{page}', parsedArgs.page.toString())
+            .replace(/\/+$/, '') + queryParams(options)
+    );
+};
+
+/**
+ * @see \App\Http\Controllers\SiteMediaController::uploadSocialImage
+ * @see app/Http/Controllers/SiteMediaController.php:54
+ * @route '/sites/{site}/pages/{page}/social-image'
+ */
+uploadSocialImagea52114f79518a763b87738877c19a651.post = (
+    args:
+        | { site: string | number; page: string | number }
+        | [site: string | number, page: string | number],
+    options?: RouteQueryOptions,
+): RouteDefinition<'post'> => ({
+    url: uploadSocialImagea52114f79518a763b87738877c19a651.url(args, options),
+    method: 'post',
+});
+
+/**
+ * @see \App\Http\Controllers\SiteMediaController::uploadSocialImage
+ * @see app/Http/Controllers/SiteMediaController.php:54
+ * @route '/sites/{site}/pages/{page}/social-image'
+ */
+const uploadSocialImagea52114f79518a763b87738877c19a651Form = (
+    args:
+        | { site: string | number; page: string | number }
+        | [site: string | number, page: string | number],
+    options?: RouteQueryOptions,
+): RouteFormDefinition<'post'> => ({
+    action: uploadSocialImagea52114f79518a763b87738877c19a651.url(
+        args,
+        options,
+    ),
+    method: 'post',
+});
+
+/**
+ * @see \App\Http\Controllers\SiteMediaController::uploadSocialImage
+ * @see app/Http/Controllers/SiteMediaController.php:54
+ * @route '/sites/{site}/pages/{page}/social-image'
+ */
+uploadSocialImagea52114f79518a763b87738877c19a651Form.post = (
+    args:
+        | { site: string | number; page: string | number }
+        | [site: string | number, page: string | number],
+    options?: RouteQueryOptions,
+): RouteFormDefinition<'post'> => ({
+    action: uploadSocialImagea52114f79518a763b87738877c19a651.url(
+        args,
+        options,
+    ),
+    method: 'post',
+});
+
+uploadSocialImagea52114f79518a763b87738877c19a651.form =
+    uploadSocialImagea52114f79518a763b87738877c19a651Form;
+/**
+ * @see \App\Http\Controllers\SiteMediaController::uploadSocialImage
+ * @see app/Http/Controllers/SiteMediaController.php:54
+ * @route '/sites/{site}/social-image'
+ */
+const uploadSocialImage1d27a8eeccad8bfba336d80160e9a2c6 = (
+    args: { site: string | number } | [site: string | number] | string | number,
+    options?: RouteQueryOptions,
+): RouteDefinition<'post'> => ({
+    url: uploadSocialImage1d27a8eeccad8bfba336d80160e9a2c6.url(args, options),
+    method: 'post',
+});
+
+uploadSocialImage1d27a8eeccad8bfba336d80160e9a2c6.definition = {
+    methods: ['post'],
+    url: '/sites/{site}/social-image',
+} satisfies RouteDefinition<['post']>;
+
+/**
+ * @see \App\Http\Controllers\SiteMediaController::uploadSocialImage
+ * @see app/Http/Controllers/SiteMediaController.php:54
+ * @route '/sites/{site}/social-image'
+ */
+uploadSocialImage1d27a8eeccad8bfba336d80160e9a2c6.url = (
+    args: { site: string | number } | [site: string | number] | string | number,
+    options?: RouteQueryOptions,
+) => {
+    if (typeof args === 'string' || typeof args === 'number') {
+        args = { site: args };
+    }
+
+    if (Array.isArray(args)) {
+        args = {
+            site: args[0],
+        };
+    }
+
+    args = applyUrlDefaults(args);
+
+    const parsedArgs = {
+        site: args.site,
+    };
+
+    return (
+        uploadSocialImage1d27a8eeccad8bfba336d80160e9a2c6.definition.url
+            .replace('{site}', parsedArgs.site.toString())
+            .replace(/\/+$/, '') + queryParams(options)
+    );
+};
+
+/**
+ * @see \App\Http\Controllers\SiteMediaController::uploadSocialImage
+ * @see app/Http/Controllers/SiteMediaController.php:54
+ * @route '/sites/{site}/social-image'
+ */
+uploadSocialImage1d27a8eeccad8bfba336d80160e9a2c6.post = (
+    args: { site: string | number } | [site: string | number] | string | number,
+    options?: RouteQueryOptions,
+): RouteDefinition<'post'> => ({
+    url: uploadSocialImage1d27a8eeccad8bfba336d80160e9a2c6.url(args, options),
+    method: 'post',
+});
+
+/**
+ * @see \App\Http\Controllers\SiteMediaController::uploadSocialImage
+ * @see app/Http/Controllers/SiteMediaController.php:54
+ * @route '/sites/{site}/social-image'
+ */
+const uploadSocialImage1d27a8eeccad8bfba336d80160e9a2c6Form = (
+    args: { site: string | number } | [site: string | number] | string | number,
+    options?: RouteQueryOptions,
+): RouteFormDefinition<'post'> => ({
+    action: uploadSocialImage1d27a8eeccad8bfba336d80160e9a2c6.url(
+        args,
+        options,
+    ),
+    method: 'post',
+});
+
+/**
+ * @see \App\Http\Controllers\SiteMediaController::uploadSocialImage
+ * @see app/Http/Controllers/SiteMediaController.php:54
+ * @route '/sites/{site}/social-image'
+ */
+uploadSocialImage1d27a8eeccad8bfba336d80160e9a2c6Form.post = (
+    args: { site: string | number } | [site: string | number] | string | number,
+    options?: RouteQueryOptions,
+): RouteFormDefinition<'post'> => ({
+    action: uploadSocialImage1d27a8eeccad8bfba336d80160e9a2c6.url(
+        args,
+        options,
+    ),
+    method: 'post',
+});
+
+uploadSocialImage1d27a8eeccad8bfba336d80160e9a2c6.form =
+    uploadSocialImage1d27a8eeccad8bfba336d80160e9a2c6Form;
+
+/**
+ * Multiple routes resolve to \App\Http\Controllers\SiteMediaController::uploadSocialImage, so this export is a
+ * dictionary keyed by URI rather than a callable. Call a specific route with `uploadSocialImage['<uri>'](...)`,
+ * or import the route by name from your generated `routes/` directory.
+ */
+export const uploadSocialImage = {
+    '/sites/{site}/pages/{page}/social-image':
+        uploadSocialImagea52114f79518a763b87738877c19a651,
+    '/sites/{site}/social-image':
+        uploadSocialImage1d27a8eeccad8bfba336d80160e9a2c6,
+};
+
+/**
+ * @see \App\Http\Controllers\SiteMediaController::clearSocialImage
+ * @see app/Http/Controllers/SiteMediaController.php:76
+ * @route '/sites/{site}/pages/{page}/social-image'
+ */
+const clearSocialImagea52114f79518a763b87738877c19a651 = (
+    args:
+        | { site: string | number; page: string | number }
+        | [site: string | number, page: string | number],
+    options?: RouteQueryOptions,
+): RouteDefinition<'delete'> => ({
+    url: clearSocialImagea52114f79518a763b87738877c19a651.url(args, options),
+    method: 'delete',
+});
+
+clearSocialImagea52114f79518a763b87738877c19a651.definition = {
+    methods: ['delete'],
+    url: '/sites/{site}/pages/{page}/social-image',
+} satisfies RouteDefinition<['delete']>;
+
+/**
+ * @see \App\Http\Controllers\SiteMediaController::clearSocialImage
+ * @see app/Http/Controllers/SiteMediaController.php:76
+ * @route '/sites/{site}/pages/{page}/social-image'
+ */
+clearSocialImagea52114f79518a763b87738877c19a651.url = (
+    args:
+        | { site: string | number; page: string | number }
+        | [site: string | number, page: string | number],
+    options?: RouteQueryOptions,
+) => {
+    if (Array.isArray(args)) {
+        args = {
+            site: args[0],
+            page: args[1],
+        };
+    }
+
+    args = applyUrlDefaults(args);
+
+    const parsedArgs = {
+        site: args.site,
+        page: args.page,
+    };
+
+    return (
+        clearSocialImagea52114f79518a763b87738877c19a651.definition.url
+            .replace('{site}', parsedArgs.site.toString())
+            .replace('{page}', parsedArgs.page.toString())
+            .replace(/\/+$/, '') + queryParams(options)
+    );
+};
+
+/**
+ * @see \App\Http\Controllers\SiteMediaController::clearSocialImage
+ * @see app/Http/Controllers/SiteMediaController.php:76
+ * @route '/sites/{site}/pages/{page}/social-image'
+ */
+clearSocialImagea52114f79518a763b87738877c19a651.delete = (
+    args:
+        | { site: string | number; page: string | number }
+        | [site: string | number, page: string | number],
+    options?: RouteQueryOptions,
+): RouteDefinition<'delete'> => ({
+    url: clearSocialImagea52114f79518a763b87738877c19a651.url(args, options),
+    method: 'delete',
+});
+
+/**
+ * @see \App\Http\Controllers\SiteMediaController::clearSocialImage
+ * @see app/Http/Controllers/SiteMediaController.php:76
+ * @route '/sites/{site}/pages/{page}/social-image'
+ */
+const clearSocialImagea52114f79518a763b87738877c19a651Form = (
+    args:
+        | { site: string | number; page: string | number }
+        | [site: string | number, page: string | number],
+    options?: RouteQueryOptions,
+): RouteFormDefinition<'post'> => ({
+    action: clearSocialImagea52114f79518a763b87738877c19a651.url(args, {
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'DELETE',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        },
+    }),
+    method: 'post',
+});
+
+/**
+ * @see \App\Http\Controllers\SiteMediaController::clearSocialImage
+ * @see app/Http/Controllers/SiteMediaController.php:76
+ * @route '/sites/{site}/pages/{page}/social-image'
+ */
+clearSocialImagea52114f79518a763b87738877c19a651Form.delete = (
+    args:
+        | { site: string | number; page: string | number }
+        | [site: string | number, page: string | number],
+    options?: RouteQueryOptions,
+): RouteFormDefinition<'post'> => ({
+    action: clearSocialImagea52114f79518a763b87738877c19a651.url(args, {
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'DELETE',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        },
+    }),
+    method: 'post',
+});
+
+clearSocialImagea52114f79518a763b87738877c19a651.form =
+    clearSocialImagea52114f79518a763b87738877c19a651Form;
+/**
+ * @see \App\Http\Controllers\SiteMediaController::clearSocialImage
+ * @see app/Http/Controllers/SiteMediaController.php:76
+ * @route '/sites/{site}/social-image'
+ */
+const clearSocialImage1d27a8eeccad8bfba336d80160e9a2c6 = (
+    args: { site: string | number } | [site: string | number] | string | number,
+    options?: RouteQueryOptions,
+): RouteDefinition<'delete'> => ({
+    url: clearSocialImage1d27a8eeccad8bfba336d80160e9a2c6.url(args, options),
+    method: 'delete',
+});
+
+clearSocialImage1d27a8eeccad8bfba336d80160e9a2c6.definition = {
+    methods: ['delete'],
+    url: '/sites/{site}/social-image',
+} satisfies RouteDefinition<['delete']>;
+
+/**
+ * @see \App\Http\Controllers\SiteMediaController::clearSocialImage
+ * @see app/Http/Controllers/SiteMediaController.php:76
+ * @route '/sites/{site}/social-image'
+ */
+clearSocialImage1d27a8eeccad8bfba336d80160e9a2c6.url = (
+    args: { site: string | number } | [site: string | number] | string | number,
+    options?: RouteQueryOptions,
+) => {
+    if (typeof args === 'string' || typeof args === 'number') {
+        args = { site: args };
+    }
+
+    if (Array.isArray(args)) {
+        args = {
+            site: args[0],
+        };
+    }
+
+    args = applyUrlDefaults(args);
+
+    const parsedArgs = {
+        site: args.site,
+    };
+
+    return (
+        clearSocialImage1d27a8eeccad8bfba336d80160e9a2c6.definition.url
+            .replace('{site}', parsedArgs.site.toString())
+            .replace(/\/+$/, '') + queryParams(options)
+    );
+};
+
+/**
+ * @see \App\Http\Controllers\SiteMediaController::clearSocialImage
+ * @see app/Http/Controllers/SiteMediaController.php:76
+ * @route '/sites/{site}/social-image'
+ */
+clearSocialImage1d27a8eeccad8bfba336d80160e9a2c6.delete = (
+    args: { site: string | number } | [site: string | number] | string | number,
+    options?: RouteQueryOptions,
+): RouteDefinition<'delete'> => ({
+    url: clearSocialImage1d27a8eeccad8bfba336d80160e9a2c6.url(args, options),
+    method: 'delete',
+});
+
+/**
+ * @see \App\Http\Controllers\SiteMediaController::clearSocialImage
+ * @see app/Http/Controllers/SiteMediaController.php:76
+ * @route '/sites/{site}/social-image'
+ */
+const clearSocialImage1d27a8eeccad8bfba336d80160e9a2c6Form = (
+    args: { site: string | number } | [site: string | number] | string | number,
+    options?: RouteQueryOptions,
+): RouteFormDefinition<'post'> => ({
+    action: clearSocialImage1d27a8eeccad8bfba336d80160e9a2c6.url(args, {
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'DELETE',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        },
+    }),
+    method: 'post',
+});
+
+/**
+ * @see \App\Http\Controllers\SiteMediaController::clearSocialImage
+ * @see app/Http/Controllers/SiteMediaController.php:76
+ * @route '/sites/{site}/social-image'
+ */
+clearSocialImage1d27a8eeccad8bfba336d80160e9a2c6Form.delete = (
+    args: { site: string | number } | [site: string | number] | string | number,
+    options?: RouteQueryOptions,
+): RouteFormDefinition<'post'> => ({
+    action: clearSocialImage1d27a8eeccad8bfba336d80160e9a2c6.url(args, {
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'DELETE',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        },
+    }),
+    method: 'post',
+});
+
+clearSocialImage1d27a8eeccad8bfba336d80160e9a2c6.form =
+    clearSocialImage1d27a8eeccad8bfba336d80160e9a2c6Form;
+
+/**
+ * Multiple routes resolve to \App\Http\Controllers\SiteMediaController::clearSocialImage, so this export is a
+ * dictionary keyed by URI rather than a callable. Call a specific route with `clearSocialImage['<uri>'](...)`,
+ * or import the route by name from your generated `routes/` directory.
+ */
+export const clearSocialImage = {
+    '/sites/{site}/pages/{page}/social-image':
+        clearSocialImagea52114f79518a763b87738877c19a651,
+    '/sites/{site}/social-image':
+        clearSocialImage1d27a8eeccad8bfba336d80160e9a2c6,
+};
+
+/**
  * @see \App\Http\Controllers\SiteMediaController::uploadBlockImage
  * @see app/Http/Controllers/SiteMediaController.php:23
  * @route '/sites/{site}/pages/{page}/blocks/{block}/image'
@@ -354,7 +794,7 @@ uploadLogo.form = uploadLogoForm;
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::clearLogo
- * @see app/Http/Controllers/SiteMediaController.php:64
+ * @see app/Http/Controllers/SiteMediaController.php:66
  * @route '/sites/{site}/logo'
  */
 export const clearLogo = (
@@ -372,7 +812,7 @@ clearLogo.definition = {
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::clearLogo
- * @see app/Http/Controllers/SiteMediaController.php:64
+ * @see app/Http/Controllers/SiteMediaController.php:66
  * @route '/sites/{site}/logo'
  */
 clearLogo.url = (
@@ -404,7 +844,7 @@ clearLogo.url = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::clearLogo
- * @see app/Http/Controllers/SiteMediaController.php:64
+ * @see app/Http/Controllers/SiteMediaController.php:66
  * @route '/sites/{site}/logo'
  */
 clearLogo.delete = (
@@ -417,7 +857,7 @@ clearLogo.delete = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::clearLogo
- * @see app/Http/Controllers/SiteMediaController.php:64
+ * @see app/Http/Controllers/SiteMediaController.php:66
  * @route '/sites/{site}/logo'
  */
 const clearLogoForm = (
@@ -435,7 +875,7 @@ const clearLogoForm = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::clearLogo
- * @see app/Http/Controllers/SiteMediaController.php:64
+ * @see app/Http/Controllers/SiteMediaController.php:66
  * @route '/sites/{site}/logo'
  */
 clearLogoForm.delete = (
@@ -454,200 +894,8 @@ clearLogoForm.delete = (
 clearLogo.form = clearLogoForm;
 
 /**
- * @see \App\Http\Controllers\SiteMediaController::uploadSocialImage
- * @see app/Http/Controllers/SiteMediaController.php:54
- * @route '/sites/{site}/social-image'
- */
-export const uploadSocialImage = (
-    args: { site: string | number } | [site: string | number] | string | number,
-    options?: RouteQueryOptions,
-): RouteDefinition<'post'> => ({
-    url: uploadSocialImage.url(args, options),
-    method: 'post',
-});
-
-uploadSocialImage.definition = {
-    methods: ['post'],
-    url: '/sites/{site}/social-image',
-} satisfies RouteDefinition<['post']>;
-
-/**
- * @see \App\Http\Controllers\SiteMediaController::uploadSocialImage
- * @see app/Http/Controllers/SiteMediaController.php:54
- * @route '/sites/{site}/social-image'
- */
-uploadSocialImage.url = (
-    args: { site: string | number } | [site: string | number] | string | number,
-    options?: RouteQueryOptions,
-) => {
-    if (typeof args === 'string' || typeof args === 'number') {
-        args = { site: args };
-    }
-
-    if (Array.isArray(args)) {
-        args = {
-            site: args[0],
-        };
-    }
-
-    args = applyUrlDefaults(args);
-
-    const parsedArgs = {
-        site: args.site,
-    };
-
-    return (
-        uploadSocialImage.definition.url
-            .replace('{site}', parsedArgs.site.toString())
-            .replace(/\/+$/, '') + queryParams(options)
-    );
-};
-
-/**
- * @see \App\Http\Controllers\SiteMediaController::uploadSocialImage
- * @see app/Http/Controllers/SiteMediaController.php:54
- * @route '/sites/{site}/social-image'
- */
-uploadSocialImage.post = (
-    args: { site: string | number } | [site: string | number] | string | number,
-    options?: RouteQueryOptions,
-): RouteDefinition<'post'> => ({
-    url: uploadSocialImage.url(args, options),
-    method: 'post',
-});
-
-/**
- * @see \App\Http\Controllers\SiteMediaController::uploadSocialImage
- * @see app/Http/Controllers/SiteMediaController.php:54
- * @route '/sites/{site}/social-image'
- */
-const uploadSocialImageForm = (
-    args: { site: string | number } | [site: string | number] | string | number,
-    options?: RouteQueryOptions,
-): RouteFormDefinition<'post'> => ({
-    action: uploadSocialImage.url(args, options),
-    method: 'post',
-});
-
-/**
- * @see \App\Http\Controllers\SiteMediaController::uploadSocialImage
- * @see app/Http/Controllers/SiteMediaController.php:54
- * @route '/sites/{site}/social-image'
- */
-uploadSocialImageForm.post = (
-    args: { site: string | number } | [site: string | number] | string | number,
-    options?: RouteQueryOptions,
-): RouteFormDefinition<'post'> => ({
-    action: uploadSocialImage.url(args, options),
-    method: 'post',
-});
-
-uploadSocialImage.form = uploadSocialImageForm;
-
-/**
- * @see \App\Http\Controllers\SiteMediaController::clearSocialImage
- * @see app/Http/Controllers/SiteMediaController.php:74
- * @route '/sites/{site}/social-image'
- */
-export const clearSocialImage = (
-    args: { site: string | number } | [site: string | number] | string | number,
-    options?: RouteQueryOptions,
-): RouteDefinition<'delete'> => ({
-    url: clearSocialImage.url(args, options),
-    method: 'delete',
-});
-
-clearSocialImage.definition = {
-    methods: ['delete'],
-    url: '/sites/{site}/social-image',
-} satisfies RouteDefinition<['delete']>;
-
-/**
- * @see \App\Http\Controllers\SiteMediaController::clearSocialImage
- * @see app/Http/Controllers/SiteMediaController.php:74
- * @route '/sites/{site}/social-image'
- */
-clearSocialImage.url = (
-    args: { site: string | number } | [site: string | number] | string | number,
-    options?: RouteQueryOptions,
-) => {
-    if (typeof args === 'string' || typeof args === 'number') {
-        args = { site: args };
-    }
-
-    if (Array.isArray(args)) {
-        args = {
-            site: args[0],
-        };
-    }
-
-    args = applyUrlDefaults(args);
-
-    const parsedArgs = {
-        site: args.site,
-    };
-
-    return (
-        clearSocialImage.definition.url
-            .replace('{site}', parsedArgs.site.toString())
-            .replace(/\/+$/, '') + queryParams(options)
-    );
-};
-
-/**
- * @see \App\Http\Controllers\SiteMediaController::clearSocialImage
- * @see app/Http/Controllers/SiteMediaController.php:74
- * @route '/sites/{site}/social-image'
- */
-clearSocialImage.delete = (
-    args: { site: string | number } | [site: string | number] | string | number,
-    options?: RouteQueryOptions,
-): RouteDefinition<'delete'> => ({
-    url: clearSocialImage.url(args, options),
-    method: 'delete',
-});
-
-/**
- * @see \App\Http\Controllers\SiteMediaController::clearSocialImage
- * @see app/Http/Controllers/SiteMediaController.php:74
- * @route '/sites/{site}/social-image'
- */
-const clearSocialImageForm = (
-    args: { site: string | number } | [site: string | number] | string | number,
-    options?: RouteQueryOptions,
-): RouteFormDefinition<'post'> => ({
-    action: clearSocialImage.url(args, {
-        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
-            _method: 'DELETE',
-            ...(options?.query ?? options?.mergeQuery ?? {}),
-        },
-    }),
-    method: 'post',
-});
-
-/**
- * @see \App\Http\Controllers\SiteMediaController::clearSocialImage
- * @see app/Http/Controllers/SiteMediaController.php:74
- * @route '/sites/{site}/social-image'
- */
-clearSocialImageForm.delete = (
-    args: { site: string | number } | [site: string | number] | string | number,
-    options?: RouteQueryOptions,
-): RouteFormDefinition<'post'> => ({
-    action: clearSocialImage.url(args, {
-        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
-            _method: 'DELETE',
-            ...(options?.query ?? options?.mergeQuery ?? {}),
-        },
-    }),
-    method: 'post',
-});
-
-clearSocialImage.form = clearSocialImageForm;
-
-/**
  * @see \App\Http\Controllers\SiteMediaController::updateAltText
- * @see app/Http/Controllers/SiteMediaController.php:84
+ * @see app/Http/Controllers/SiteMediaController.php:88
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 export const updateAltText = (
@@ -667,7 +915,7 @@ updateAltText.definition = {
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::updateAltText
- * @see app/Http/Controllers/SiteMediaController.php:84
+ * @see app/Http/Controllers/SiteMediaController.php:88
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 updateAltText.url = (
@@ -700,7 +948,7 @@ updateAltText.url = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::updateAltText
- * @see app/Http/Controllers/SiteMediaController.php:84
+ * @see app/Http/Controllers/SiteMediaController.php:88
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 updateAltText.patch = (
@@ -715,7 +963,7 @@ updateAltText.patch = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::updateAltText
- * @see app/Http/Controllers/SiteMediaController.php:84
+ * @see app/Http/Controllers/SiteMediaController.php:88
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 const updateAltTextForm = (
@@ -735,7 +983,7 @@ const updateAltTextForm = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::updateAltText
- * @see app/Http/Controllers/SiteMediaController.php:84
+ * @see app/Http/Controllers/SiteMediaController.php:88
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 updateAltTextForm.patch = (
@@ -757,7 +1005,7 @@ updateAltText.form = updateAltTextForm;
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::show
- * @see app/Http/Controllers/SiteMediaController.php:95
+ * @see app/Http/Controllers/SiteMediaController.php:99
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 export const show = (
@@ -777,7 +1025,7 @@ show.definition = {
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::show
- * @see app/Http/Controllers/SiteMediaController.php:95
+ * @see app/Http/Controllers/SiteMediaController.php:99
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 show.url = (
@@ -810,7 +1058,7 @@ show.url = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::show
- * @see app/Http/Controllers/SiteMediaController.php:95
+ * @see app/Http/Controllers/SiteMediaController.php:99
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 show.get = (
@@ -825,7 +1073,7 @@ show.get = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::show
- * @see app/Http/Controllers/SiteMediaController.php:95
+ * @see app/Http/Controllers/SiteMediaController.php:99
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 show.head = (
@@ -840,7 +1088,7 @@ show.head = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::show
- * @see app/Http/Controllers/SiteMediaController.php:95
+ * @see app/Http/Controllers/SiteMediaController.php:99
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 const showForm = (
@@ -855,7 +1103,7 @@ const showForm = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::show
- * @see app/Http/Controllers/SiteMediaController.php:95
+ * @see app/Http/Controllers/SiteMediaController.php:99
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 showForm.get = (
@@ -870,7 +1118,7 @@ showForm.get = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::show
- * @see app/Http/Controllers/SiteMediaController.php:95
+ * @see app/Http/Controllers/SiteMediaController.php:99
  * @route '/sites/{site}/media/{mediaAsset}'
  */
 showForm.head = (
@@ -891,11 +1139,11 @@ showForm.head = (
 show.form = showForm;
 
 const SiteMediaController = {
+    uploadSocialImage,
+    clearSocialImage,
     uploadBlockImage,
     uploadLogo,
     clearLogo,
-    uploadSocialImage,
-    clearSocialImage,
     updateAltText,
     show,
 };

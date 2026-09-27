@@ -1,8 +1,8 @@
 import PublishedSiteController from './PublishedSiteController';
 import SiteController from './SiteController';
 import SitePageController from './SitePageController';
-import SiteBlockController from './SiteBlockController';
 import SiteMediaController from './SiteMediaController';
+import SiteBlockController from './SiteBlockController';
 import SitePublishingController from './SitePublishingController';
 import Settings from './Settings';
 
@@ -13,13 +13,13 @@ const Controllers = {
     ),
     SiteController: Object.assign(SiteController, SiteController),
     SitePageController: Object.assign(SitePageController, SitePageController),
-    SiteBlockController: Object.assign(
-        SiteBlockController,
-        SiteBlockController,
-    ),
     SiteMediaController: Object.assign(
         SiteMediaController,
         SiteMediaController,
+    ),
+    SiteBlockController: Object.assign(
+        SiteBlockController,
+        SiteBlockController,
     ),
     SitePublishingController: Object.assign(
         SitePublishingController,

@@ -6,9 +6,10 @@ import {
     applyUrlDefaults,
 } from './../../../wayfinder';
 import media from './media';
+import pages from './pages';
 /**
  * @see \App\Http\Controllers\PublishedSiteController::show
- * @see app/Http/Controllers/PublishedSiteController.php:13
+ * @see app/Http/Controllers/PublishedSiteController.php:14
  * @route '/s/{slug}'
  */
 export const show = (
@@ -26,7 +27,7 @@ show.definition = {
 
 /**
  * @see \App\Http\Controllers\PublishedSiteController::show
- * @see app/Http/Controllers/PublishedSiteController.php:13
+ * @see app/Http/Controllers/PublishedSiteController.php:14
  * @route '/s/{slug}'
  */
 show.url = (
@@ -58,7 +59,7 @@ show.url = (
 
 /**
  * @see \App\Http\Controllers\PublishedSiteController::show
- * @see app/Http/Controllers/PublishedSiteController.php:13
+ * @see app/Http/Controllers/PublishedSiteController.php:14
  * @route '/s/{slug}'
  */
 show.get = (
@@ -71,7 +72,7 @@ show.get = (
 
 /**
  * @see \App\Http\Controllers\PublishedSiteController::show
- * @see app/Http/Controllers/PublishedSiteController.php:13
+ * @see app/Http/Controllers/PublishedSiteController.php:14
  * @route '/s/{slug}'
  */
 show.head = (
@@ -84,7 +85,7 @@ show.head = (
 
 /**
  * @see \App\Http\Controllers\PublishedSiteController::show
- * @see app/Http/Controllers/PublishedSiteController.php:13
+ * @see app/Http/Controllers/PublishedSiteController.php:14
  * @route '/s/{slug}'
  */
 const showForm = (
@@ -97,7 +98,7 @@ const showForm = (
 
 /**
  * @see \App\Http\Controllers\PublishedSiteController::show
- * @see app/Http/Controllers/PublishedSiteController.php:13
+ * @see app/Http/Controllers/PublishedSiteController.php:14
  * @route '/s/{slug}'
  */
 showForm.get = (
@@ -110,7 +111,7 @@ showForm.get = (
 
 /**
  * @see \App\Http\Controllers\PublishedSiteController::show
- * @see app/Http/Controllers/PublishedSiteController.php:13
+ * @see app/Http/Controllers/PublishedSiteController.php:14
  * @route '/s/{slug}'
  */
 showForm.head = (
@@ -131,6 +132,7 @@ show.form = showForm;
 const published = {
     media: Object.assign(media, media),
     show: Object.assign(show, show),
+    pages: Object.assign(pages, pages),
 };
 
 export default published;

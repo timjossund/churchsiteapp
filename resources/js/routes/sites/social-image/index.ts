@@ -98,7 +98,7 @@ store.form = storeForm;
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::destroy
- * @see app/Http/Controllers/SiteMediaController.php:74
+ * @see app/Http/Controllers/SiteMediaController.php:76
  * @route '/sites/{site}/social-image'
  */
 export const destroy = (
@@ -116,7 +116,7 @@ destroy.definition = {
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::destroy
- * @see app/Http/Controllers/SiteMediaController.php:74
+ * @see app/Http/Controllers/SiteMediaController.php:76
  * @route '/sites/{site}/social-image'
  */
 destroy.url = (
@@ -148,7 +148,7 @@ destroy.url = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::destroy
- * @see app/Http/Controllers/SiteMediaController.php:74
+ * @see app/Http/Controllers/SiteMediaController.php:76
  * @route '/sites/{site}/social-image'
  */
 destroy.delete = (
@@ -161,7 +161,7 @@ destroy.delete = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::destroy
- * @see app/Http/Controllers/SiteMediaController.php:74
+ * @see app/Http/Controllers/SiteMediaController.php:76
  * @route '/sites/{site}/social-image'
  */
 const destroyForm = (
@@ -179,7 +179,7 @@ const destroyForm = (
 
 /**
  * @see \App\Http\Controllers\SiteMediaController::destroy
- * @see app/Http/Controllers/SiteMediaController.php:74
+ * @see app/Http/Controllers/SiteMediaController.php:76
  * @route '/sites/{site}/social-image'
  */
 destroyForm.delete = (

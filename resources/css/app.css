@@ -226,3 +226,58 @@
         @apply bg-background text-foreground;
     }
 }
+
+.site-menu-toggle {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    color: var(--site-preview-accent);
+    cursor: pointer;
+}
+
+.site-menu-toggle:focus-visible {
+    outline: 2px solid var(--site-preview-accent);
+    outline-offset: 2px;
+}
+
+.site-menu-drawer {
+    position: fixed;
+    inset: 0 0 0 auto;
+    margin: 0;
+    width: min(22rem, 90vw);
+    height: 100dvh;
+    max-width: none;
+    max-height: none;
+    padding: 1.5rem;
+    border: 0;
+    color: var(--site-preview-ink);
+    background: var(--site-preview-background);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.site-menu-drawer::backdrop {
+    background: rgb(0 0 0 / 45%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .site-menu-drawer[open] {
+        animation: site-menu-enter 200ms ease-out;
+    }
+}
+
+@keyframes site-menu-enter {
+    from {
+        transform: translateX(100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+@media (min-width: 640px) {
+    [data-menu-open] {
+        display: none;
+    }
+}

@@ -13,6 +13,8 @@ test('an owner publishes an atomic snapshot of saved site content and referenced
         'slug' => 'grace-church',
         'theme_key' => 'bold',
         'footer' => ['text' => 'Sunday worship'],
+    ]);
+    $site->homePage()->firstOrFail()->update([
         'seo_title' => 'Grace Church Home',
         'seo_description' => 'Welcome to Grace Church.',
     ]);
@@ -24,6 +26,8 @@ test('an owner publishes an atomic snapshot of saved site content and referenced
     Storage::disk('s3')->put($asset->storage_key, 'image bytes', ['visibility' => 'private']);
     $site->update([
         'logo_media_asset_id' => $asset->id,
+    ]);
+    $site->homePage()->firstOrFail()->update([
         'social_image_id' => $asset->id,
     ]);
     $site->blocks()->create([
@@ -43,19 +47,19 @@ test('an owner publishes an atomic snapshot of saved site content and referenced
 
     $published = $site->fresh();
     expect($published->published_at)->not->toBeNull()
-        ->and($published->published_snapshot['version'])->toBe(1)
+        ->and($published->published_snapshot['version'])->toBe(2)
         ->and($published->published_snapshot['site'])->toBe([
             'name' => 'Grace Church',
             'slug' => 'grace-church',
             'theme_key' => 'bold',
             'footer' => ['text' => 'Sunday worship'],
-            'seo_title' => 'Grace Church Home',
-            'seo_description' => 'Welcome to Grace Church.',
             'logo_media_asset_id' => $asset->id,
-            'social_image_id' => $asset->id,
         ])
-        ->and($published->published_snapshot['blocks'])->toHaveCount(2)
-        ->and($published->published_snapshot['blocks'][0]['id'])->toBe($site->blocks()->first()->id)
+        ->and($published->published_snapshot['pages'][0]['seo_title'])->toBe('Grace Church Home')
+        ->and($published->published_snapshot['pages'][0]['seo_description'])->toBe('Welcome to Grace Church.')
+        ->and($published->published_snapshot['pages'][0]['social_image_id'])->toBe($asset->id)
+        ->and($published->published_snapshot['pages'][0]['blocks'])->toHaveCount(2)
+        ->and($published->published_snapshot['pages'][0]['blocks'][0]['id'])->toBe($site->blocks()->first()->id)
         ->and($published->published_snapshot['media'])->toBe([[
             'id' => $asset->id,
             'storage_key' => $asset->storage_key,

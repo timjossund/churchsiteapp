@@ -10,13 +10,20 @@ class StoreSiteImageRequest extends FormRequest
     public function authorize(): bool
     {
         $site = $this->user()->sites()->whereKey($this->route('site'))->firstOrFail();
+        $pageId = $this->route('page');
+        if ($pageId !== null) {
+            if (! is_string($pageId)) {
+                abort(404);
+            }
+            $site->editorPage($pageId);
+        }
         $blockId = $this->route('block');
 
         if ($blockId === null) {
             return true;
         }
 
-        $block = $site->editorPage($this->route('page'))->blocks()->whereKey($blockId)->firstOrFail();
+        $block = $site->editorPage($pageId)->blocks()->whereKey($blockId)->firstOrFail();
 
         return in_array($block->type, ['image', 'text_image'], true);
     }

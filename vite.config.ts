@@ -74,7 +74,11 @@ export default defineConfig({
             '.github/**',
             'blueprint/history/**',
             'composer.json',
+            'public/fonts-manifest.dev.json',
+            'resources/js/actions/**',
             'resources/js/components/ui/*',
+            'resources/js/routes/**',
+            'resources/js/wayfinder/**',
             'resources/views/mail/*',
         ],
         sortTailwindcss: {

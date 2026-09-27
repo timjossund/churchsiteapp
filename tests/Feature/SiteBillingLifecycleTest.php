@@ -97,6 +97,7 @@ test('checkout retry reuses a persisted session without creating another subscri
             expect($params['success_url'])->toBe(route('sites.go-live', $site).'?billing=processing')
                 ->and($params['cancel_url'])->toBe(route('sites.go-live', $site).'?billing=canceled')
                 ->and($params['customer'])->toBe('cus_site')
+                ->and($params['managed_payments'])->toBe(['enabled' => 'false'])
                 ->and($params['line_items'])->toBe([['price' => 'price_monthly', 'quantity' => 1]])
                 ->and($params['subscription_data'])->not->toHaveKeys(['trial_end', 'trial_period_days'])
                 ->and(implode(' ', $headers))->toContain('site-checkout-');

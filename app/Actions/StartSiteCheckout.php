@@ -96,6 +96,8 @@ class StartSiteCheckout
             $session = $stripe->checkout->sessions->create([
                 'customer' => $site->stripe_id,
                 'mode' => 'subscription',
+                // Keep standard Billing checkout independent of account-level Managed Payments defaults.
+                'managed_payments' => ['enabled' => false],
                 'line_items' => [['price' => $site->checkout_price_id, 'quantity' => 1]],
                 'subscription_data' => ['metadata' => ['type' => 'default']],
                 'success_url' => route('sites.go-live', $site).'?billing=processing',

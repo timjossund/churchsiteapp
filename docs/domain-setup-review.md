@@ -26,3 +26,7 @@ While setup is pending and the document is visible, status-only reloads occur ev
 Record observed state, viewport/browser, focus/copy results, and any failures before marking step 5's manual review complete. Real DNS, TLS, provider permissions, and Stripe payment evidence belong to the separately approved controlled rollout in the operations runbook.
 
 For the authorized local sandbox walkthrough, set `CUSTOMER_DOMAINS_LOCAL_TESTING=true` in the ignored local `.env`. Both gates require `APP_ENV=local` or `APP_ENV=staging` and a `sk_test_` key. On staging, save the same explicit flag in its own environment after deploying the updated configuration. Remove the testing flag when finished. This does not enable production or deploy Worker routing. The existing proof hostname and its descendants are reserved; use a separate operator-owned `www` hostname.
+
+## Operator evidence, 2026-09-27
+
+The operator explicitly confirmed that Checkout cancel/retry, DNS copy controls, and Tab/Enter submission of an invalid domain worked. They requested more visible copy confirmation. The updated buttons show a green check and Copied! for three seconds on successful copying, in addition to the existing polite announcement. This new appearance has not yet been observed in the browser. The operator report does not establish the remaining exceptional-state, clipboard-failure, polling, or complete responsive/focus checklist above.

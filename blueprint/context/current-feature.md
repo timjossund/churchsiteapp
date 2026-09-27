@@ -210,3 +210,9 @@ Provider references: [Cloudflare common API calls and readiness](https://develop
 - User requested a green check beside each verified DNS instruction card during the staging walkthrough. Each card now shows a green check plus visible Verified text when its existing server-reported requirement is complete, or Pending otherwise. Ownership uses `ownership_verified`, connection uses `dns_connected`, provider hostname validation uses `connection_ready`, and HTTPS validation uses `ssl_ready`. Certificate cards therefore remain pending until certificate readiness, independently of hostname verification. Copy controls and record values remain available.
 - The operator reported checkout succeeded on a fresh staging site after the Managed Payments fix, payment complete, and all setup progress complete except HTTPS. These are operator reports; deployed customer content remains unverified.
 - Validation: `npm run check`, `npm run types:check`, `npm run build`, and `git diff --check` passed. Browser review of the badges remains pending. No database or provider change is required.
+
+### Copy feedback refinement and operator checks (2026-09-27)
+
+- The operator explicitly confirms testing Checkout cancel/retry, DNS copy buttons, and keyboard submission of an invalid domain successfully. This updates the previously unrecorded checks; it does not establish the remaining exceptional states or all browser acceptance criteria.
+- At the operator's request, DNS Copy name and Copy value now show a green check and Copied! on the clicked button for three seconds after clipboard success. The existing polite status announcement and failure message remain. Timer cleanup runs when the panel unmounts. This addresses the confirmation previously appearing only at the bottom of the panel.
+- The new button appearance still needs visual confirmation; the earlier operator report covers the preceding implementation.

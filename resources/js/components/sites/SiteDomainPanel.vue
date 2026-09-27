@@ -40,6 +40,8 @@ const pending = ref(false);
 const polling = ref(false);
 const errors = ref<Record<string, string>>({});
 const feedback = ref('');
+const copiedField = ref('');
+let copyTimer: ReturnType<typeof setTimeout> | undefined;
 const hostnameInput = ref<HTMLInputElement | null>(null);
 const intervalInput = ref<HTMLInputElement | null>(null);
 const messageElement = ref<HTMLElement | null>(null);
@@ -178,10 +180,16 @@ function submit(action: 'connect' | 'check' | 'disconnect') {
         ),
     );
 }
-async function copy(value: string, field: string) {
+async function copy(value: string, field: string, key: string) {
+    clearTimeout(copyTimer);
+    copiedField.value = '';
     try {
         await navigator.clipboard.writeText(value);
         feedback.value = `Copied ${field}.`;
+        copiedField.value = key;
+        copyTimer = setTimeout(() => {
+            copiedField.value = '';
+        }, 3000);
     } catch {
         feedback.value =
             'Copy is unavailable. Select and copy the record text below.';
@@ -224,7 +232,10 @@ onMounted(() => {
         );
     }, 20000);
 });
-onUnmounted(() => clearInterval(timer));
+onUnmounted(() => {
+    clearInterval(timer);
+    clearTimeout(copyTimer);
+});
 </script>
 
 <template>
@@ -454,19 +465,57 @@ onUnmounted(() => clearInterval(timer));
                         <div class="mt-2 flex flex-wrap gap-2">
                             <button
                                 type="button"
-                                class="min-h-11 rounded-lg border border-[var(--workspace-line)] px-3"
+                                class="inline-flex min-h-11 min-w-32 items-center justify-center gap-1.5 rounded-lg border border-[var(--workspace-line)] px-3"
+                                :class="{
+                                    'bg-green-50 text-green-800 dark:bg-green-950 dark:text-green-200':
+                                        copiedField === `${index}-name`,
+                                }"
                                 :aria-label="`Copy ${record.type} record ${index + 1} name`"
-                                @click="copy(record.name, 'record name')"
+                                @click="
+                                    copy(
+                                        record.name,
+                                        'record name',
+                                        `${index}-name`,
+                                    )
+                                "
                             >
-                                Copy name
+                                <CircleCheck
+                                    v-if="copiedField === `${index}-name`"
+                                    class="size-4"
+                                    aria-hidden="true"
+                                />
+                                {{
+                                    copiedField === `${index}-name`
+                                        ? 'Copied!'
+                                        : 'Copy name'
+                                }}
                             </button>
                             <button
                                 type="button"
-                                class="min-h-11 rounded-lg border border-[var(--workspace-line)] px-3"
+                                class="inline-flex min-h-11 min-w-32 items-center justify-center gap-1.5 rounded-lg border border-[var(--workspace-line)] px-3"
+                                :class="{
+                                    'bg-green-50 text-green-800 dark:bg-green-950 dark:text-green-200':
+                                        copiedField === `${index}-value`,
+                                }"
                                 :aria-label="`Copy ${record.type} record ${index + 1} value`"
-                                @click="copy(record.value, 'record value')"
+                                @click="
+                                    copy(
+                                        record.value,
+                                        'record value',
+                                        `${index}-value`,
+                                    )
+                                "
                             >
-                                Copy value
+                                <CircleCheck
+                                    v-if="copiedField === `${index}-value`"
+                                    class="size-4"
+                                    aria-hidden="true"
+                                />
+                                {{
+                                    copiedField === `${index}-value`
+                                        ? 'Copied!'
+                                        : 'Copy value'
+                                }}
                             </button>
                         </div>
                     </li>

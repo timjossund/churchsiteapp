@@ -4,7 +4,9 @@ namespace App\Actions;
 
 use App\Models\Site;
 use App\Models\User;
+use App\Rules\CustomerHostname;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Laravel\Cashier\Cashier;
@@ -96,8 +98,8 @@ class StartSiteCheckout
                 'mode' => 'subscription',
                 'line_items' => [['price' => $site->checkout_price_id, 'quantity' => 1]],
                 'subscription_data' => ['metadata' => ['type' => 'default']],
-                'success_url' => route('sites.show', $site).'?billing=processing',
-                'cancel_url' => route('sites.show', $site),
+                'success_url' => route('sites.go-live', $site).'?billing=processing',
+                'cancel_url' => route('sites.go-live', $site).'?billing=canceled',
             ], ['idempotency_key' => 'site-checkout-'.$site->checkout_attempt]);
             $site->forceFill(['checkout_session_id' => $session->id])->save();
 
@@ -114,6 +116,11 @@ class StartSiteCheckout
 
     private function guard(User $owner, Site $site): void
     {
+        $domain = $site->customHostname()->first();
+        if ($domain === null || $domain->state === 'removing'
+            || Validator::make(['hostname' => $domain->hostname], ['hostname' => ['required', new CustomerHostname]])->fails()) {
+            throw ValidationException::withMessages(['hostname' => 'Save a valid hostname before starting checkout.']);
+        }
         if ($owner->getAttribute('deletion_requested_at') !== null
             || $site->subscriptions()->whereNotIn('stripe_status', ['canceled', 'incomplete_expired'])->exists()) {
             throw ValidationException::withMessages(['billing' => 'New checkout is unavailable while a subscription or account deletion is pending.']);

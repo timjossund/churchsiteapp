@@ -5,6 +5,7 @@ namespace App\Actions;
 use App\Models\Site;
 use App\Models\SiteBlock;
 use App\Models\SitePage;
+use App\Support\CustomerPagePath;
 use Illuminate\Validation\ValidationException;
 
 class BuildSitePublicationSnapshot
@@ -20,7 +21,7 @@ class BuildSitePublicationSnapshot
         $mediaIds = collect([$site->logo_media_asset_id]);
         foreach ($pages as $page) {
             if ($page->is_home ? $page->path !== null : ! is_string($page->path)
-                || preg_match('/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/', $page->path) !== 1 || strlen($page->path) > 100) {
+                || ! CustomerPagePath::valid($page->path)) {
                 throw ValidationException::withMessages(['publish' => 'Review the page addresses before publishing.']);
             }
             $mediaIds->push($page->social_image_id);

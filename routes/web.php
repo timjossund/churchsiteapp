@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CustomHostnameController;
 use App\Http\Controllers\PublishedSiteController;
 use App\Http\Controllers\SiteBillingController;
 use App\Http\Controllers\SiteBillingWebhookController;
@@ -27,11 +28,15 @@ Route::get('s/{slug}/{path}', [PublishedSiteController::class, 'show'])
     ->name('sites.published.pages.show');
 
 Route::middleware(['auth', 'verified', PreserveEditorPage::class])->group(function () {
+    Route::post('sites/{site}/domain/check', [CustomHostnameController::class, 'check'])->whereNumber('site')->middleware('throttle:6,1')->name('sites.domain.check');
+    Route::post('sites/{site}/domain', [CustomHostnameController::class, 'store'])->whereNumber('site')->name('sites.domain.store');
+    Route::delete('sites/{site}/domain', [CustomHostnameController::class, 'destroy'])->whereNumber('site')->name('sites.domain.destroy');
     Route::post('sites/{site}/billing/portal', [SiteBillingController::class, 'portal'])->whereNumber('site')->name('sites.billing.portal');
     Route::post('sites/{site}/billing/cancel', [SiteBillingController::class, 'cancel'])->whereNumber('site')->name('sites.billing.cancel');
     Route::post('sites/{site}/billing/checkout', [SiteBillingController::class, 'checkout'])->whereNumber('site')->name('sites.billing.checkout');
     Route::get('dashboard', [SiteController::class, 'index'])->name('dashboard');
     Route::post('sites', [SiteController::class, 'store'])->name('sites.store');
+    Route::get('sites/{site}/go-live', [SiteController::class, 'goLive'])->whereNumber('site')->name('sites.go-live');
     Route::get('sites/{site}', [SiteController::class, 'show'])->whereNumber('site')->name('sites.show');
     Route::patch('sites/{site}', [SiteController::class, 'update'])->whereNumber('site')->name('sites.update');
     Route::prefix('sites/{site}/pages')->name('sites.pages.')->whereNumber('site')->group(function () {

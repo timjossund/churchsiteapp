@@ -3,6 +3,7 @@
 namespace App\Actions;
 
 use App\Exceptions\AccountBillingPending;
+use App\Models\CustomHostname;
 use App\Models\Site;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -28,7 +29,7 @@ class DeleteAccountWhenBillingEnds
     public function finalize(int $userId): bool
     {
         try {
-            return DB::transaction(function () use ($userId): bool {
+            $ready = DB::transaction(function () use ($userId): bool {
                 $user = User::query()->lockForUpdate()->find($userId);
                 if ($user === null) {
                     return true;
@@ -66,6 +67,35 @@ class DeleteAccountWhenBillingEnds
                     return false;
                 }
 
+                foreach ($user->sites()->orderBy('id')->get() as $site) {
+                    $site->customHostname()->update(['state' => 'removing', 'verified_at' => null, 'cname_matches' => false]);
+                }
+
+                return true;
+            });
+            if (! $ready) {
+                return false;
+            }
+
+            // Commit routing revocation before remote cleanup. Keep IDs and the account on failure.
+            foreach (CustomHostname::query()->whereHas('site', fn ($query) => $query->where('user_id', $userId))->pluck('id') as $id) {
+                app(ReconcileCustomHostname::class)->handle($id);
+            }
+
+            return DB::transaction(function () use ($userId): bool {
+                $user = User::query()->lockForUpdate()->find($userId);
+                if ($user === null) {
+                    return true;
+                }
+                if ($user->deletion_requested_at === null) {
+                    return false;
+                }
+                foreach ($user->sites()->orderBy('id')->lockForUpdate()->get() as $site) {
+                    if ($site->customHostname()->exists()
+                        || $site->subscriptions()->where('paid_until', '>', now())->exists()) {
+                        return false;
+                    }
+                }
                 $user->delete();
 
                 return true;

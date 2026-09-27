@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\CustomerPagePath;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -34,6 +35,7 @@ class SitePageSettingsRequest extends FormRequest
         return [
             'path' => $page->is_home ? ['prohibited'] : [
                 'sometimes', 'required', 'string', 'max:100', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
+                Rule::notIn(CustomerPagePath::RESERVED),
                 Rule::unique('site_pages', 'path')->where('site_id', $page->site_id)->ignore($page->id),
             ],
             'seo_title' => ['sometimes', 'nullable', 'string', 'max:255'],

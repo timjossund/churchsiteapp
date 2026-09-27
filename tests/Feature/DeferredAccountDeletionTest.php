@@ -1,9 +1,13 @@
 <?php
 
 use App\Actions\DeleteAccountWhenBillingEnds;
+use App\Actions\ReserveCustomHostname;
 use App\Actions\StartSiteCheckout;
 use App\Models\Site;
 use App\Models\User;
+use Illuminate\Http\Client\Factory;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 use Stripe\ApiRequestor;
 use Stripe\Exception\ApiConnectionException;
@@ -171,4 +175,73 @@ test('a finalizer never deletes an account without a deletion request', function
     $user = User::factory()->create();
     expect(app(DeleteAccountWhenBillingEnds::class)->finalize($user->id))->toBeFalse()
         ->and($user->fresh())->not->toBeNull();
+});
+
+test('account deletion retains remote cleanup identity on failure and completes after retry', function () {
+    config(['customer-domains.zone_id' => str_repeat('a', 32), 'customer-domains.api_token' => 'fake']);
+    $site = Site::factory()->create();
+    $user = $site->user;
+    $domain = app(ReserveCustomHostname::class)->handle($user, $site->id, 'www.example.org');
+    $providerId = '11111111-1111-4111-8111-111111111111';
+    $domain->forceFill(['cloudflare_id' => $providerId, 'cloudflare_zone_id' => str_repeat('a', 32), 'state' => 'ready', 'verified_at' => now(), 'provision_started_at' => now()])->save();
+    fakeDeletionStripe(fn () => throw new RuntimeException('No billing work expected'));
+    Http::fake(function () use ($domain) {
+        expect(DB::transactionLevel())->toBe(1)
+            ->and($domain->fresh()->state)->toBe('removing')->and($domain->fresh()->verified_at)->toBeNull();
+
+        return Http::response([], 503);
+    });
+    expect(app(DeleteAccountWhenBillingEnds::class)->request($user))->toBeFalse()
+        ->and($user->fresh())->not->toBeNull()->and($site->fresh())->not->toBeNull()
+        ->and($domain->fresh()->cloudflare_id)->toBe($providerId);
+    Http::swap(new Factory);
+    Http::fakeSequence()->push(['success' => true, 'result' => [['id' => $providerId, 'hostname' => $domain->hostname]], 'result_info' => ['total_count' => 1]])
+        ->push(['success' => true, 'result' => ['id' => $providerId]]);
+    expect(app(DeleteAccountWhenBillingEnds::class)->finalize($user->id))->toBeTrue()
+        ->and($user->fresh())->toBeNull()->and($domain->fresh())->toBeNull();
+    expect(app(DeleteAccountWhenBillingEnds::class)->finalize($user->id))->toBeTrue();
+});
+
+test('an uncertain hostname creation holds account deletion for operator resolution', function () {
+    config(['customer-domains.zone_id' => str_repeat('a', 32), 'customer-domains.api_token' => 'fake']);
+    $site = Site::factory()->create();
+    $domain = app(ReserveCustomHostname::class)->handle($site->user, $site->id, 'www.example.org');
+    $domain->forceFill(['cloudflare_zone_id' => str_repeat('a', 32), 'provision_started_at' => now()])->save();
+    Http::fake(['*' => Http::response(['success' => true, 'result' => [], 'result_info' => ['total_count' => 0]])]);
+    expect(app(DeleteAccountWhenBillingEnds::class)->request($site->user))->toBeFalse()
+        ->and($domain->fresh()->state)->toBe('removing')->and($domain->fresh()->error_category)->toBe('operator_required')
+        ->and($site->user->fresh())->not->toBeNull();
+});
+
+test('domain cleanup waits for paid-period deletion policy', function () {
+    $site = Site::factory()->create();
+    $site->forceFill(['stripe_id' => 'cus_site'])->save();
+    $domain = app(ReserveCustomHostname::class)->handle($site->user, $site->id, 'www.example.org');
+    $domain->forceFill(['state' => 'ready', 'verified_at' => now()])->save();
+    $site->subscriptions()->create(['type' => 'default', 'stripe_id' => 'sub_ended', 'stripe_status' => 'canceled', 'paid_until' => now()->addDay()]);
+    fakeDeletionStripe(fn () => ['object' => 'list', 'data' => [], 'has_more' => false]);
+    Http::preventStrayRequests();
+    expect(app(DeleteAccountWhenBillingEnds::class)->request($site->user))->toBeFalse()
+        ->and($domain->fresh()->state)->toBe('ready')->and($domain->fresh()->verified_at)->not->toBeNull();
+    Http::assertNothingSent();
+    $this->travel(2)->days();
+    expect(app(DeleteAccountWhenBillingEnds::class)->finalize($site->user_id))->toBeTrue()
+        ->and($domain->fresh())->toBeNull();
+});
+
+test('a payment confirmed during domain cleanup prevents final account deletion', function () {
+    config(['customer-domains.zone_id' => str_repeat('a', 32), 'customer-domains.api_token' => 'fake']);
+    $site = Site::factory()->create();
+    $site->forceFill(['stripe_id' => 'cus_site'])->save();
+    $subscription = $site->subscriptions()->create(['type' => 'default', 'stripe_id' => 'sub_paid', 'stripe_status' => 'canceled', 'paid_until' => now()->subDay()]);
+    $domain = app(ReserveCustomHostname::class)->handle($site->user, $site->id, 'www.example.org');
+    $domain->forceFill(['cloudflare_id' => '11111111-1111-4111-8111-111111111111', 'cloudflare_zone_id' => str_repeat('a', 32), 'provision_started_at' => now()])->save();
+    fakeDeletionStripe(fn () => ['object' => 'list', 'data' => [], 'has_more' => false]);
+    Http::fake(function () use ($subscription) {
+        $subscription->forceFill(['stripe_status' => 'active', 'paid_until' => now()->addMonth()])->save();
+
+        return Http::response(['success' => true, 'result' => [], 'result_info' => ['total_count' => 0]]);
+    });
+    expect(app(DeleteAccountWhenBillingEnds::class)->request($site->user))->toBeFalse()
+        ->and($site->user->fresh())->not->toBeNull()->and($domain->fresh())->toBeNull();
 });

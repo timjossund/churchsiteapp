@@ -93,15 +93,72 @@ export async function forwardRequest(
     const original = parseUrl(request.url);
     if (!original || !['http:', 'https:'].includes(original.protocol))
         return fail(request, 400);
-    if (original.hostname !== env.PROOF_HOST) return fail(request, 404);
+    const customer = original.hostname !== env.PROOF_HOST;
+    if (
+        customer &&
+        (env.CUSTOMER_DOMAINS_ENABLED !== 'true' ||
+            !original.hostname.startsWith('www.') ||
+            original.hostname === origin.hostname ||
+            original.hostname.endsWith(`.${origin.hostname}`) ||
+            original.hostname === 'churchsite.app' ||
+            original.hostname.endsWith('.churchsite.app'))
+    )
+        return fail(request, 404);
     if (original.protocol === 'http:') {
         original.protocol = 'https:';
         return reply(request, 308, null, { Location: original.href });
     }
 
+    if (customer) {
+        const reserved = new Set([
+            'editor',
+            'checkout',
+            'webhook',
+            'passkey',
+            'passkeys',
+            'login',
+            'logout',
+            'register',
+            'dashboard',
+            'sites',
+            'settings',
+            'profile',
+            'billing',
+            'stripe',
+            's',
+            'up',
+            'api',
+            'admin',
+            'password',
+            'forgot-password',
+            'reset-password',
+            'confirm-password',
+            'email',
+            'verify-email',
+            'two-factor-challenge',
+            'user',
+            'storage',
+            'build',
+        ]);
+        const path = original.pathname;
+        if (
+            reserved.has(path.slice(1)) ||
+            !(
+                path === '/' ||
+                (path.length <= 101 &&
+                    /^\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(path)) ||
+                /^\/_media\/[1-9][0-9]*$/.test(path) ||
+                /^\/build\/assets\/[a-zA-Z0-9_-]+\.(css|js|woff2?|ttf)$/.test(
+                    path,
+                )
+            )
+        )
+            return fail(request, 404);
+    }
+
     const headers = new Headers({
         Authorization: `Bearer ${env.ORIGIN_SECRET}`,
-        'X-Churchsite-Proxy-Version': '1',
+        'X-Churchsite-Proxy-Version': customer ? '2' : '1',
         'X-Churchsite-Original-Url': original.href,
     });
     const accept = request.headers.get('Accept');
@@ -118,6 +175,67 @@ export async function forwardRequest(
     } catch {
         // Network failures must not expose diagnostic text or secret headers.
         return fail(request, 502, 'upstream_unavailable');
+    }
+    if (customer && upstream.status === 200) {
+        const type = (upstream.headers.get('Content-Type') ?? '')
+            .split(';')[0]
+            .trim()
+            .toLowerCase();
+        const kind = upstream.headers.get('X-Churchsite-Content');
+        const path = original.pathname;
+        const expected = /^\/_media\/[1-9][0-9]*$/.test(path)
+            ? 'media'
+            : /^\/build\/assets\/[a-zA-Z0-9_-]+\.(css|js|woff2?|ttf)$/.test(
+                    path,
+                )
+              ? 'asset'
+              : path === '/' || /^\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(path)
+                ? 'html'
+                : null;
+        const assetTypes = {
+            css: 'text/css',
+            js: 'application/javascript',
+            woff: 'font/woff',
+            woff2: 'font/woff2',
+            ttf: 'font/ttf',
+        };
+        const types = {
+            html: ['text/html'],
+            media: ['image/jpeg', 'image/png'],
+            asset: [
+                'text/css',
+                'application/javascript',
+                'font/woff',
+                'font/woff2',
+                'font/ttf',
+            ],
+        };
+        if (
+            upstream.redirected ||
+            upstream.headers.has('Location') ||
+            upstream.headers.has('Set-Cookie') ||
+            kind !== expected ||
+            !types[kind]?.includes(type) ||
+            (kind === 'asset' && assetTypes[path.split('.').at(-1)] !== type) ||
+            upstream.headers.get('X-Churchsite-Response-Version') !== '2' ||
+            upstream.headers.get('X-Churchsite-Hostname') !== original.hostname
+        ) {
+            await upstream.body?.cancel().catch(() => undefined);
+            return fail(request, 502, 'upstream_unavailable');
+        }
+        const safeHeaders = new Headers({
+            'Content-Type': type,
+            'Cache-Control': 'no-store',
+            'X-Content-Type-Options': 'nosniff',
+        });
+        if (kind !== 'html')
+            safeHeaders.set('X-Robots-Tag', 'noindex, nofollow');
+        if (request.method === 'HEAD')
+            await upstream.body?.cancel().catch(() => undefined);
+        return new Response(request.method === 'HEAD' ? null : upstream.body, {
+            status: 200,
+            headers: safeHeaders,
+        });
     }
     if (
         upstream.redirected ||

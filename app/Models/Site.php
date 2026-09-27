@@ -43,6 +43,12 @@ class Site extends Model
     /** @use HasFactory<SiteFactory> */
     use HasFactory;
 
+    /** @return HasOne<CustomHostname, $this> */
+    public function customHostname(): HasOne
+    {
+        return $this->hasOne(CustomHostname::class);
+    }
+
     public function billingSubscription(): ?Subscription
     {
         // Webhook arrival time is not subscription chronology. Current commitments take precedence.

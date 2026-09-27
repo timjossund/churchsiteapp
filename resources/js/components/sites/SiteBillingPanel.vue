@@ -50,7 +50,7 @@ function submit(action: 'portal' | 'cancel') {
             {},
             {
                 preserveScroll: true,
-                only: ['billing', 'errors'],
+                only: ['billing', 'domain', 'errors'],
                 onStart: () => {
                     pending.value = true;
                     emit('busy', true);
@@ -95,9 +95,11 @@ const price = computed(() =>
 <template>
     <section
         aria-labelledby="site-billing-title"
-        class="mb-6 rounded-[1.25rem] border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-5 shadow-[var(--workspace-shadow)]"
+        class="min-w-0 rounded-[1.25rem] border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-5 shadow-[var(--workspace-shadow)]"
     >
-        <h2 id="site-billing-title" class="font-serif text-2xl">Billing</h2>
+        <h2 id="site-billing-title" tabindex="-1" class="font-serif text-2xl">
+            Billing
+        </h2>
         <p class="mt-2 font-semibold" role="status">{{ label }}</p>
         <p v-if="price" class="mt-1 text-sm">
             {{ price }} USD /

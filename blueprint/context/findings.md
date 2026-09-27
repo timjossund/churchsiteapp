@@ -15,10 +15,10 @@
 **Suggested fix:** Darken the existing light-mode `--workspace-muted` token until it reaches at least 4.5:1 against all three backgrounds. Keep the existing token and layout; no new styling machinery is needed.
 **Resolution:** Independent re-review on 2026-09-24 confirmed the token remains unchanged; fresh calculations reproduce 4.16:1, 3.86:1, and 3.97:1 against the three listed backgrounds. Remains open P2. Recomputed at 56d3a3e9b74ad30a77ba7dcc77202c22d5d78b40 with the same results. Fresh calculations at eb0aff9ef186c2e4293bc0b3eb9b0224a92c8c6d still produce 4.16:1, 3.86:1, and 3.97:1; remains open P2. Independent review at b323c32dd21be2fd22fa6ef6049a9de34e987007 reproduced the same contrast ratios; remains open P2. Independent review at 4a699022b3c80400b8b5c0990c35bad01f490f70 inspected the unchanged CSS token and its settings/editor uses; fresh calculations again produce 4.16:1, 3.86:1, and 3.97:1. Remains open P2. Independent review at 84987f0b76ccac27899ec5a1391894c52ad7857a confirmed the unchanged token and freshly calculated 4.16:1, 3.86:1, and 3.97:1 contrast ratios. Remains open P2 and outside this feature's repair scope.
 
-### F-03 [P3] open - Update the Worker runbook after public/hot removal
+### F-03 [P3] fixed - Update the Worker runbook after public/hot removal
 
 **File:** docs/worker-domain-proxy.md:36
 **Found:** 2026-09-27 by /audit independent current (scope: current; lenses: quality, security, performance, tests)
 **Why it matters:** The deployment checklist says `public/hot` is still tracked and requires a separate Git fix. The reviewed integration includes main commit `7e481b1cdbedf15238eef14d7be0784ac4719987` removing that file, and `git ls-files public/hot` is empty. The instruction to keep the file absent is still correct, but the obsolete repository-state claim may send an operator looking for already completed work.
 **Suggested fix:** Retain the check that `public/hot` is absent on the server, and remove or update the claim that it is still tracked and awaiting a separate fix. No application behavior needs to change.
-**Resolution:**
+**Resolution:** 2026-09-27: Updated the runbook to reflect that `public/hot` has been removed from Git while retaining the server absence check. Source review and `git diff --check` passed; awaiting Audit closure.

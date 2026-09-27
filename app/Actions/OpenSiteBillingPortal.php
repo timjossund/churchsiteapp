@@ -31,7 +31,7 @@ class OpenSiteBillingPortal
                 throw new SiteBillingUnavailable('The billing portal must allow only invoices and payment methods.');
             }
 
-            return $site->billingPortalUrl(route('sites.show', $site), ['configuration' => $id]);
+            return $site->billingPortalUrl(route('sites.go-live', $site), ['configuration' => $id]);
         });
     }
 }

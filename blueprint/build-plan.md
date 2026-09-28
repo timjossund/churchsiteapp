@@ -29,6 +29,7 @@ Features 1-5 establish the editor and single-page publishing baseline. The next 
 - [x] 12. **Image and text blocks** - Add image proportions, crop position, corner styles, captions, and optional buttons for text-bearing blocks.
 - [x] 13. **Church information blocks** - Add service-time layout choices and contact addresses with directions links.
 - [x] 14. **Site-wide styling** - Add font pairings, an editable accent color, and consistent button styles across the site.
+- [x] 17. **Public homepage and branding** - Replace the starter welcome screen with a builder-styled public homepage and a doorway/arch Church Site App logo shared across the homepage, dashboard, and auth pages.
 - [ ] 15. **Rich text block** - Add a dedicated block for formatted text, bulleted and numbered lists, and nested outlines, with safe published rendering and matching editor previews.
 
 ## Planning TODOs

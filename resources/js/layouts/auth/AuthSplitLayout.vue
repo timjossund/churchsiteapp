@@ -1,10 +1,7 @@
 <script setup lang="ts">
-import { Link, usePage } from '@inertiajs/vue3';
-import AppLogoIcon from '@/components/AppLogoIcon.vue';
+import { Link } from '@inertiajs/vue3';
+import AppLogo from '@/components/AppLogo.vue';
 import { home } from '@/routes';
-
-const page = usePage();
-const name = page.props.name;
 
 defineProps<{
     title?: string;
@@ -19,13 +16,13 @@ defineProps<{
         <div
             class="relative hidden h-full flex-col bg-muted p-10 text-white lg:flex dark:border-r"
         >
-            <div class="absolute inset-0 bg-zinc-900" />
+            <div class="absolute inset-0 bg-[var(--workspace-soft)]" />
             <Link
                 :href="home()"
+                aria-label="Church Site App home"
                 class="relative z-20 flex items-center text-lg font-medium"
             >
-                <AppLogoIcon class="mr-2 size-8 fill-current text-white" />
-                {{ name }}
+                <AppLogo />
             </Link>
         </div>
         <div class="lg:p-8">

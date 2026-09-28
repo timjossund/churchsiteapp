@@ -31,7 +31,10 @@ const mainNavItems: NavItem[] = [
             <SidebarMenu>
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg" as-child>
-                        <Link :href="dashboard()">
+                        <Link
+                            :href="dashboard()"
+                            aria-label="Church Site App dashboard"
+                        >
                             <AppLogo />
                         </Link>
                     </SidebarMenuButton>

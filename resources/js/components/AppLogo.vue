@@ -1,19 +1,15 @@
 <script setup lang="ts">
-import { usePage } from '@inertiajs/vue3';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
-
-const name = usePage().props.name;
 </script>
 
 <template>
-    <div
-        class="flex aspect-square size-8 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground"
+    <span
+        class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--workspace-green)] text-white dark:text-[var(--workspace-surface)]"
     >
-        <AppLogoIcon class="size-5 fill-current text-white dark:text-black" />
-    </div>
-    <div class="ml-1 grid flex-1 text-left text-sm">
-        <span class="mb-0.5 truncate leading-tight font-semibold">{{
-            name
-        }}</span>
-    </div>
+        <AppLogoIcon class="size-6" />
+    </span>
+    <span
+        class="ml-px text-left font-serif text-lg leading-none font-semibold tracking-tight whitespace-nowrap text-[var(--workspace-ink)] group-data-[collapsible=icon]:sr-only"
+        >Church Site App</span
+    >
 </template>

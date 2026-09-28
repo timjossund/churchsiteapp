@@ -24,6 +24,16 @@ A typical user:
 
 ## 3. First-release features
 
+### Public homepage and branding
+
+- The product is branded **Church Site App**.
+- Replace the starter welcome screen with one public marketing homepage at `/`; no separate welcome page.
+- Match the builder's forest-green and warm off-white palette, typography, rounded cards, and spacious layout.
+- Include a hero with an illustrative builder preview, signup/login actions, feature highlights, how it works, and pricing consistent with the existing business model.
+- Design a simple doorway/arch SVG mark with a wordmark and reuse it on the homepage, dashboard, and authentication pages.
+- Preserve existing authentication behavior and keep product branding separate from customer church logos.
+- Deliver this work before the rich text block.
+
 ### Site editor
 
 - Dashboard opens site settings for shared styles, header/logo, footer, and page management. Opening a page leads to its focused publishing, block editor, and preview screen.

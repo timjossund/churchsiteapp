@@ -1,6 +1,6 @@
-# Churchsite - Project Overview
+# Church Site App - Project Overview
 
-<!-- blueprint:source-hash 91fd1b7030cebb822d8499dd583d8194133207df03627e0ef4d9470d85cbed2f -->
+<!-- blueprint:source-hash 4d4ed0428d298ccf7775a00479e9cde52ee4bd0833a2c1363b7b3c7db7947e8b -->
 
 > A block-based church website builder with shareable multi-page previews and later paid custom domains.
 
@@ -40,6 +40,7 @@ Churches need modern websites, while the people responsible for them may have li
 - **12.** **Image and text blocks** - Add image proportions, crop position, corner styles, captions, and optional buttons for text-bearing blocks.
 - **13.** **Church information blocks** - Add service-time layout choices and contact addresses with directions links.
 - **14.** **Site-wide styling** - Add font pairings, an editable accent color, and consistent button styles across the site.
+- **17.** **Public homepage and branding** - One public homepage at `/` with builder-styled marketing sections and a shared Church Site App doorway/arch logo across homepage, dashboard, and auth pages.
 - **15.** **Rich text block** - Add a dedicated block for formatted text, bulleted and numbered lists, and nested outlines, with safe published rendering and matching editor previews.
 
 ## Site deletion
@@ -114,6 +115,9 @@ These are the initial logical shapes; later feature specs choose migrations and 
 Users can create and publish shareable subdirectory sites before paying. Each site needs its own subscription for a live `www` hostname. Pricing is USD $15/month or $150/year per site, without a trial. Payment begins when the owner starts domain connection. Account deletion cancels renewals and occurs after the latest paid site subscription ends. No domain-purchasing flow is planned.
 
 ## UI and experience
+
+- Brand the product as **Church Site App**. Replace the starter welcome screen at `/` with one public homepage, using the builder's forest-green/warm-off-white palette, typography, rounded cards, and generous spacing.
+- The homepage includes a hero and illustrative builder preview, signup/login actions, features, how it works, and existing pricing. Use a reusable doorway/arch SVG mark and wordmark across homepage, dashboard, and auth pages. Keep authentication behavior and customer church logos unchanged.
 
 - Dashboard opens site settings with shared styles, header/logo, footer, and page management. Opening a page shows publishing, preview, block list, free reordering, and the selected block’s side panel.
 - Users can configure expanded block-specific styling and options in addition to choosing a site theme.

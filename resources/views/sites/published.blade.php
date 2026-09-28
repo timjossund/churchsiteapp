@@ -88,13 +88,16 @@
             @php($content = $block['content'])
             @php($style = is_array($content['style'] ?? null) ? $content['style'] : [])
             @php($alignment = in_array($style['alignment'] ?? null, ['left', 'center'], true) ? $style['alignment'] : ($block['type'] === 'video' ? 'center' : 'left'))
-            @php($background = in_array($style['background'] ?? null, ['theme', 'soft'], true) ? $style['background'] : ($block['type'] === 'about' ? 'soft' : 'theme'))
+            @php($background = in_array($style['background'] ?? null, ['theme', 'soft', 'accent', 'contrast'], true) ? $style['background'] : ($block['type'] === 'about' ? 'soft' : 'theme'))
             @php($imageOnLeft = $block['type'] === 'text_image' && ($style['layout'] ?? 'image_right') === 'image_left')
-            <section id="block-{{ $block['id'] }}" @if ($block['type'] === 'hero') data-height="{{ $style['height'] ?? 'current' }}" data-overlay="{{ $style['overlay'] ?? 'medium' }}" data-motion="{{ $style['motion'] ?? 'normal' }}" @if ($block['image_url']) data-has-image="true" @endif @endif class="{{ $block['type'] === 'hero' ? 'site-hero' : '' }} border-b border-[var(--site-preview-border)] px-6 py-12 last:border-b-0 sm:px-10 {{ $alignment === 'center' ? 'text-center' : '' }} {{ $background === 'soft' ? 'bg-[var(--site-preview-soft)]' : '' }}">
+            @php($spacing = in_array($style['spacing'] ?? null, ['compact', 'current', 'spacious'], true) ? $style['spacing'] : 'current')
+            @php($contentWidth = in_array($style['content_width'] ?? null, ['narrow', 'current', 'full'], true) ? $style['content_width'] : 'current')
+            @php($headingSize = !in_array($block['type'], ['plain_text', 'image', 'video'], true) && in_array($style['heading_size'] ?? null, ['small', 'current', 'large'], true) ? $style['heading_size'] : 'current')
+            <section id="block-{{ $block['id'] }}" data-block-type="{{ $block['type'] }}" data-spacing="{{ $spacing }}" data-content-width="{{ $contentWidth }}" data-heading-size="{{ $headingSize }}" data-background="{{ $background }}" @if ($block['type'] === 'hero') data-height="{{ $style['height'] ?? 'current' }}" data-overlay="{{ $style['overlay'] ?? 'medium' }}" data-motion="{{ $style['motion'] ?? 'normal' }}" @if ($block['image_url']) data-has-image="true" @endif @endif class="site-block {{ $block['type'] === 'hero' ? 'site-hero' : '' }} border-b border-[var(--site-preview-border)] px-6 py-12 last:border-b-0 sm:px-10 {{ $alignment === 'center' ? 'text-center' : '' }}">
                 @if ($block['type'] === 'hero' && $block['image_url'])
                     <img src="{{ $block['image_url'] }}" alt="" class="site-hero-image">
                 @endif
-                <div class="mx-auto w-full max-w-5xl {{ $block['type'] === 'hero' ? 'site-hero-content' : '' }}">
+                <div class="site-block-content mx-auto w-full max-w-5xl {{ $block['type'] === 'hero' ? 'site-hero-content' : '' }}">
                     @switch($block['type'])
                         @case('hero')
                             @if (($content['welcome_label'] ?? 'Welcome') !== '')

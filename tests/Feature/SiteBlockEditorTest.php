@@ -219,3 +219,84 @@ test('guests and foreign site or block IDs cannot edit content', function () {
     expect($block->fresh()->content)->toBe(['body' => '']);
     expect($otherBlock->fresh()->content)->toBe(['body' => '']);
 });
+
+test('shared style presets round trip for every block type', function (string $type) {
+    $site = Site::factory()->create();
+    $page = $site->homePage()->firstOrFail();
+    $this->actingAs($site->user)
+        ->post(route('sites.blocks.store', $site), ['type' => $type])
+        ->assertSessionHasNoErrors();
+    $block = $page->blocks()->firstOrFail();
+    $original = $block->content;
+
+    foreach ([
+        ['compact', 'narrow', 'small', 'accent'],
+        ['current', 'current', 'current', 'theme'],
+        ['spacious', 'full', 'large', 'contrast'],
+    ] as [$spacing, $width, $heading, $background]) {
+        $style = ['spacing' => $spacing, 'content_width' => $width, 'background' => $background];
+        if (array_key_exists('heading', $original)) {
+            $style['heading_size'] = $heading;
+        }
+        $this->patch(route('sites.pages.blocks.update', [$site, $page, $block]), [
+            'content' => [...$original, 'style' => $style],
+        ])->assertSessionHasNoErrors()->assertRedirect(route('sites.pages.show', [$site, $page]));
+
+        expect($block->fresh()->content['style'])->toBe($style);
+        $this->get(route('sites.pages.show', [$site, $page]))
+            ->assertInertia(fn (Assert $response) => $response->where('blocks.0.content.style', $style));
+    }
+
+    $this->patch(route('sites.pages.blocks.update', [$site, $page, $block]), [
+        'content' => $original,
+    ])->assertSessionHasNoErrors();
+    expect($block->fresh()->content)->toBe($original);
+})->with(['hero', 'about', 'heading_text', 'service_times', 'contact', 'text_image', 'plain_text', 'image', 'video']);
+
+test('invalid shared styles reject the entire update', function (string $field, mixed $value) {
+    $site = Site::factory()->create();
+    $original = ['heading' => 'Saved heading', 'body' => 'Saved body', 'style' => ['background' => 'soft']];
+    $block = SiteBlock::factory()->for($site)->create(['type' => 'about', 'content' => $original]);
+
+    $this->actingAs($site->user)->patch(route('sites.blocks.update', [$site, $block]), [
+        'content' => ['heading' => 'Changed', 'body' => 'Changed', 'style' => [$field => $value]],
+    ])->assertSessionHasErrors('content.style.'.$field);
+
+    expect($block->fresh()->content)->toBe($original);
+})->with([
+    ['spacing', 'huge'], ['spacing', 12], ['spacing', null], ['spacing', []],
+    ['content_width', '100%'], ['content_width', 42], ['content_width', null], ['content_width', []],
+    ['heading_size', 'xl'], ['heading_size', 2], ['heading_size', null], ['heading_size', []],
+    ['background', 'red'], ['background', 1], ['background', null], ['background', []],
+]);
+
+test('headingless blocks reject even empty heading size settings', function (string $type, mixed $value) {
+    $site = Site::factory()->create();
+    $this->actingAs($site->user)->post(route('sites.blocks.store', $site), ['type' => $type]);
+    $block = $site->blocks()->firstOrFail();
+    $original = $block->content;
+
+    $this->patch(route('sites.blocks.update', [$site, $block]), [
+        'content' => [...$original, 'style' => ['heading_size' => $value]],
+    ])->assertSessionHasErrors('content.style.heading_size');
+    expect($block->fresh()->content)->toBe($original);
+})->with(['plain_text', 'image', 'video'])->with(['small', 'current', 'large', null, '']);
+
+test('shared styling cannot cross site or page ownership boundaries', function () {
+    $site = Site::factory()->create();
+    $otherSite = Site::factory()->create();
+    $home = $site->homePage()->firstOrFail();
+    $otherHome = $otherSite->homePage()->firstOrFail();
+    $block = SiteBlock::factory()->for($site)->create();
+    $otherBlock = SiteBlock::factory()->for($otherSite)->create();
+    $content = ['body' => 'Unauthorized', 'style' => ['spacing' => 'spacious', 'background' => 'contrast']];
+
+    $this->patch(route('sites.pages.blocks.update', [$site, $home, $block]), ['content' => $content])
+        ->assertRedirect(route('login'));
+    $this->actingAs($site->user);
+    foreach ([[$otherSite, $otherHome, $otherBlock], [$site, $otherHome, $otherBlock], [$site, $home, $otherBlock]] as $ids) {
+        $this->patch(route('sites.pages.blocks.update', $ids), ['content' => $content])->assertNotFound();
+    }
+    expect($block->fresh()->content)->toBe(['body' => '']);
+    expect($otherBlock->fresh()->content)->toBe(['body' => '']);
+});

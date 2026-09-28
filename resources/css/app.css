@@ -383,3 +383,71 @@
     outline-offset: 4px;
     border-radius: 0.25rem;
 }
+
+/* Resolve palette pairs on the theme before section-level overrides. */
+.site-preview {
+    --block-accent-surface: var(--site-preview-action);
+    --block-accent-foreground: var(--site-preview-action-ink);
+    --block-contrast-surface: var(--site-preview-ink);
+    --block-contrast-foreground: var(--site-preview-background);
+}
+
+.site-block[data-spacing='compact'] {
+    padding-block: 1.5rem;
+}
+.site-block[data-spacing='spacious'] {
+    padding-block: 5rem;
+}
+.site-block > .site-block-content {
+    width: 100%;
+}
+.site-block[data-content-width='narrow'] > .site-block-content {
+    max-width: 42rem;
+    margin-inline: auto;
+}
+.site-block[data-content-width='full'] > .site-block-content {
+    max-width: none;
+}
+.site-block {
+    --block-heading-base: 1.5rem;
+}
+.site-block[data-block-type='about'] {
+    --block-heading-base: 1.875rem;
+}
+.site-block[data-block-type='hero'] {
+    --block-heading-base: 2.25rem;
+}
+@media (min-width: 40rem) {
+    .site-block[data-block-type='hero'] {
+        --block-heading-base: 3rem;
+    }
+}
+.site-block[data-heading-size='small'] :is(h2, h3) {
+    font-size: calc(var(--block-heading-base) * 0.875);
+}
+.site-block[data-heading-size='large'] :is(h2, h3) {
+    font-size: calc(var(--block-heading-base) * 1.25);
+}
+.site-block[data-background='soft'] {
+    background-color: var(--site-preview-soft);
+}
+.site-block[data-background='accent'] {
+    --block-surface: var(--block-accent-surface);
+    --block-foreground: var(--block-accent-foreground);
+}
+.site-block[data-background='contrast'] {
+    --block-surface: var(--block-contrast-surface);
+    --block-foreground: var(--block-contrast-foreground);
+}
+.site-block:is([data-background='accent'], [data-background='contrast']) {
+    --site-preview-ink: var(--block-foreground);
+    --site-preview-muted: var(--block-foreground);
+    --site-preview-accent: var(--block-foreground);
+    --site-preview-border: var(--block-foreground);
+    --site-preview-soft: var(--block-surface);
+    --site-preview-action: var(--block-foreground);
+    --site-preview-action-ink: var(--block-surface);
+
+    color: var(--block-foreground);
+    background-color: var(--block-surface);
+}

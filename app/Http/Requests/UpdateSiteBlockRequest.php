@@ -53,10 +53,15 @@ class UpdateSiteBlockRequest extends FormRequest
             'position' => ['prohibited'],
             'content' => ['required', 'array:'.implode(',', [...$fields, 'style'])],
             'content.style' => ['sometimes', $type === 'hero'
-                ? 'array:alignment,background,layout,height,overlay,motion'
-                : 'array:alignment,background,layout'],
+                ? 'array:alignment,background,layout,spacing,content_width,heading_size,height,overlay,motion'
+                : 'array:alignment,background,layout,spacing,content_width,heading_size'],
             'content.style.alignment' => ['sometimes', 'string', Rule::in(['left', 'center'])],
-            'content.style.background' => ['sometimes', 'string', Rule::in(['theme', 'soft'])],
+            'content.style.background' => ['sometimes', 'string', Rule::in(['theme', 'soft', 'accent', 'contrast'])],
+            'content.style.spacing' => ['sometimes', 'string', Rule::in(['compact', 'current', 'spacious'])],
+            'content.style.content_width' => ['sometimes', 'string', Rule::in(['narrow', 'current', 'full'])],
+            'content.style.heading_size' => in_array('heading', $fields, true)
+                ? ['sometimes', 'string', Rule::in(['small', 'current', 'large'])]
+                : ['missing'],
             'content.style.layout' => $type === 'text_image'
                 ? ['sometimes', 'string', Rule::in(['image_left', 'image_right'])]
                 : ['prohibited'],

@@ -157,7 +157,8 @@ test('published rendering applies curated block styles from the published snapsh
         ->assertOk()
         ->assertSee('md:order-1', false)
         ->assertSee('md:order-2', false)
-        ->assertSee('text-center bg-[var(--site-preview-soft)]', false)
+        ->assertSee('data-background="soft"', false)
+        ->assertSee('sm:px-10 text-center', false)
         ->getContent();
 
     expect($site->fresh()->published_snapshot['pages'][0]['blocks'][0]['content']['style'])->toBe([
@@ -183,7 +184,8 @@ test('published rendering applies curated block styles from the published snapsh
 
     $this->get(route('sites.published.show', $site->slug))
         ->assertOk()
-        ->assertSee('text-center bg-[var(--site-preview-soft)]', false)
+        ->assertSee('data-background="soft"', false)
+        ->assertSee('sm:px-10 text-center', false)
         ->assertSee('md:order-1', false);
 });
 
@@ -266,4 +268,55 @@ test('public media stays tied to the published snapshot after draft edits', func
     Storage::disk('s3')->delete($publishedAsset->storage_key);
     $missing = $this->get($publicUrl)->assertNotFound();
     expect($missing->getContent())->not->toContain($publishedAsset->storage_key);
+});
+
+test('shared styling remains draft until publishing and renders allowlisted presets', function (string $theme) {
+    $site = Site::factory()->create(['slug' => 'shared-style-'.$theme, 'theme_key' => $theme]);
+    $page = $site->homePage()->firstOrFail();
+    $block = $page->blocks()->create([
+        'type' => 'about', 'position' => 0,
+        'content' => ['heading' => 'Our story', 'body' => 'Welcome'],
+    ]);
+    $this->actingAs($site->user)->post(route('sites.publish', $site))->assertSessionHasNoErrors();
+    $this->get(route('sites.published.show', $site->slug))->assertOk()
+        ->assertSee('data-spacing="current"', false)
+        ->assertSee('data-content-width="current"', false)
+        ->assertSee('data-heading-size="current"', false)
+        ->assertSee('data-background="soft"', false);
+
+    foreach ([
+        ['spacing' => 'compact', 'content_width' => 'narrow', 'heading_size' => 'small', 'background' => 'accent'],
+        ['spacing' => 'spacious', 'content_width' => 'full', 'heading_size' => 'large', 'background' => 'contrast'],
+    ] as $style) {
+        $before = $this->get(route('sites.published.show', $site->slug))->getContent();
+        $this->patch(route('sites.pages.blocks.update', [$site, $page, $block]), [
+            'content' => ['heading' => 'Our story', 'body' => 'Welcome', 'style' => $style],
+        ])->assertSessionHasNoErrors();
+        $this->get(route('sites.published.show', $site->slug))->assertContent($before);
+        $this->post(route('sites.publish', $site))->assertSessionHasNoErrors();
+        expect($site->fresh()->published_snapshot['pages'][0]['blocks'][0]['content']['style'])->toBe($style);
+        $this->get(route('sites.published.show', $site->slug))->assertOk()
+            ->assertSee('data-spacing="'.$style['spacing'].'"', false)
+            ->assertSee('data-content-width="'.$style['content_width'].'"', false)
+            ->assertSee('data-heading-size="'.$style['heading_size'].'"', false)
+            ->assertSee('data-background="'.$style['background'].'"', false);
+    }
+})->with(['warm', 'clean', 'bold']);
+
+test('legacy invalid shared styling falls back without rendering arbitrary attributes', function () {
+    $site = Site::factory()->create(['slug' => 'legacy-shared-styles']);
+    $site->homePage()->firstOrFail()->blocks()->create([
+        'type' => 'about', 'position' => 0,
+        'content' => ['heading' => 'Welcome', 'body' => '', 'style' => [
+            'spacing' => '" onmouseover="alert(1)', 'content_width' => ['full'],
+            'heading_size' => 99, 'background' => 'red',
+        ]],
+    ]);
+    $this->actingAs($site->user)->post(route('sites.publish', $site))->assertSessionHasNoErrors();
+    $this->get(route('sites.published.show', $site->slug))->assertOk()
+        ->assertSee('data-spacing="current"', false)
+        ->assertSee('data-content-width="current"', false)
+        ->assertSee('data-heading-size="current"', false)
+        ->assertSee('data-background="soft"', false)
+        ->assertDontSee('onmouseover', false);
 });

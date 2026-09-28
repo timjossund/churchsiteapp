@@ -1436,6 +1436,7 @@ function publishSite() {
 
 defineOptions({
     layout: {
+        fullWidth: true,
         breadcrumbs: [{ title: 'My sites', href: dashboard() }],
     },
 });
@@ -1444,7 +1445,7 @@ defineOptions({
 <template>
     <Head :title="props.site.name" />
     <main
-        class="mx-auto w-full max-w-[88rem] px-5 py-8 sm:px-8 lg:px-10 lg:py-10"
+        class="mx-auto w-full max-w-[1600px] px-5 py-8 sm:px-8 lg:px-10 lg:py-10"
     >
         <header class="mb-8">
             <Link
@@ -1571,7 +1572,7 @@ defineOptions({
                         deleteForm.processing ||
                         saveForm.processing
                     "
-                    class="flex min-h-16 shrink-0 basis-[82%] snap-start flex-col justify-center rounded-lg border border-[var(--workspace-line)] px-3 py-2 text-left hover:bg-[var(--workspace-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:cursor-wait disabled:opacity-60 sm:basis-[calc(28.57%_-_0.54rem)]"
+                    class="flex min-h-16 shrink-0 basis-[82%] snap-start flex-col justify-center rounded-lg border border-[var(--workspace-line)] px-3 py-2 text-left hover:bg-[var(--workspace-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:cursor-wait disabled:opacity-60 sm:basis-[calc(28.57%_-_0.54rem)] lg:basis-56"
                     @click="addBlock(item.type)"
                 >
                     <span class="text-sm font-semibold">{{ item.label }}</span>

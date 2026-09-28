@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ArrowRight, Plus } from '@lucide/vue';
+import {
+    PopoverContent,
+    PopoverPortal,
+    PopoverRoot,
+    PopoverTrigger,
+} from 'reka-ui';
 import { nextTick, ref } from 'vue';
 import { dashboard } from '@/routes';
 
@@ -59,19 +65,112 @@ function createSite() {
             >
                 Your workspace
             </p>
-            <h1
-                class="font-serif text-4xl tracking-tight text-[var(--workspace-ink)] sm:text-[2.5rem]"
+            <div
+                class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
             >
-                Your church sites
-            </h1>
+                <h1
+                    class="font-serif text-4xl tracking-tight text-[var(--workspace-ink)] sm:text-[2.5rem]"
+                >
+                    Your church sites
+                </h1>
+                <PopoverRoot>
+                    <PopoverTrigger as-child>
+                        <button
+                            type="button"
+                            class="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-[var(--workspace-green)] px-5 text-sm font-semibold text-white hover:bg-[var(--workspace-green-dark)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] dark:text-[var(--workspace-surface)]"
+                        >
+                            <Plus class="size-5" aria-hidden="true" />
+                            Create new site
+                        </button>
+                    </PopoverTrigger>
+                    <PopoverPortal>
+                        <PopoverContent
+                            align="end"
+                            :side-offset="12"
+                            :collision-padding="20"
+                            aria-labelledby="create-site-heading"
+                            class="z-50 w-[21rem] max-w-[calc(100vw-2.5rem)] rounded-[1.25rem] border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-6 text-[var(--workspace-ink)] shadow-[var(--workspace-shadow)]"
+                        >
+                            <h2
+                                id="create-site-heading"
+                                class="font-serif text-2xl tracking-tight"
+                            >
+                                Create a site
+                            </h2>
+                            <p
+                                class="mt-2 text-sm text-[var(--workspace-muted)]"
+                            >
+                                Start with a name. You can change it later.
+                            </p>
+
+                            <form
+                                class="mt-6 space-y-4"
+                                @submit.prevent="createSite"
+                            >
+                                <div>
+                                    <label
+                                        for="site-name"
+                                        class="mb-2 block text-sm font-semibold"
+                                        >Site name</label
+                                    >
+                                    <input
+                                        id="site-name"
+                                        ref="nameInput"
+                                        v-model="form.name"
+                                        type="text"
+                                        required
+                                        maxlength="255"
+                                        autocomplete="off"
+                                        placeholder="e.g. Grace Church"
+                                        :aria-invalid="
+                                            Boolean(form.errors.name)
+                                        "
+                                        :aria-describedby="
+                                            form.errors.name
+                                                ? 'site-name-error'
+                                                : undefined
+                                        "
+                                        class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20"
+                                        @input="clearNameError"
+                                    />
+                                    <p
+                                        v-if="form.errors.name"
+                                        id="site-name-error"
+                                        role="alert"
+                                        class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                    >
+                                        {{ form.errors.name }}
+                                    </p>
+                                </div>
+                                <p
+                                    v-if="formError"
+                                    role="alert"
+                                    class="text-sm text-red-700 dark:text-red-300"
+                                >
+                                    {{ formError }}
+                                </p>
+                                <button
+                                    type="submit"
+                                    :disabled="form.processing"
+                                    class="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[var(--workspace-green)] px-5 text-sm font-semibold text-white hover:bg-[var(--workspace-green-dark)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:cursor-wait disabled:opacity-60 dark:text-[var(--workspace-surface)]"
+                                >
+                                    <Plus class="size-4" aria-hidden="true" />{{
+                                        form.processing
+                                            ? 'Creating site…'
+                                            : 'Create site'
+                                    }}
+                                </button>
+                            </form>
+                        </PopoverContent>
+                    </PopoverPortal>
+                </PopoverRoot>
+            </div>
             <p class="text-[var(--workspace-muted)]">
                 Keep every site you are building in one place.
             </p>
         </header>
 
-        <section
-            class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start"
-        >
+        <section aria-label="My sites">
             <div class="space-y-5">
                 <div class="flex items-baseline justify-between gap-4">
                     <h2 class="text-lg font-semibold tracking-tight">
@@ -103,7 +202,7 @@ function createSite() {
                     </p>
                 </div>
 
-                <div v-else class="grid gap-5 md:grid-cols-2">
+                <div v-else class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                     <article
                         v-for="site in sites"
                         :key="site.id"
@@ -144,76 +243,6 @@ function createSite() {
                     </article>
                 </div>
             </div>
-
-            <section
-                aria-labelledby="create-site-heading"
-                class="rounded-[1.25rem] border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-6 shadow-[var(--workspace-shadow)]"
-            >
-                <div
-                    class="mb-5 flex size-10 items-center justify-center rounded-lg bg-[var(--workspace-green-soft)] text-[var(--workspace-green-ink)]"
-                >
-                    <Plus class="size-5" aria-hidden="true" />
-                </div>
-                <h2
-                    id="create-site-heading"
-                    class="font-serif text-2xl tracking-tight"
-                >
-                    Create a site
-                </h2>
-                <p class="mt-2 text-sm text-[var(--workspace-muted)]">
-                    Start with a name. You can change it later.
-                </p>
-
-                <form class="mt-6 space-y-4" @submit.prevent="createSite">
-                    <div>
-                        <label
-                            for="site-name"
-                            class="mb-2 block text-sm font-semibold"
-                            >Site name</label
-                        >
-                        <input
-                            id="site-name"
-                            ref="nameInput"
-                            v-model="form.name"
-                            type="text"
-                            required
-                            maxlength="255"
-                            autocomplete="off"
-                            placeholder="e.g. Grace Church"
-                            :aria-invalid="Boolean(form.errors.name)"
-                            :aria-describedby="
-                                form.errors.name ? 'site-name-error' : undefined
-                            "
-                            class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20"
-                            @input="clearNameError"
-                        />
-                        <p
-                            v-if="form.errors.name"
-                            id="site-name-error"
-                            role="alert"
-                            class="mt-2 text-sm text-red-700 dark:text-red-300"
-                        >
-                            {{ form.errors.name }}
-                        </p>
-                    </div>
-                    <p
-                        v-if="formError"
-                        role="alert"
-                        class="text-sm text-red-700 dark:text-red-300"
-                    >
-                        {{ formError }}
-                    </p>
-                    <button
-                        type="submit"
-                        :disabled="form.processing"
-                        class="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[var(--workspace-green)] px-5 text-sm font-semibold text-white hover:bg-[var(--workspace-green-dark)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:cursor-wait disabled:opacity-60 dark:text-[var(--workspace-surface)]"
-                    >
-                        <Plus class="size-4" aria-hidden="true" />{{
-                            form.processing ? 'Creating site…' : 'Create site'
-                        }}
-                    </button>
-                </form>
-            </section>
         </section>
     </main>
 </template>

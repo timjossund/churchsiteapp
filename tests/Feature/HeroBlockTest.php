@@ -258,7 +258,8 @@ test('published heroes render escaped labels image presets and both buttons from
     $button = ['button_label' => 'Second <script>', 'link_type' => 'external', 'target_block_id' => null, 'target_page_id' => null, 'external_url' => 'https://example.test/visit'];
     $block = $site->blocks()->create(['type' => 'hero', 'position' => 0, 'content' => heroContentForTest([
         'welcome_label' => 'Welcome <script>', 'media_asset_id' => $asset->id,
-        'style' => ['height' => 'full', 'overlay' => 'light', 'motion' => 'fixed'],
+        'style' => ['height' => 'full', 'overlay' => 'light', 'motion' => 'fixed',
+            'spacing' => 'spacious', 'content_width' => 'narrow', 'heading_size' => 'large', 'background' => 'accent'],
         'button_label' => 'Home', 'link_type' => 'page', 'target_page_id' => $site->homePage()->firstOrFail()->id,
         'secondary_button' => $button,
     ])]);
@@ -268,6 +269,8 @@ test('published heroes render escaped labels image presets and both buttons from
         ->assertSee('Welcome &lt;script&gt;', false)->assertSee('Second &lt;script&gt;', false)
         ->assertSee('data-height="full"', false)->assertSee('data-overlay="light"', false)
         ->assertSee('data-motion="fixed"', false)->assertSee('data-has-image="true"', false)
+        ->assertSee('data-spacing="spacious"', false)->assertSee('data-content-width="narrow"', false)
+        ->assertSee('data-heading-size="large"', false)->assertSee('data-background="accent"', false)
         ->assertSee('href="https://example.test/visit"', false)
         ->assertSee('src="'.route('sites.published.media.show', [$site->slug, $asset]).'"', false)
         ->assertDontSee('Unpublished edit');

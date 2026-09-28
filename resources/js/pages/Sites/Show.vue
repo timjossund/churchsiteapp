@@ -39,7 +39,10 @@ type SiteTheme = 'warm' | 'clean' | 'bold';
 type BlockStyle = HeroStyle & {
     layout?: 'image_left' | 'image_right';
     alignment?: 'left' | 'center';
-    background?: 'theme' | 'soft';
+    background?: 'theme' | 'soft' | 'accent' | 'contrast';
+    spacing?: 'compact' | 'current' | 'spacious';
+    content_width?: 'narrow' | 'current' | 'full';
+    heading_size?: 'small' | 'current' | 'large';
 };
 type ServiceTimeEntry = { day: string; time: string; label: string };
 type BlockContent = {
@@ -695,6 +698,10 @@ watch(
     { deep: true, flush: 'post' },
 );
 
+function blockHasHeading(block: SiteBlock): boolean {
+    return !['plain_text', 'image', 'video'].includes(block.type);
+}
+
 function styleForBlock(block: SiteBlock): BlockStyle {
     const saved = block.content.style ?? {};
     return {
@@ -713,6 +720,23 @@ function styleForBlock(block: SiteBlock): BlockStyle {
                           : 'image_right',
               }
             : {}),
+        spacing:
+            saved.spacing === 'compact' || saved.spacing === 'spacious'
+                ? saved.spacing
+                : 'current',
+        content_width:
+            saved.content_width === 'narrow' || saved.content_width === 'full'
+                ? saved.content_width
+                : 'current',
+        ...(blockHasHeading(block)
+            ? {
+                  heading_size:
+                      saved.heading_size === 'small' ||
+                      saved.heading_size === 'large'
+                          ? saved.heading_size
+                          : 'current',
+              }
+            : {}),
         alignment:
             saved.alignment === 'center'
                 ? 'center'
@@ -722,7 +746,10 @@ function styleForBlock(block: SiteBlock): BlockStyle {
                     ? 'center'
                     : 'left',
         background:
-            saved.background === 'theme' || saved.background === 'soft'
+            saved.background === 'theme' ||
+            saved.background === 'soft' ||
+            saved.background === 'accent' ||
+            saved.background === 'contrast'
                 ? saved.background
                 : block.type === 'about'
                   ? 'soft'
@@ -786,14 +813,14 @@ function blockIsCentered(block: SiteBlock): boolean {
     );
 }
 
-function blockBackgroundClass(block: SiteBlock): string {
-    const background =
-        contentFor(block).style?.background ??
-        (block.type === 'about' ? 'soft' : 'theme');
-    return background === 'soft' ||
-        (background !== 'theme' && block.type === 'about')
-        ? 'bg-[var(--site-preview-soft)]'
-        : '';
+function blockBackground(block: SiteBlock): string {
+    const background = contentFor(block).style?.background;
+    return background &&
+        ['theme', 'soft', 'accent', 'contrast'].includes(background)
+        ? background
+        : block.type === 'about'
+          ? 'soft'
+          : 'theme';
 }
 
 function previewHeading(block: SiteBlock, fallback: string): string {
@@ -1082,6 +1109,9 @@ function saveBlock() {
                     !errors['content.style.layout'] &&
                     !errors['content.style.alignment'] &&
                     !errors['content.style.background'] &&
+                    !errors['content.style.spacing'] &&
+                    !errors['content.style.content_width'] &&
+                    !errors['content.style.heading_size'] &&
                     !Object.keys(errors).some((key) =>
                         key.startsWith('content.entries'),
                     ) &&
@@ -1931,7 +1961,18 @@ defineOptions({
                             v-for="block in props.blocks"
                             :key="block.id"
                             :id="`block-${block.id}`"
-                            class="border-b border-[var(--site-preview-border)] px-6 py-12 last:border-b-0 sm:px-10"
+                            class="site-block border-b border-[var(--site-preview-border)] px-6 py-12 last:border-b-0 sm:px-10"
+                            :data-block-type="block.type"
+                            :data-spacing="contentFor(block).style?.spacing"
+                            :data-content-width="
+                                contentFor(block).style?.content_width
+                            "
+                            :data-heading-size="
+                                blockHasHeading(block)
+                                    ? contentFor(block).style?.heading_size
+                                    : undefined
+                            "
+                            :data-background="blockBackground(block)"
                             :data-height="
                                 block.type === 'hero'
                                     ? (contentFor(block).style?.height ??
@@ -1957,307 +1998,277 @@ defineOptions({
                             "
                             :class="[
                                 blockIsCentered(block) ? 'text-center' : '',
-                                blockBackgroundClass(block),
                                 block.type === 'hero' ? 'site-hero' : '',
                             ]"
                         >
-                            <template v-if="block.type === 'hero'">
-                                <img
-                                    v-if="heroHasImage(block)"
-                                    :src="blockMediaUrl(block) ?? undefined"
-                                    alt=""
-                                    class="site-hero-image"
-                                    @error="
-                                        failedHeroImages[block.id] =
-                                            blockMediaUrl(block) ?? ''
-                                    "
-                                />
-                                <div class="site-hero-content">
-                                    <p
-                                        v-if="
-                                            (contentFor(block).welcome_label ??
-                                                'Welcome') !== ''
-                                        "
-                                        class="text-xs font-bold tracking-[0.14em] text-[var(--site-preview-accent)] uppercase"
-                                    >
-                                        {{
-                                            contentFor(block).welcome_label ??
-                                            'Welcome'
-                                        }}
-                                    </p>
-                                    <h3
-                                        class="mt-4 max-w-xl font-serif text-4xl leading-tight sm:text-5xl"
-                                        :class="
-                                            blockIsCentered(block)
-                                                ? 'mx-auto'
-                                                : ''
-                                        "
-                                    >
-                                        {{
-                                            previewHeading(
-                                                block,
-                                                'Welcome to our church',
-                                            )
-                                        }}
-                                    </h3>
-                                    <p
-                                        v-if="contentFor(block).body"
-                                        class="mt-5 max-w-prose whitespace-pre-line text-[var(--site-preview-muted)]"
-                                        :class="
-                                            blockIsCentered(block)
-                                                ? 'mx-auto'
-                                                : ''
-                                        "
-                                    >
-                                        {{ contentFor(block).body }}
-                                    </p>
-                                    <template
-                                        v-for="secondary in [false, true]"
-                                        :key="String(secondary)"
-                                    >
-                                        <component
-                                            :is="
-                                                heroLinkType(
-                                                    block,
-                                                    secondary,
-                                                ) === 'page'
-                                                    ? Link
-                                                    : 'a'
-                                            "
-                                            v-if="heroHref(block, secondary)"
-                                            :href="
-                                                heroHref(block, secondary) ??
-                                                undefined
-                                            "
-                                            class="site-hero-button mt-7 inline-flex min-h-11 items-center rounded-lg bg-[var(--site-preview-action)] px-5 py-2 text-sm font-semibold text-[var(--site-preview-action-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]"
-                                            :class="secondary ? 'ms-3' : ''"
-                                            :target="
-                                                heroLinkType(
-                                                    block,
-                                                    secondary,
-                                                ) === 'external'
-                                                    ? '_blank'
-                                                    : undefined
-                                            "
-                                            :rel="
-                                                heroLinkType(
-                                                    block,
-                                                    secondary,
-                                                ) === 'external'
-                                                    ? 'noopener noreferrer'
-                                                    : undefined
-                                            "
-                                            >{{
-                                                secondary
-                                                    ? contentFor(block)
-                                                          .secondary_button
-                                                          ?.button_label
-                                                    : contentFor(block)
-                                                          .button_label
-                                            }}</component
-                                        >
-                                    </template>
-                                </div>
-                            </template>
-                            <template v-else-if="block.type === 'about'">
-                                <p
-                                    class="text-xs font-bold tracking-[0.14em] text-[var(--site-preview-accent)] uppercase"
-                                >
-                                    About us
-                                </p>
-                                <h3 class="mt-3 font-serif text-3xl">
-                                    {{
-                                        previewHeading(
-                                            block,
-                                            'Your introduction',
-                                        )
-                                    }}
-                                </h3>
-                                <p
-                                    class="mt-4 whitespace-pre-line text-[var(--site-preview-muted)]"
-                                >
-                                    {{
-                                        contentFor(block).body ||
-                                        'Tell visitors who you are and what matters to your community.'
-                                    }}
-                                </p>
-                            </template>
-                            <template v-else-if="block.type === 'heading_text'">
-                                <h3 class="font-serif text-2xl">
-                                    {{ previewHeading(block, 'Your heading') }}
-                                </h3>
-                                <p
-                                    class="mt-4 whitespace-pre-line text-[var(--site-preview-muted)]"
-                                    :class="
-                                        blockIsCentered(block)
-                                            ? 'mx-auto max-w-prose'
-                                            : ''
-                                    "
-                                >
-                                    {{
-                                        contentFor(block).body ||
-                                        'Add the details you want visitors to know.'
-                                    }}
-                                </p>
-                            </template>
-                            <template
-                                v-else-if="block.type === 'service_times'"
-                            >
-                                <h3 class="font-serif text-2xl">
-                                    {{ previewHeading(block, 'Service times') }}
-                                </h3>
-                                <ul
-                                    v-if="contentFor(block).entries?.length"
-                                    class="mt-6 divide-y divide-[var(--site-preview-border)]"
-                                    :class="
-                                        blockIsCentered(block)
-                                            ? 'mx-auto max-w-2xl'
-                                            : ''
-                                    "
-                                >
-                                    <li
-                                        v-for="(entry, index) in contentFor(
-                                            block,
-                                        ).entries"
-                                        :key="index"
-                                        class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3"
-                                    >
-                                        <span class="font-semibold">{{
-                                            entry.day.charAt(0).toUpperCase() +
-                                            entry.day.slice(1)
-                                        }}</span>
-                                        <span
-                                            class="text-[var(--site-preview-muted)]"
-                                            >{{
-                                                formatServiceTime(entry.time)
-                                            }}</span
-                                        >
-                                        <span
-                                            v-if="entry.label"
-                                            class="w-full text-sm text-[var(--site-preview-muted)]"
-                                            >{{ entry.label }}</span
-                                        >
-                                    </li>
-                                </ul>
-                                <p
-                                    v-else
-                                    class="mt-4 text-[var(--site-preview-muted)]"
-                                >
-                                    Add your weekly gatherings in the editor.
-                                </p>
-                            </template>
-                            <template v-else-if="block.type === 'contact'">
-                                <h3 class="font-serif text-2xl">
-                                    {{ previewHeading(block, 'Contact us') }}
-                                </h3>
-                                <div
-                                    v-if="
-                                        contentFor(block).email ||
-                                        contentFor(block).phone
-                                    "
-                                    class="mt-5 flex flex-col gap-3"
-                                    :class="
-                                        blockIsCentered(block)
-                                            ? 'items-center'
-                                            : 'items-start'
-                                    "
-                                >
-                                    <a
-                                        v-if="emailHref(block)"
-                                        :href="emailHref(block) ?? undefined"
-                                        class="text-[var(--site-preview-accent)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]"
-                                        >{{ contentFor(block).email }}</a
-                                    >
-                                    <span
-                                        v-else-if="contentFor(block).email"
-                                        class="text-[var(--site-preview-muted)]"
-                                        >{{ contentFor(block).email }}</span
-                                    >
-                                    <a
-                                        v-if="phoneHref(block)"
-                                        :href="phoneHref(block) ?? undefined"
-                                        class="text-[var(--site-preview-accent)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]"
-                                        >{{ contentFor(block).phone }}</a
-                                    >
-                                    <span
-                                        v-else-if="contentFor(block).phone"
-                                        class="text-[var(--site-preview-muted)]"
-                                        >{{ contentFor(block).phone }}</span
-                                    >
-                                </div>
-                                <p
-                                    v-else
-                                    class="mt-4 text-[var(--site-preview-muted)]"
-                                >
-                                    Add an email or phone number in the editor.
-                                </p>
-                            </template>
-                            <template v-else-if="block.type === 'image'">
-                                <div
-                                    class="overflow-hidden rounded-xl border border-[var(--site-preview-border)] bg-[var(--site-preview-soft)]"
-                                    :class="
-                                        blockIsCentered(block)
-                                            ? 'mx-auto max-w-3xl'
-                                            : ''
-                                    "
-                                >
+                            <div class="site-block-content">
+                                <template v-if="block.type === 'hero'">
                                     <img
-                                        v-if="blockMediaUrl(block)"
+                                        v-if="heroHasImage(block)"
                                         :src="blockMediaUrl(block) ?? undefined"
-                                        :alt="blockPreviewAltText(block)"
-                                        class="max-h-[32rem] w-full object-contain"
-                                    />
-                                    <div
-                                        v-else
-                                        role="group"
-                                        aria-label="Image placeholder"
-                                        class="flex min-h-64 flex-col items-center justify-center p-8 text-center"
-                                    >
-                                        <span class="font-semibold">Image</span>
-                                        <span
-                                            class="mt-2 text-sm text-[var(--site-preview-muted)]"
-                                            >Choose an image in the
-                                            editor.</span
-                                        >
-                                    </div>
-                                </div>
-                            </template>
-                            <template v-else-if="block.type === 'text_image'">
-                                <div
-                                    class="grid gap-8 md:grid-cols-2 md:items-center"
-                                >
-                                    <div
-                                        :class="
-                                            contentFor(block).style?.layout ===
-                                            'image_left'
-                                                ? 'md:order-2'
-                                                : ''
+                                        alt=""
+                                        class="site-hero-image"
+                                        @error="
+                                            failedHeroImages[block.id] =
+                                                blockMediaUrl(block) ?? ''
                                         "
-                                    >
-                                        <h3 class="font-serif text-2xl">
+                                    />
+                                    <div class="site-hero-content">
+                                        <p
+                                            v-if="
+                                                (contentFor(block)
+                                                    .welcome_label ??
+                                                    'Welcome') !== ''
+                                            "
+                                            class="text-xs font-bold tracking-[0.14em] text-[var(--site-preview-accent)] uppercase"
+                                        >
+                                            {{
+                                                contentFor(block)
+                                                    .welcome_label ?? 'Welcome'
+                                            }}
+                                        </p>
+                                        <h3
+                                            class="mt-4 max-w-xl font-serif text-4xl leading-tight sm:text-5xl"
+                                            :class="
+                                                blockIsCentered(block)
+                                                    ? 'mx-auto'
+                                                    : ''
+                                            "
+                                        >
                                             {{
                                                 previewHeading(
                                                     block,
-                                                    'Your heading',
+                                                    'Welcome to our church',
                                                 )
                                             }}
                                         </h3>
                                         <p
-                                            class="mt-4 whitespace-pre-line text-[var(--site-preview-muted)]"
+                                            v-if="contentFor(block).body"
+                                            class="mt-5 max-w-prose whitespace-pre-line text-[var(--site-preview-muted)]"
+                                            :class="
+                                                blockIsCentered(block)
+                                                    ? 'mx-auto'
+                                                    : ''
+                                            "
                                         >
-                                            {{
-                                                contentFor(block).body ||
-                                                'Add the details you want visitors to know.'
-                                            }}
+                                            {{ contentFor(block).body }}
                                         </p>
+                                        <template
+                                            v-for="secondary in [false, true]"
+                                            :key="String(secondary)"
+                                        >
+                                            <component
+                                                :is="
+                                                    heroLinkType(
+                                                        block,
+                                                        secondary,
+                                                    ) === 'page'
+                                                        ? Link
+                                                        : 'a'
+                                                "
+                                                v-if="
+                                                    heroHref(block, secondary)
+                                                "
+                                                :href="
+                                                    heroHref(
+                                                        block,
+                                                        secondary,
+                                                    ) ?? undefined
+                                                "
+                                                class="site-hero-button mt-7 inline-flex min-h-11 items-center rounded-lg bg-[var(--site-preview-action)] px-5 py-2 text-sm font-semibold text-[var(--site-preview-action-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]"
+                                                :class="secondary ? 'ms-3' : ''"
+                                                :target="
+                                                    heroLinkType(
+                                                        block,
+                                                        secondary,
+                                                    ) === 'external'
+                                                        ? '_blank'
+                                                        : undefined
+                                                "
+                                                :rel="
+                                                    heroLinkType(
+                                                        block,
+                                                        secondary,
+                                                    ) === 'external'
+                                                        ? 'noopener noreferrer'
+                                                        : undefined
+                                                "
+                                                >{{
+                                                    secondary
+                                                        ? contentFor(block)
+                                                              .secondary_button
+                                                              ?.button_label
+                                                        : contentFor(block)
+                                                              .button_label
+                                                }}</component
+                                            >
+                                        </template>
                                     </div>
+                                </template>
+                                <template v-else-if="block.type === 'about'">
+                                    <p
+                                        class="text-xs font-bold tracking-[0.14em] text-[var(--site-preview-accent)] uppercase"
+                                    >
+                                        About us
+                                    </p>
+                                    <h3 class="mt-3 font-serif text-3xl">
+                                        {{
+                                            previewHeading(
+                                                block,
+                                                'Your introduction',
+                                            )
+                                        }}
+                                    </h3>
+                                    <p
+                                        class="mt-4 whitespace-pre-line text-[var(--site-preview-muted)]"
+                                    >
+                                        {{
+                                            contentFor(block).body ||
+                                            'Tell visitors who you are and what matters to your community.'
+                                        }}
+                                    </p>
+                                </template>
+                                <template
+                                    v-else-if="block.type === 'heading_text'"
+                                >
+                                    <h3 class="font-serif text-2xl">
+                                        {{
+                                            previewHeading(
+                                                block,
+                                                'Your heading',
+                                            )
+                                        }}
+                                    </h3>
+                                    <p
+                                        class="mt-4 whitespace-pre-line text-[var(--site-preview-muted)]"
+                                        :class="
+                                            blockIsCentered(block)
+                                                ? 'mx-auto max-w-prose'
+                                                : ''
+                                        "
+                                    >
+                                        {{
+                                            contentFor(block).body ||
+                                            'Add the details you want visitors to know.'
+                                        }}
+                                    </p>
+                                </template>
+                                <template
+                                    v-else-if="block.type === 'service_times'"
+                                >
+                                    <h3 class="font-serif text-2xl">
+                                        {{
+                                            previewHeading(
+                                                block,
+                                                'Service times',
+                                            )
+                                        }}
+                                    </h3>
+                                    <ul
+                                        v-if="contentFor(block).entries?.length"
+                                        class="mt-6 divide-y divide-[var(--site-preview-border)]"
+                                        :class="
+                                            blockIsCentered(block)
+                                                ? 'mx-auto max-w-2xl'
+                                                : ''
+                                        "
+                                    >
+                                        <li
+                                            v-for="(entry, index) in contentFor(
+                                                block,
+                                            ).entries"
+                                            :key="index"
+                                            class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3"
+                                        >
+                                            <span class="font-semibold">{{
+                                                entry.day
+                                                    .charAt(0)
+                                                    .toUpperCase() +
+                                                entry.day.slice(1)
+                                            }}</span>
+                                            <span
+                                                class="text-[var(--site-preview-muted)]"
+                                                >{{
+                                                    formatServiceTime(
+                                                        entry.time,
+                                                    )
+                                                }}</span
+                                            >
+                                            <span
+                                                v-if="entry.label"
+                                                class="w-full text-sm text-[var(--site-preview-muted)]"
+                                                >{{ entry.label }}</span
+                                            >
+                                        </li>
+                                    </ul>
+                                    <p
+                                        v-else
+                                        class="mt-4 text-[var(--site-preview-muted)]"
+                                    >
+                                        Add your weekly gatherings in the
+                                        editor.
+                                    </p>
+                                </template>
+                                <template v-else-if="block.type === 'contact'">
+                                    <h3 class="font-serif text-2xl">
+                                        {{
+                                            previewHeading(block, 'Contact us')
+                                        }}
+                                    </h3>
+                                    <div
+                                        v-if="
+                                            contentFor(block).email ||
+                                            contentFor(block).phone
+                                        "
+                                        class="mt-5 flex flex-col gap-3"
+                                        :class="
+                                            blockIsCentered(block)
+                                                ? 'items-center'
+                                                : 'items-start'
+                                        "
+                                    >
+                                        <a
+                                            v-if="emailHref(block)"
+                                            :href="
+                                                emailHref(block) ?? undefined
+                                            "
+                                            class="text-[var(--site-preview-accent)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]"
+                                            >{{ contentFor(block).email }}</a
+                                        >
+                                        <span
+                                            v-else-if="contentFor(block).email"
+                                            class="text-[var(--site-preview-muted)]"
+                                            >{{ contentFor(block).email }}</span
+                                        >
+                                        <a
+                                            v-if="phoneHref(block)"
+                                            :href="
+                                                phoneHref(block) ?? undefined
+                                            "
+                                            class="text-[var(--site-preview-accent)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]"
+                                            >{{ contentFor(block).phone }}</a
+                                        >
+                                        <span
+                                            v-else-if="contentFor(block).phone"
+                                            class="text-[var(--site-preview-muted)]"
+                                            >{{ contentFor(block).phone }}</span
+                                        >
+                                    </div>
+                                    <p
+                                        v-else
+                                        class="mt-4 text-[var(--site-preview-muted)]"
+                                    >
+                                        Add an email or phone number in the
+                                        editor.
+                                    </p>
+                                </template>
+                                <template v-else-if="block.type === 'image'">
                                     <div
                                         class="overflow-hidden rounded-xl border border-[var(--site-preview-border)] bg-[var(--site-preview-soft)]"
                                         :class="
-                                            contentFor(block).style?.layout ===
-                                            'image_left'
-                                                ? 'md:order-1'
-                                                : 'md:order-2'
+                                            blockIsCentered(block)
+                                                ? 'mx-auto max-w-3xl'
+                                                : ''
                                         "
                                     >
                                         <img
@@ -2267,13 +2278,13 @@ defineOptions({
                                                 undefined
                                             "
                                             :alt="blockPreviewAltText(block)"
-                                            class="max-h-[32rem] min-h-56 w-full object-contain"
+                                            class="max-h-[32rem] w-full object-contain"
                                         />
                                         <div
                                             v-else
                                             role="group"
                                             aria-label="Image placeholder"
-                                            class="flex min-h-56 flex-col items-center justify-center p-8 text-center"
+                                            class="flex min-h-64 flex-col items-center justify-center p-8 text-center"
                                         >
                                             <span class="font-semibold"
                                                 >Image</span
@@ -2285,58 +2296,133 @@ defineOptions({
                                             >
                                         </div>
                                     </div>
-                                </div>
-                            </template>
-                            <template v-else-if="block.type === 'video'">
-                                <div
-                                    class="max-w-3xl overflow-hidden rounded-xl bg-[var(--site-preview-soft)]"
-                                    :class="
-                                        blockIsCentered(block)
-                                            ? 'mx-auto'
-                                            : 'mr-auto'
-                                    "
+                                </template>
+                                <template
+                                    v-else-if="block.type === 'text_image'"
                                 >
-                                    <div class="aspect-video">
-                                        <iframe
-                                            v-if="videoEmbedUrl(block)"
-                                            :src="
-                                                videoEmbedUrl(block) ??
-                                                undefined
-                                            "
-                                            title="YouTube or Vimeo video preview"
-                                            loading="lazy"
-                                            allowfullscreen
-                                            class="h-full w-full border-0"
-                                        />
+                                    <div
+                                        class="grid gap-8 md:grid-cols-2 md:items-center"
+                                    >
                                         <div
-                                            v-else
-                                            role="status"
-                                            class="flex h-full flex-col items-center justify-center p-6 text-center text-sm text-[var(--site-preview-muted)]"
+                                            :class="
+                                                contentFor(block).style
+                                                    ?.layout === 'image_left'
+                                                    ? 'md:order-2'
+                                                    : ''
+                                            "
                                         >
-                                            <span class="font-semibold"
-                                                >Video preview</span
+                                            <h3 class="font-serif text-2xl">
+                                                {{
+                                                    previewHeading(
+                                                        block,
+                                                        'Your heading',
+                                                    )
+                                                }}
+                                            </h3>
+                                            <p
+                                                class="mt-4 whitespace-pre-line text-[var(--site-preview-muted)]"
                                             >
-                                            <span class="mt-2"
-                                                >Enter a supported YouTube or
-                                                Vimeo link in the editor.</span
+                                                {{
+                                                    contentFor(block).body ||
+                                                    'Add the details you want visitors to know.'
+                                                }}
+                                            </p>
+                                        </div>
+                                        <div
+                                            class="overflow-hidden rounded-xl border border-[var(--site-preview-border)] bg-[var(--site-preview-soft)]"
+                                            :class="
+                                                contentFor(block).style
+                                                    ?.layout === 'image_left'
+                                                    ? 'md:order-1'
+                                                    : 'md:order-2'
+                                            "
+                                        >
+                                            <img
+                                                v-if="blockMediaUrl(block)"
+                                                :src="
+                                                    blockMediaUrl(block) ??
+                                                    undefined
+                                                "
+                                                :alt="
+                                                    blockPreviewAltText(block)
+                                                "
+                                                class="max-h-[32rem] min-h-56 w-full object-contain"
+                                            />
+                                            <div
+                                                v-else
+                                                role="group"
+                                                aria-label="Image placeholder"
+                                                class="flex min-h-56 flex-col items-center justify-center p-8 text-center"
                                             >
+                                                <span class="font-semibold"
+                                                    >Image</span
+                                                >
+                                                <span
+                                                    class="mt-2 text-sm text-[var(--site-preview-muted)]"
+                                                    >Choose an image in the
+                                                    editor.</span
+                                                >
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </template>
-                            <p
-                                v-else-if="block.type === 'plain_text'"
-                                class="max-w-prose text-lg leading-relaxed whitespace-pre-line"
-                                :class="blockIsCentered(block) ? 'mx-auto' : ''"
-                            >
-                                {{
-                                    contentFor(block).body ||
-                                    'Your message will appear here.'
-                                }}
-                            </p>
-                            <p v-else class="text-[var(--site-preview-muted)]">
-                                {{ labelFor(block.type) }} block
-                            </p>
+                                </template>
+                                <template v-else-if="block.type === 'video'">
+                                    <div
+                                        class="max-w-3xl overflow-hidden rounded-xl bg-[var(--site-preview-soft)]"
+                                        :class="
+                                            blockIsCentered(block)
+                                                ? 'mx-auto'
+                                                : 'mr-auto'
+                                        "
+                                    >
+                                        <div class="aspect-video">
+                                            <iframe
+                                                v-if="videoEmbedUrl(block)"
+                                                :src="
+                                                    videoEmbedUrl(block) ??
+                                                    undefined
+                                                "
+                                                title="YouTube or Vimeo video preview"
+                                                loading="lazy"
+                                                allowfullscreen
+                                                class="h-full w-full border-0"
+                                            />
+                                            <div
+                                                v-else
+                                                role="status"
+                                                class="flex h-full flex-col items-center justify-center p-6 text-center text-sm text-[var(--site-preview-muted)]"
+                                            >
+                                                <span class="font-semibold"
+                                                    >Video preview</span
+                                                >
+                                                <span class="mt-2"
+                                                    >Enter a supported YouTube
+                                                    or Vimeo link in the
+                                                    editor.</span
+                                                >
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                                <p
+                                    v-else-if="block.type === 'plain_text'"
+                                    class="max-w-prose text-lg leading-relaxed whitespace-pre-line"
+                                    :class="
+                                        blockIsCentered(block) ? 'mx-auto' : ''
+                                    "
+                                >
+                                    {{
+                                        contentFor(block).body ||
+                                        'Your message will appear here.'
+                                    }}
+                                </p>
+                                <p
+                                    v-else
+                                    class="text-[var(--site-preview-muted)]"
+                                >
+                                    {{ labelFor(block.type) }} block
+                                </p>
+                            </div>
                         </section>
                     </div>
                     <footer
@@ -3396,6 +3482,12 @@ defineOptions({
                                             <option value="soft">
                                                 Soft contrast
                                             </option>
+                                            <option value="accent">
+                                                Accent
+                                            </option>
+                                            <option value="contrast">
+                                                Contrast
+                                            </option>
                                         </select>
                                         <p
                                             v-if="
@@ -3410,6 +3502,192 @@ defineOptions({
                                             {{
                                                 saveForm.errors[
                                                     'content.style.background'
+                                                ]
+                                            }}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <label
+                                            for="block-spacing"
+                                            class="mb-2 block text-sm font-semibold"
+                                            >Section spacing</label
+                                        >
+                                        <select
+                                            id="block-spacing"
+                                            v-model="draftBlockStyle.spacing"
+                                            :disabled="
+                                                uploadInProgress ||
+                                                saveForm.processing ||
+                                                addForm.processing ||
+                                                deleteForm.processing ||
+                                                orderForm.processing ||
+                                                imageUploadForm.processing ||
+                                                altTextForm.processing
+                                            "
+                                            :aria-invalid="
+                                                Boolean(
+                                                    saveForm.errors[
+                                                        'content.style.spacing'
+                                                    ],
+                                                )
+                                            "
+                                            :aria-describedby="
+                                                saveForm.errors[
+                                                    'content.style.spacing'
+                                                ]
+                                                    ? 'block-spacing-error'
+                                                    : undefined
+                                            "
+                                            class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                            @change="clearContentError"
+                                        >
+                                            <option value="compact">
+                                                Compact
+                                            </option>
+                                            <option value="current">
+                                                Current
+                                            </option>
+                                            <option value="spacious">
+                                                Spacious
+                                            </option>
+                                        </select>
+                                        <p
+                                            v-if="
+                                                saveForm.errors[
+                                                    'content.style.spacing'
+                                                ]
+                                            "
+                                            id="block-spacing-error"
+                                            role="alert"
+                                            class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                        >
+                                            {{
+                                                saveForm.errors[
+                                                    'content.style.spacing'
+                                                ]
+                                            }}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <label
+                                            for="block-content_width"
+                                            class="mb-2 block text-sm font-semibold"
+                                            >Content width</label
+                                        >
+                                        <select
+                                            id="block-content_width"
+                                            v-model="
+                                                draftBlockStyle.content_width
+                                            "
+                                            :disabled="
+                                                uploadInProgress ||
+                                                saveForm.processing ||
+                                                addForm.processing ||
+                                                deleteForm.processing ||
+                                                orderForm.processing ||
+                                                imageUploadForm.processing ||
+                                                altTextForm.processing
+                                            "
+                                            :aria-invalid="
+                                                Boolean(
+                                                    saveForm.errors[
+                                                        'content.style.content_width'
+                                                    ],
+                                                )
+                                            "
+                                            :aria-describedby="
+                                                saveForm.errors[
+                                                    'content.style.content_width'
+                                                ]
+                                                    ? 'block-content_width-error'
+                                                    : undefined
+                                            "
+                                            class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                            @change="clearContentError"
+                                        >
+                                            <option value="narrow">
+                                                Narrow
+                                            </option>
+                                            <option value="current">
+                                                Current
+                                            </option>
+                                            <option value="full">
+                                                Full available width
+                                            </option>
+                                        </select>
+                                        <p
+                                            v-if="
+                                                saveForm.errors[
+                                                    'content.style.content_width'
+                                                ]
+                                            "
+                                            id="block-content_width-error"
+                                            role="alert"
+                                            class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                        >
+                                            {{
+                                                saveForm.errors[
+                                                    'content.style.content_width'
+                                                ]
+                                            }}
+                                        </p>
+                                    </div>
+                                    <div v-if="blockHasHeading(selectedBlock)">
+                                        <label
+                                            for="block-heading_size"
+                                            class="mb-2 block text-sm font-semibold"
+                                            >Heading size</label
+                                        >
+                                        <select
+                                            id="block-heading_size"
+                                            v-model="
+                                                draftBlockStyle.heading_size
+                                            "
+                                            :disabled="
+                                                uploadInProgress ||
+                                                saveForm.processing ||
+                                                addForm.processing ||
+                                                deleteForm.processing ||
+                                                orderForm.processing ||
+                                                imageUploadForm.processing ||
+                                                altTextForm.processing
+                                            "
+                                            :aria-invalid="
+                                                Boolean(
+                                                    saveForm.errors[
+                                                        'content.style.heading_size'
+                                                    ],
+                                                )
+                                            "
+                                            :aria-describedby="
+                                                saveForm.errors[
+                                                    'content.style.heading_size'
+                                                ]
+                                                    ? 'block-heading_size-error'
+                                                    : undefined
+                                            "
+                                            class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                            @change="clearContentError"
+                                        >
+                                            <option value="small">Small</option>
+                                            <option value="current">
+                                                Current
+                                            </option>
+                                            <option value="large">Large</option>
+                                        </select>
+                                        <p
+                                            v-if="
+                                                saveForm.errors[
+                                                    'content.style.heading_size'
+                                                ]
+                                            "
+                                            id="block-heading_size-error"
+                                            role="alert"
+                                            class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                        >
+                                            {{
+                                                saveForm.errors[
+                                                    'content.style.heading_size'
                                                 ]
                                             }}
                                         </p>

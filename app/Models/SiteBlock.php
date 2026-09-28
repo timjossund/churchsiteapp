@@ -53,6 +53,33 @@ class SiteBlock extends Model
         return $this->belongsTo(Site::class);
     }
 
+    public function disableLinksTo(string $type, int $target): void
+    {
+        $content = $this->content;
+        $field = $type === 'page' ? 'target_page_id' : 'target_block_id';
+        foreach (['primary', 'secondary'] as $slot) {
+            $button = $slot === 'primary' ? $content : ($content['secondary_button'] ?? []);
+            if (($button['link_type'] ?? null) !== $type || (int) ($button[$field] ?? 0) !== $target) {
+                continue;
+            }
+            $button['link_type'] = 'none';
+            $button['button_label'] = '';
+            $button['target_block_id'] = null;
+            $button['external_url'] = '';
+            if (array_key_exists('target_page_id', $button)) {
+                $button['target_page_id'] = null;
+            }
+            if ($slot === 'primary') {
+                $content = $button;
+            } else {
+                $content['secondary_button'] = $button;
+            }
+        }
+        if ($content !== $this->content) {
+            $this->update(['content' => $content]);
+        }
+    }
+
     /** @return array<string, string> */
     protected function casts(): array
     {

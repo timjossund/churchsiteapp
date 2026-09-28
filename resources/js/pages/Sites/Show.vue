@@ -3,9 +3,23 @@ import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import SiteMediaController from '@/actions/App/Http/Controllers/SiteMediaController';
 import { store as uploadPageBlockImage } from '@/routes/sites/pages/blocks/image';
+import HeroOptions, {
+    type HeroExtras,
+    type HeroButton,
+    type HeroStyle,
+} from '@/components/sites/HeroOptions.vue';
 import PageSettings from '@/components/sites/PageSettings.vue';
 import { dashboard } from '@/routes';
 import { mountSiteMenu } from '@/lib/site-menu';
+import { mountHeroMotion } from '@/lib/hero-motion';
+const previewRoot = ref<HTMLElement | null>(null);
+let disposeHeroMotion: (() => void) | undefined;
+function refreshHeroMotion() {
+    disposeHeroMotion?.();
+    disposeHeroMotion = previewRoot.value
+        ? mountHeroMotion(previewRoot.value)
+        : undefined;
+}
 
 const previewHeader = ref<HTMLElement | null>(null);
 let disposeSiteMenu: (() => void) | undefined;
@@ -20,15 +34,18 @@ type BlockType =
     | 'image'
     | 'text_image'
     | 'video';
-type HeroLinkType = 'none' | 'section' | 'external';
+type HeroLinkType = HeroButton['link_type'];
 type SiteTheme = 'warm' | 'clean' | 'bold';
-type BlockStyle = {
+type BlockStyle = HeroStyle & {
     layout?: 'image_left' | 'image_right';
     alignment?: 'left' | 'center';
     background?: 'theme' | 'soft';
 };
 type ServiceTimeEntry = { day: string; time: string; label: string };
 type BlockContent = {
+    welcome_label?: string;
+    target_page_id?: number | null;
+    secondary_button?: HeroButton;
     heading?: string;
     body?: string;
     button_label?: string;
@@ -162,6 +179,46 @@ const selectedBlock = computed(
         null,
 );
 
+function heroExtras(content: BlockContent = {}): HeroExtras {
+    return {
+        welcome_label: content.welcome_label ?? 'Welcome',
+        target_page_id: content.target_page_id ?? null,
+        secondary_button: {
+            button_label: '',
+            link_type: 'none',
+            target_block_id: null,
+            target_page_id: null,
+            external_url: '',
+            ...content.secondary_button,
+        },
+    };
+}
+const draftHero = ref<HeroExtras>(heroExtras());
+const savedHero = ref<HeroExtras>(heroExtras());
+const blockEditor = ref<HTMLElement>();
+function openFieldSection(element: HTMLElement) {
+    let section = element.closest('details');
+    while (section) {
+        section.open = true;
+        section = section.parentElement?.closest('details') ?? null;
+    }
+}
+function revealEditorErrors(): boolean {
+    const fields = blockEditor.value?.querySelectorAll<HTMLElement>(
+        '[aria-invalid="true"]',
+    );
+    fields?.forEach(openFieldSection);
+    fields?.[0]?.focus();
+    return !!fields?.length;
+}
+function revealInvalidField(event: Event) {
+    if (event.target instanceof HTMLElement) openFieldSection(event.target);
+}
+const failedHeroImages = ref<Record<number, string>>({});
+function heroHasImage(block: SiteBlock): boolean {
+    const url = blockMediaUrl(block);
+    return !!url && failedHeroImages.value[block.id] !== url;
+}
 const draftHeading = ref('');
 const draftBody = ref('');
 const savedHeading = ref('');
@@ -205,7 +262,9 @@ const isContentDirty = computed(
         (draftHeading.value !== savedHeading.value ||
             draftBody.value !== savedBody.value ||
             (selectedBlock.value?.type === 'hero' &&
-                (draftButtonLabel.value !== savedButtonLabel.value ||
+                (JSON.stringify(draftHero.value) !==
+                    JSON.stringify(savedHero.value) ||
+                    draftButtonLabel.value !== savedButtonLabel.value ||
                     draftLinkType.value !== savedLinkType.value ||
                     draftTargetBlockId.value !== savedTargetBlockId.value ||
                     draftExternalUrl.value !== savedExternalUrl.value)) ||
@@ -220,13 +279,15 @@ const isContentDirty = computed(
             JSON.stringify(draftBlockStyle.value) !==
                 JSON.stringify(savedBlockStyle.value) ||
             (selectedBlock.value &&
-                ['image', 'text_image'].includes(selectedBlock.value.type) &&
+                ['image', 'text_image', 'hero'].includes(
+                    selectedBlock.value.type,
+                ) &&
                 clearImagePending.value)),
 );
 const isAltTextDirty = computed(
     () =>
         !!selectedBlock.value &&
-        ['image', 'text_image'].includes(selectedBlock.value.type) &&
+        ['image', 'text_image', 'hero'].includes(selectedBlock.value.type) &&
         draftAltText.value !== savedAltText.value,
 );
 const isDirty = computed(
@@ -266,6 +327,8 @@ watch(
     selectedBlock,
     (block, previous) => {
         if (block?.id === previous?.id) return;
+        draftHero.value = heroExtras(block?.content);
+        savedHero.value = heroExtras(block?.content);
         draftHeading.value = block?.content.heading ?? '';
         draftBody.value = block?.content.body ?? '';
         draftButtonLabel.value = block?.content.button_label ?? '';
@@ -316,6 +379,7 @@ function discardDraft(): boolean {
 }
 
 function resetDraft() {
+    draftHero.value = heroExtras(savedHero.value);
     draftHeading.value = savedHeading.value;
     draftBody.value = savedBody.value;
     draftButtonLabel.value = savedButtonLabel.value;
@@ -564,6 +628,7 @@ function guardHistory(event: PopStateEvent) {
 }
 
 onMounted(() => {
+    refreshHeroMotion();
     if (previewHeader.value)
         disposeSiteMenu = mountSiteMenu(previewHeader.value);
     editorHistoryState = window.history.state;
@@ -588,6 +653,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+    disposeHeroMotion?.();
     disposeSiteMenu?.();
     stopBeforeListener?.();
     stopNavigateListener?.();
@@ -602,9 +668,43 @@ function clearContentError() {
     contentSaved.value = false;
 }
 
+watch(
+    () => [
+        saveForm.errors,
+        imageUploadForm.errors,
+        altTextForm.errors,
+        imageUploadError.value,
+        altTextError.value,
+    ],
+    () => {
+        nextTick(revealEditorErrors);
+    },
+    { deep: true, flush: 'post' },
+);
+
+watch(
+    [
+        () => props.blocks,
+        selectedBlockId,
+        () => draftBlockStyle.value.motion,
+        clearImagePending,
+        uploadPreviewUrl,
+        failedHeroImages,
+    ],
+    () => refreshHeroMotion(),
+    { deep: true, flush: 'post' },
+);
+
 function styleForBlock(block: SiteBlock): BlockStyle {
     const saved = block.content.style ?? {};
     return {
+        ...(block.type === 'hero'
+            ? {
+                  height: saved.height ?? 'current',
+                  overlay: saved.overlay ?? 'medium',
+                  motion: saved.motion ?? 'normal',
+              }
+            : {}),
         ...(block.type === 'text_image'
             ? {
                   layout:
@@ -635,6 +735,10 @@ function contentFor(block: SiteBlock): BlockContent {
     let content: BlockContent;
     if (block.type === 'hero') {
         content = {
+            ...draftHero.value,
+            media_asset_id: clearImagePending.value
+                ? null
+                : (block.content.media_asset_id ?? null),
             heading: draftHeading.value,
             body: draftBody.value,
             button_label: draftButtonLabel.value,
@@ -761,8 +865,24 @@ function removeServiceTime(index: number) {
     nextTick(() => addServiceTimeButton.value?.focus());
 }
 
-function heroHref(block: SiteBlock): string | null {
-    const content = contentFor(block);
+function heroLinkType(block: SiteBlock, secondary = false) {
+    return secondary
+        ? contentFor(block).secondary_button?.link_type
+        : contentFor(block).link_type;
+}
+
+function heroHref(block: SiteBlock, secondary = false): string | null {
+    const content = secondary
+        ? contentFor(block).secondary_button
+        : contentFor(block);
+    if (!content) return null;
+    if (content.link_type === 'page' && content.button_label?.trim()) {
+        return props.navigation_pages.some(
+            (page) => page.id === content.target_page_id,
+        )
+            ? `/sites/${props.site.id}/pages/${content.target_page_id}`
+            : null;
+    }
     if (!content.button_label?.trim()) return null;
     if (content.link_type === 'section') {
         const target = content.target_block_id;
@@ -856,6 +976,7 @@ function videoEmbedUrl(block: SiteBlock): string | null {
 }
 
 function changeHeroLinkType() {
+    if (draftLinkType.value !== 'page') draftHero.value.target_page_id = null;
     if (draftLinkType.value !== 'section') draftTargetBlockId.value = null;
     if (draftLinkType.value !== 'external') draftExternalUrl.value = '';
     if (draftLinkType.value === 'none') draftButtonLabel.value = '';
@@ -884,14 +1005,7 @@ function saveBlock() {
         : (block.content.media_asset_id ?? null);
     saveForm.content =
         block.type === 'hero'
-            ? {
-                  heading: draftHeading.value,
-                  body: draftBody.value,
-                  button_label: draftButtonLabel.value,
-                  link_type: draftLinkType.value,
-                  target_block_id: draftTargetBlockId.value,
-                  external_url: draftExternalUrl.value,
-              }
+            ? contentFor(block)
             : block.type === 'contact'
               ? {
                     heading: draftHeading.value,
@@ -927,6 +1041,7 @@ function saveBlock() {
         saveForm.patch(blockBaseUrl.value + '/' + block.id, {
             preserveScroll: true,
             onSuccess: () => {
+                savedHero.value = heroExtras(draftHero.value);
                 savedHeading.value = draftHeading.value;
                 savedBody.value = draftBody.value;
                 savedButtonLabel.value = draftButtonLabel.value;
@@ -976,6 +1091,21 @@ function saveBlock() {
                         'We could not save this block. Please try again.';
                 }
                 nextTick(() => {
+                    if (revealEditorErrors()) return;
+                    if (
+                        Object.keys(errors).some((key) =>
+                            /content\.(welcome_label|target_page_id|secondary_button|style\.(height|overlay|motion))/.test(
+                                key,
+                            ),
+                        )
+                    ) {
+                        revealEditorErrors();
+                        return;
+                    }
+                    if (errors['content.media_asset_id']) {
+                        imageInput.value?.focus();
+                        return;
+                    }
                     if (errors['content.heading']) headingInput.value?.focus();
                     else if (errors['content.body']) bodyInput.value?.focus();
                     else if (errors['content.button_label'])
@@ -1322,95 +1452,82 @@ defineOptions({
                 class="text-sm font-semibold text-[var(--workspace-green)] hover:underline"
                 >← Site settings</Link
             >
-            <p
-                class="mt-7 text-xs font-bold tracking-[0.14em] text-[var(--workspace-green)] uppercase"
+            <div
+                class="mt-7 grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start"
             >
-                {{ props.site.name }} / Page editor
-            </p>
-            <h1 class="mt-2 font-serif text-4xl tracking-tight break-words">
-                {{ props.selected_page.name }}
-            </h1>
-            <p class="mt-2 text-sm text-[var(--workspace-muted)]">
-                Edit this page's blocks and preview. Shared styles, header, and
-                footer are managed in site settings.
-            </p>
-        </header>
-        <section
-            aria-labelledby="publishing-heading"
-            class="mb-6 rounded-[1.25rem] border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-5 shadow-[var(--workspace-shadow)] sm:flex sm:items-center sm:justify-between sm:gap-6"
-        >
-            <div>
-                <h2 id="publishing-heading" class="font-serif text-xl">
-                    Site publishing
-                </h2>
-                <p
-                    v-if="!props.site.published_at"
-                    class="mt-1 text-sm text-[var(--workspace-muted)]"
+                <div class="min-w-0">
+                    <p
+                        class="text-xs font-bold tracking-[0.14em] text-[var(--workspace-green)] uppercase"
+                    >
+                        {{ props.site.name }} / Page editor
+                    </p>
+                    <h1
+                        class="mt-2 font-serif text-4xl tracking-tight break-words"
+                    >
+                        {{ props.selected_page.name }}
+                    </h1>
+                    <p class="mt-2 text-sm text-[var(--workspace-muted)]">
+                        Edit this page's blocks and preview. Shared styles,
+                        header, and footer are managed in site settings.
+                    </p>
+                </div>
+                <section
+                    aria-label="Publishing controls"
+                    class="min-w-0 lg:max-w-md lg:pt-6 lg:text-right"
                 >
-                    This site has not been published yet.
-                </p>
-                <p
-                    v-else-if="props.site.has_unpublished_changes"
-                    class="mt-1 text-sm text-[var(--workspace-muted)]"
-                >
-                    Saved site changes are not published yet.
-                </p>
-                <p v-else class="mt-1 text-sm text-[var(--workspace-muted)]">
-                    Site published
-                    {{ new Date(props.site.published_at).toLocaleString() }}.
-                </p>
-                <a
-                    v-if="props.selected_page.published_url"
-                    :href="props.selected_page.published_url"
-                    target="_blank"
-                    rel="noreferrer"
-                    class="mt-2 inline-flex min-h-10 items-center rounded-lg border border-[var(--workspace-line)] px-3 text-sm font-semibold text-[var(--workspace-green)] underline underline-offset-2 focus:ring-2 focus:ring-[var(--workspace-green)] focus:outline-none"
-                >
-                    View published page
-                    <span class="sr-only"> (opens in a new tab)</span>
-                </a>
-                <p class="mt-2 text-sm text-[var(--workspace-muted)]">
-                    Publish includes all saved pages and shared site settings.
-                    Save or discard your pending edits first.
-                </p>
-                <Link
-                    v-if="!props.site.slug"
-                    :href="`/sites/${props.site.id}`"
-                    class="mt-2 inline-block font-semibold text-[var(--workspace-green)] underline"
-                    >Set your shareable address in site settings</Link
-                >
-                <p
-                    v-if="hasUnsavedEditorChanges"
-                    role="status"
-                    class="mt-1 text-sm text-amber-700 dark:text-amber-300"
-                >
-                    Save your pending editor changes before publishing.
-                </p>
-                <p
-                    v-if="publishError"
-                    role="alert"
-                    class="mt-1 text-sm text-red-700 dark:text-red-300"
-                >
-                    {{ publishError }}
-                </p>
-                <p
-                    v-if="publishStatus"
-                    role="status"
-                    aria-live="polite"
-                    class="mt-1 text-sm text-[var(--workspace-green)]"
-                >
-                    {{ publishStatus }}
-                </p>
+                    <div>
+                        <div class="flex flex-wrap gap-3 lg:justify-end">
+                            <button
+                                type="button"
+                                :disabled="
+                                    editorWriteInProgress ||
+                                    hasUnsavedEditorChanges
+                                "
+                                class="min-h-11 rounded-lg bg-[var(--workspace-green)] px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 dark:text-[var(--workspace-surface)]"
+                                @click="publishSite"
+                            >
+                                {{
+                                    publishForm.processing
+                                        ? 'Publishing…'
+                                        : 'Publish site'
+                                }}
+                            </button>
+                            <a
+                                v-if="
+                                    props.site.published_at &&
+                                    props.selected_page.published_url
+                                "
+                                :href="props.selected_page.published_url"
+                                target="_blank"
+                                rel="noreferrer"
+                                class="inline-flex min-h-11 items-center rounded-lg border border-[var(--workspace-line)] px-3 text-sm font-semibold text-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)] focus:outline-none"
+                            >
+                                View page
+                                <span aria-hidden="true" class="ms-2">→</span>
+                                <span class="sr-only">
+                                    (opens in a new tab)</span
+                                >
+                            </a>
+                        </div>
+                        <p
+                            v-if="publishError"
+                            role="alert"
+                            class="mt-1 text-sm text-red-700 dark:text-red-300"
+                        >
+                            {{ publishError }}
+                        </p>
+                        <p
+                            v-if="publishStatus"
+                            role="status"
+                            aria-live="polite"
+                            class="mt-1 text-sm text-[var(--workspace-green)]"
+                        >
+                            {{ publishStatus }}
+                        </p>
+                    </div>
+                </section>
             </div>
-            <button
-                type="button"
-                :disabled="editorWriteInProgress || hasUnsavedEditorChanges"
-                class="mt-4 min-h-11 rounded-lg bg-[var(--workspace-green)] px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:mt-0 dark:text-[var(--workspace-surface)]"
-                @click="publishSite"
-            >
-                {{ publishForm.processing ? 'Publishing…' : 'Publish site' }}
-            </button>
-        </section>
+        </header>
 
         <PageSettings
             :key="props.selected_page.id"
@@ -1652,7 +1769,11 @@ defineOptions({
                         >Private workspace</span
                     >
                 </div>
-                <div class="site-preview" :data-theme="props.site.theme_key">
+                <div
+                    ref="previewRoot"
+                    class="site-preview"
+                    :data-theme="props.site.theme_key"
+                >
                     <header
                         ref="previewHeader"
                         class="border-b border-[var(--site-preview-border)] px-6 py-7 sm:px-10"
@@ -1810,60 +1931,132 @@ defineOptions({
                             :key="block.id"
                             :id="`block-${block.id}`"
                             class="border-b border-[var(--site-preview-border)] px-6 py-12 last:border-b-0 sm:px-10"
+                            :data-height="
+                                block.type === 'hero'
+                                    ? (contentFor(block).style?.height ??
+                                      'current')
+                                    : undefined
+                            "
+                            :data-overlay="
+                                block.type === 'hero'
+                                    ? (contentFor(block).style?.overlay ??
+                                      'medium')
+                                    : undefined
+                            "
+                            :data-motion="
+                                block.type === 'hero'
+                                    ? (contentFor(block).style?.motion ??
+                                      'normal')
+                                    : undefined
+                            "
+                            :data-has-image="
+                                block.type === 'hero' && heroHasImage(block)
+                                    ? 'true'
+                                    : undefined
+                            "
                             :class="[
                                 blockIsCentered(block) ? 'text-center' : '',
                                 blockBackgroundClass(block),
+                                block.type === 'hero' ? 'site-hero' : '',
                             ]"
                         >
                             <template v-if="block.type === 'hero'">
-                                <p
-                                    class="text-xs font-bold tracking-[0.14em] text-[var(--site-preview-accent)] uppercase"
-                                >
-                                    Welcome
-                                </p>
-                                <h3
-                                    class="mt-4 max-w-xl font-serif text-4xl leading-tight sm:text-5xl"
-                                    :class="
-                                        blockIsCentered(block) ? 'mx-auto' : ''
+                                <img
+                                    v-if="heroHasImage(block)"
+                                    :src="blockMediaUrl(block) ?? undefined"
+                                    alt=""
+                                    class="site-hero-image"
+                                    @error="
+                                        failedHeroImages[block.id] =
+                                            blockMediaUrl(block) ?? ''
                                     "
-                                >
-                                    {{
-                                        previewHeading(
-                                            block,
-                                            'Welcome to our church',
-                                        )
-                                    }}
-                                </h3>
-                                <p
-                                    class="mt-5 max-w-prose whitespace-pre-line text-[var(--site-preview-muted)]"
-                                    :class="
-                                        blockIsCentered(block) ? 'mx-auto' : ''
-                                    "
-                                >
-                                    {{
-                                        contentFor(block).body ||
-                                        'Share a warm invitation with your visitors.'
-                                    }}
-                                </p>
-                                <a
-                                    v-if="heroHref(block)"
-                                    :href="heroHref(block) ?? undefined"
-                                    :target="
-                                        contentFor(block).link_type ===
-                                        'external'
-                                            ? '_blank'
-                                            : undefined
-                                    "
-                                    :rel="
-                                        contentFor(block).link_type ===
-                                        'external'
-                                            ? 'noopener noreferrer'
-                                            : undefined
-                                    "
-                                    class="mt-7 inline-flex min-h-11 items-center rounded-lg bg-[var(--site-preview-action)] px-5 py-2 text-sm font-semibold text-[var(--site-preview-action-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]"
-                                >
-                                    {{ contentFor(block).button_label }}
-                                </a>
+                                />
+                                <div class="site-hero-content">
+                                    <p
+                                        v-if="
+                                            (contentFor(block).welcome_label ??
+                                                'Welcome') !== ''
+                                        "
+                                        class="text-xs font-bold tracking-[0.14em] text-[var(--site-preview-accent)] uppercase"
+                                    >
+                                        {{
+                                            contentFor(block).welcome_label ??
+                                            'Welcome'
+                                        }}
+                                    </p>
+                                    <h3
+                                        class="mt-4 max-w-xl font-serif text-4xl leading-tight sm:text-5xl"
+                                        :class="
+                                            blockIsCentered(block)
+                                                ? 'mx-auto'
+                                                : ''
+                                        "
+                                    >
+                                        {{
+                                            previewHeading(
+                                                block,
+                                                'Welcome to our church',
+                                            )
+                                        }}
+                                    </h3>
+                                    <p
+                                        v-if="contentFor(block).body"
+                                        class="mt-5 max-w-prose whitespace-pre-line text-[var(--site-preview-muted)]"
+                                        :class="
+                                            blockIsCentered(block)
+                                                ? 'mx-auto'
+                                                : ''
+                                        "
+                                    >
+                                        {{ contentFor(block).body }}
+                                    </p>
+                                    <template
+                                        v-for="secondary in [false, true]"
+                                        :key="String(secondary)"
+                                    >
+                                        <component
+                                            :is="
+                                                heroLinkType(
+                                                    block,
+                                                    secondary,
+                                                ) === 'page'
+                                                    ? Link
+                                                    : 'a'
+                                            "
+                                            v-if="heroHref(block, secondary)"
+                                            :href="
+                                                heroHref(block, secondary) ??
+                                                undefined
+                                            "
+                                            class="site-hero-button mt-7 inline-flex min-h-11 items-center rounded-lg bg-[var(--site-preview-action)] px-5 py-2 text-sm font-semibold text-[var(--site-preview-action-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]"
+                                            :class="secondary ? 'ms-3' : ''"
+                                            :target="
+                                                heroLinkType(
+                                                    block,
+                                                    secondary,
+                                                ) === 'external'
+                                                    ? '_blank'
+                                                    : undefined
+                                            "
+                                            :rel="
+                                                heroLinkType(
+                                                    block,
+                                                    secondary,
+                                                ) === 'external'
+                                                    ? 'noopener noreferrer'
+                                                    : undefined
+                                            "
+                                            >{{
+                                                secondary
+                                                    ? contentFor(block)
+                                                          .secondary_button
+                                                          ?.button_label
+                                                    : contentFor(block)
+                                                          .button_label
+                                            }}</component
+                                        >
+                                    </template>
+                                </div>
                             </template>
                             <template v-else-if="block.type === 'about'">
                                 <p
@@ -2155,6 +2348,7 @@ defineOptions({
             </section>
 
             <aside
+                ref="blockEditor"
                 aria-labelledby="block-details-heading"
                 class="rounded-[1.25rem] border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-5 shadow-[var(--workspace-shadow)] lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:overscroll-contain"
             >
@@ -2174,864 +2368,763 @@ defineOptions({
                     <p class="mt-3 text-sm text-[var(--workspace-muted)]">
                         Edit the fields below, then save your changes.
                     </p>
-                    <section
-                        v-if="
-                            ['image', 'text_image'].includes(selectedBlock.type)
-                        "
-                        aria-labelledby="block-image-heading"
-                        class="mt-6 space-y-4 border-t border-[var(--workspace-line)] pt-5"
-                    >
-                        <h3
-                            id="block-image-heading"
-                            class="text-sm font-semibold"
-                        >
-                            Image
-                        </h3>
-                        <div>
-                            <label
-                                for="block-image-file"
-                                class="mb-2 block text-sm font-semibold"
-                            >
-                                {{
-                                    selectedBlock.content.media_asset_id
-                                        ? 'Replace image'
-                                        : 'Choose image'
-                                }}
-                            </label>
-                            <input
-                                id="block-image-file"
-                                ref="imageInput"
-                                type="file"
-                                accept=".jpg,.jpeg,.png,image/jpeg,image/png"
-                                :disabled="
-                                    editorWriteInProgress ||
-                                    imageUploadForm.processing ||
-                                    altTextForm.processing
-                                "
-                                :aria-invalid="
-                                    Boolean(
-                                        imageUploadError ||
-                                        imageUploadForm.errors.image,
-                                    )
-                                "
-                                :aria-describedby="
-                                    imageUploadError ||
-                                    imageUploadForm.errors.image
-                                        ? 'block-image-error'
-                                        : 'block-image-help'
-                                "
-                                class="block min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-2 text-sm text-[var(--workspace-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-60"
-                                @change="selectImageFile"
-                            />
-                            <p
-                                id="block-image-help"
-                                class="mt-2 text-xs text-[var(--workspace-muted)]"
-                            >
-                                JPEG or PNG, up to 5 MB. Uploading replaces the
-                                saved image.
-                            </p>
-                            <p
-                                v-if="
-                                    imageUploadError ||
-                                    imageUploadForm.errors.image
-                                "
-                                id="block-image-error"
-                                role="alert"
-                                class="mt-2 text-sm text-red-700 dark:text-red-300"
-                            >
-                                {{
-                                    imageUploadError ||
-                                    imageUploadForm.errors.image
-                                }}
-                            </p>
-                        </div>
-                        <p
-                            v-if="
-                                imageUploadForm.processing &&
-                                imageUploadForm.progress
-                            "
-                            role="status"
-                            aria-live="polite"
-                            class="text-sm text-[var(--workspace-muted)]"
-                        >
-                            Uploading image:
-                            {{ imageUploadForm.progress.percentage }}%
-                        </p>
-                        <p
-                            v-else-if="imageUploadStatus"
-                            role="status"
-                            aria-live="polite"
-                            class="text-sm text-[var(--workspace-muted)]"
-                        >
-                            {{ imageUploadStatus }}
-                        </p>
-                        <div>
-                            <label
-                                for="block-image-alt-text"
-                                class="mb-2 block text-sm font-semibold"
-                            >
-                                Image description (alt text)
-                            </label>
-                            <input
-                                id="block-image-alt-text"
-                                ref="altTextInput"
-                                v-model="draftAltText"
-                                type="text"
-                                maxlength="255"
-                                placeholder="Describe the image, or leave blank if decorative"
-                                :disabled="
-                                    uploadInProgress ||
-                                    imageUploadForm.processing ||
-                                    altTextForm.processing
-                                "
-                                :aria-invalid="
-                                    Boolean(
-                                        altTextError ||
-                                        altTextForm.errors.alt_text ||
-                                        imageUploadForm.errors.alt_text,
-                                    )
-                                "
-                                :aria-describedby="
-                                    altTextError ||
-                                    altTextForm.errors.alt_text ||
-                                    imageUploadForm.errors.alt_text
-                                        ? 'block-image-alt-error'
-                                        : undefined
-                                "
-                                class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
-                                @input="clearAltTextFeedback"
-                            />
-                            <p
-                                v-if="
-                                    altTextError ||
-                                    altTextForm.errors.alt_text ||
-                                    imageUploadForm.errors.alt_text
-                                "
-                                id="block-image-alt-error"
-                                role="alert"
-                                class="mt-2 text-sm text-red-700 dark:text-red-300"
-                            >
-                                {{
-                                    altTextError ||
-                                    altTextForm.errors.alt_text ||
-                                    imageUploadForm.errors.alt_text
-                                }}
-                            </p>
-                        </div>
-                        <div class="flex flex-wrap gap-2">
-                            <button
-                                v-if="selectedBlock.content.media_asset_id"
-                                type="button"
-                                :disabled="
-                                    uploadInProgress ||
-                                    !isAltTextDirty ||
-                                    altTextForm.processing ||
-                                    imageUploadForm.processing ||
-                                    clearImagePending
-                                "
-                                class="min-h-10 rounded-lg border border-[var(--workspace-line)] px-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-50"
-                                @click="saveAltText"
-                            >
-                                {{
-                                    altTextForm.processing
-                                        ? 'Saving description…'
-                                        : 'Save description'
-                                }}
-                            </button>
-                            <button
-                                v-if="selectedBlock.content.media_asset_id"
-                                type="button"
-                                :disabled="
-                                    uploadInProgress ||
-                                    (isAltTextDirty && !clearImagePending) ||
-                                    imageUploadForm.processing ||
-                                    altTextForm.processing
-                                "
-                                aria-describedby="block-image-clear-help"
-                                class="min-h-10 rounded-lg border border-red-300 px-3 text-sm font-semibold text-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:opacity-50 dark:text-red-300"
-                                @click="requestClearBlockImage"
-                            >
-                                {{
-                                    clearImagePending
-                                        ? 'Undo clear'
-                                        : 'Clear image'
-                                }}
-                            </button>
-                        </div>
-                        <p
-                            v-if="selectedBlock.content.media_asset_id"
-                            id="block-image-clear-help"
-                            class="text-xs text-[var(--workspace-muted)]"
-                        >
-                            <template v-if="clearImagePending">
-                                Save the block to clear this image, or undo the
-                                clear to keep it. You can also choose a
-                                replacement image now.
-                            </template>
-                            <template v-else>
-                                Save a changed description before clearing the
-                                image. Clear image takes effect when you save
-                                the block.
-                            </template>
-                        </p>
-                        <p
-                            v-if="altTextStatus"
-                            role="status"
-                            aria-live="polite"
-                            class="text-sm text-[var(--workspace-muted)]"
-                        >
-                            {{ altTextStatus }}
-                        </p>
-                    </section>
                     <form
                         class="mt-6 space-y-5 border-t border-[var(--workspace-line)] pt-5"
                         @submit.prevent="saveBlock"
+                        @invalid.capture="revealInvalidField"
                     >
-                        <fieldset
-                            class="space-y-4 rounded-xl bg-[var(--workspace-soft)] p-4"
+                        <details
+                            :key="'content-' + selectedBlock.id"
+                            class="block-editor-section"
+                            open
                         >
-                            <legend class="px-1 text-sm font-semibold">
-                                Block appearance
-                            </legend>
-                            <p
-                                v-if="saveForm.errors['content.style']"
-                                role="alert"
-                                class="text-sm text-red-700 dark:text-red-300"
-                            >
-                                {{ saveForm.errors['content.style'] }}
-                            </p>
-                            <div v-if="selectedBlock.type === 'text_image'">
-                                <label
-                                    for="block-layout"
-                                    class="mb-2 block text-sm font-semibold"
-                                    >Image placement</label
-                                >
-                                <select
-                                    id="block-layout"
-                                    ref="blockLayoutInput"
-                                    v-model="draftBlockStyle.layout"
-                                    :disabled="
-                                        uploadInProgress ||
-                                        saveForm.processing ||
-                                        addForm.processing ||
-                                        deleteForm.processing ||
-                                        orderForm.processing ||
-                                        imageUploadForm.processing ||
-                                        altTextForm.processing
+                            <summary>Content</summary>
+                            <div class="space-y-5 pt-4">
+                                <HeroOptions
+                                    v-if="selectedBlock.type === 'hero'"
+                                    section="content"
+                                    v-model="draftHero"
+                                    :primary-type="draftLinkType"
+                                    :pages="props.navigation_pages"
+                                    :sections="
+                                        props.blocks
+                                            .filter(
+                                                (item) =>
+                                                    item.id !==
+                                                    selectedBlock?.id,
+                                            )
+                                            .map((item) => ({
+                                                id: item.id,
+                                                name: `${item.position + 1}. ${labelFor(item.type)}`,
+                                            }))
                                     "
-                                    :aria-invalid="
-                                        Boolean(
-                                            saveForm.errors[
-                                                'content.style.layout'
-                                            ],
-                                        )
-                                    "
-                                    :aria-describedby="
-                                        saveForm.errors['content.style.layout']
-                                            ? 'block-layout-error'
-                                            : undefined
-                                    "
-                                    class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                    :disabled="editorWriteInProgress"
+                                    :errors="saveForm.errors"
                                     @change="clearContentError"
-                                >
-                                    <option value="image_right">
-                                        Image on the right
-                                    </option>
-                                    <option value="image_left">
-                                        Image on the left
-                                    </option>
-                                </select>
-                                <p
-                                    v-if="
-                                        saveForm.errors['content.style.layout']
-                                    "
-                                    id="block-layout-error"
-                                    role="alert"
-                                    class="mt-2 text-sm text-red-700 dark:text-red-300"
-                                >
-                                    {{
-                                        saveForm.errors['content.style.layout']
-                                    }}
-                                </p>
-                            </div>
-                            <div>
-                                <label
-                                    for="block-alignment"
-                                    class="mb-2 block text-sm font-semibold"
-                                    >Content alignment</label
-                                >
-                                <select
-                                    id="block-alignment"
-                                    ref="blockAlignmentInput"
-                                    v-model="draftBlockStyle.alignment"
-                                    :disabled="
-                                        uploadInProgress ||
-                                        saveForm.processing ||
-                                        addForm.processing ||
-                                        deleteForm.processing ||
-                                        orderForm.processing ||
-                                        imageUploadForm.processing ||
-                                        altTextForm.processing
-                                    "
-                                    :aria-invalid="
-                                        Boolean(
-                                            saveForm.errors[
-                                                'content.style.alignment'
-                                            ],
-                                        )
-                                    "
-                                    :aria-describedby="
-                                        saveForm.errors[
-                                            'content.style.alignment'
-                                        ]
-                                            ? 'block-alignment-error'
-                                            : undefined
-                                    "
-                                    class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
-                                    @change="clearContentError"
-                                >
-                                    <option value="left">Left</option>
-                                    <option value="center">Center</option>
-                                </select>
-                                <p
-                                    v-if="
-                                        saveForm.errors[
-                                            'content.style.alignment'
-                                        ]
-                                    "
-                                    id="block-alignment-error"
-                                    role="alert"
-                                    class="mt-2 text-sm text-red-700 dark:text-red-300"
-                                >
-                                    {{
-                                        saveForm.errors[
-                                            'content.style.alignment'
-                                        ]
-                                    }}
-                                </p>
-                            </div>
-                            <div>
-                                <label
-                                    for="block-background"
-                                    class="mb-2 block text-sm font-semibold"
-                                    >Background</label
-                                >
-                                <select
-                                    id="block-background"
-                                    ref="blockBackgroundInput"
-                                    v-model="draftBlockStyle.background"
-                                    :disabled="
-                                        uploadInProgress ||
-                                        saveForm.processing ||
-                                        addForm.processing ||
-                                        deleteForm.processing ||
-                                        orderForm.processing ||
-                                        imageUploadForm.processing ||
-                                        altTextForm.processing
-                                    "
-                                    :aria-invalid="
-                                        Boolean(
-                                            saveForm.errors[
-                                                'content.style.background'
-                                            ],
-                                        )
-                                    "
-                                    :aria-describedby="
-                                        saveForm.errors[
-                                            'content.style.background'
-                                        ]
-                                            ? 'block-background-error'
-                                            : undefined
-                                    "
-                                    class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
-                                    @change="clearContentError"
-                                >
-                                    <option value="theme">
-                                        Theme background
-                                    </option>
-                                    <option value="soft">Soft contrast</option>
-                                </select>
-                                <p
-                                    v-if="
-                                        saveForm.errors[
-                                            'content.style.background'
-                                        ]
-                                    "
-                                    id="block-background-error"
-                                    role="alert"
-                                    class="mt-2 text-sm text-red-700 dark:text-red-300"
-                                >
-                                    {{
-                                        saveForm.errors[
-                                            'content.style.background'
-                                        ]
-                                    }}
-                                </p>
-                            </div>
-                        </fieldset>
-                        <div
-                            v-if="
-                                selectedBlock.type !== 'plain_text' &&
-                                selectedBlock.type !== 'image' &&
-                                selectedBlock.type !== 'video'
-                            "
-                        >
-                            <label
-                                for="block-heading"
-                                class="mb-2 block text-sm font-semibold"
-                                >Heading</label
-                            >
-                            <input
-                                id="block-heading"
-                                ref="headingInput"
-                                v-model="draftHeading"
-                                type="text"
-                                :disabled="
-                                    uploadInProgress ||
-                                    saveForm.processing ||
-                                    addForm.processing ||
-                                    deleteForm.processing ||
-                                    orderForm.processing ||
-                                    imageUploadForm.processing ||
-                                    altTextForm.processing
-                                "
-                                :aria-invalid="
-                                    Boolean(saveForm.errors['content.heading'])
-                                "
-                                :aria-describedby="
-                                    saveForm.errors['content.heading']
-                                        ? 'block-heading-error'
-                                        : undefined
-                                "
-                                class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
-                                @input="clearContentError"
-                            />
-                            <p
-                                v-if="saveForm.errors['content.heading']"
-                                id="block-heading-error"
-                                role="alert"
-                                class="mt-2 text-sm text-red-700 dark:text-red-300"
-                            >
-                                {{ saveForm.errors['content.heading'] }}
-                            </p>
-                        </div>
-                        <div
-                            v-if="
-                                selectedBlock.type !== 'service_times' &&
-                                selectedBlock.type !== 'contact' &&
-                                selectedBlock.type !== 'image' &&
-                                selectedBlock.type !== 'video'
-                            "
-                        >
-                            <label
-                                for="block-body"
-                                class="mb-2 block text-sm font-semibold"
-                                >Text</label
-                            >
-                            <textarea
-                                id="block-body"
-                                ref="bodyInput"
-                                v-model="draftBody"
-                                rows="8"
-                                :disabled="
-                                    uploadInProgress ||
-                                    saveForm.processing ||
-                                    addForm.processing ||
-                                    deleteForm.processing ||
-                                    orderForm.processing
-                                "
-                                :aria-invalid="
-                                    Boolean(saveForm.errors['content.body'])
-                                "
-                                :aria-describedby="
-                                    saveForm.errors['content.body']
-                                        ? 'block-body-error'
-                                        : undefined
-                                "
-                                class="min-h-40 w-full resize-y rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
-                                @input="clearContentError"
-                            />
-                            <p
-                                v-if="saveForm.errors['content.body']"
-                                id="block-body-error"
-                                role="alert"
-                                class="mt-2 text-sm text-red-700 dark:text-red-300"
-                            >
-                                {{ saveForm.errors['content.body'] }}
-                            </p>
-                        </div>
-                        <div v-if="selectedBlock.type === 'video'">
-                            <label
-                                for="video-url"
-                                class="mb-2 block text-sm font-semibold"
-                                >Video URL</label
-                            >
-                            <input
-                                id="video-url"
-                                ref="videoUrlInput"
-                                v-model="draftVideoUrl"
-                                type="text"
-                                inputmode="url"
-                                autocomplete="url"
-                                placeholder="https://www.youtube.com/watch?v=…"
-                                :disabled="
-                                    uploadInProgress ||
-                                    saveForm.processing ||
-                                    addForm.processing ||
-                                    deleteForm.processing ||
-                                    orderForm.processing
-                                "
-                                :aria-invalid="
-                                    Boolean(saveForm.errors['content.url'])
-                                "
-                                :aria-describedby="
-                                    saveForm.errors['content.url']
-                                        ? 'video-url-error'
-                                        : 'video-url-help'
-                                "
-                                class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
-                                @input="clearContentError"
-                            />
-                            <p
-                                id="video-url-help"
-                                class="mt-2 text-sm text-[var(--workspace-muted)]"
-                            >
-                                Paste an HTTPS link to one YouTube or Vimeo
-                                video.
-                            </p>
-                            <p
-                                v-if="saveForm.errors['content.url']"
-                                id="video-url-error"
-                                role="alert"
-                                class="mt-2 text-sm text-red-700 dark:text-red-300"
-                            >
-                                {{ saveForm.errors['content.url'] }}
-                            </p>
-                        </div>
-                        <template v-if="selectedBlock.type === 'hero'">
-                            <div
-                                class="border-t border-[var(--workspace-line)] pt-5"
-                            >
-                                <label
-                                    for="hero-link-type"
-                                    class="mb-2 block text-sm font-semibold"
-                                    >Button link</label
-                                >
-                                <select
-                                    id="hero-link-type"
-                                    ref="linkTypeInput"
-                                    v-model="draftLinkType"
-                                    :disabled="
-                                        uploadInProgress ||
-                                        saveForm.processing ||
-                                        addForm.processing ||
-                                        deleteForm.processing ||
-                                        orderForm.processing
-                                    "
-                                    :aria-invalid="
-                                        Boolean(
-                                            saveForm.errors[
-                                                'content.link_type'
-                                            ],
-                                        )
-                                    "
-                                    :aria-describedby="
-                                        saveForm.errors['content.link_type']
-                                            ? 'hero-link-type-error'
-                                            : undefined
-                                    "
-                                    class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 focus:outline-none disabled:opacity-60"
-                                    @change="changeHeroLinkType"
-                                >
-                                    <option value="none">No button</option>
-                                    <option value="section">
-                                        A section on this page
-                                    </option>
-                                    <option value="external">
-                                        An external website
-                                    </option>
-                                </select>
-                                <p
-                                    v-if="saveForm.errors['content.link_type']"
-                                    id="hero-link-type-error"
-                                    role="alert"
-                                    class="mt-2 text-sm text-red-700 dark:text-red-300"
-                                >
-                                    {{ saveForm.errors['content.link_type'] }}
-                                </p>
-                            </div>
-                            <div v-if="draftLinkType !== 'none'">
-                                <label
-                                    for="hero-button-label"
-                                    class="mb-2 block text-sm font-semibold"
-                                    >Button text</label
-                                >
-                                <input
-                                    id="hero-button-label"
-                                    ref="buttonLabelInput"
-                                    v-model="draftButtonLabel"
-                                    type="text"
-                                    :disabled="
-                                        uploadInProgress ||
-                                        saveForm.processing ||
-                                        addForm.processing ||
-                                        deleteForm.processing ||
-                                        orderForm.processing
-                                    "
-                                    :aria-invalid="
-                                        Boolean(
-                                            saveForm.errors[
-                                                'content.button_label'
-                                            ],
-                                        )
-                                    "
-                                    :aria-describedby="
-                                        saveForm.errors['content.button_label']
-                                            ? 'hero-button-label-error'
-                                            : undefined
-                                    "
-                                    class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
-                                    @input="clearContentError"
                                 />
-                                <p
+                                <section
                                     v-if="
-                                        saveForm.errors['content.button_label']
-                                    "
-                                    id="hero-button-label-error"
-                                    role="alert"
-                                    class="mt-2 text-sm text-red-700 dark:text-red-300"
-                                >
-                                    {{
-                                        saveForm.errors['content.button_label']
-                                    }}
-                                </p>
-                            </div>
-                            <div v-if="draftLinkType === 'section'">
-                                <label
-                                    for="hero-section-target"
-                                    class="mb-2 block text-sm font-semibold"
-                                    >Link to block</label
-                                >
-                                <select
-                                    id="hero-section-target"
-                                    ref="targetBlockInput"
-                                    v-model.number="draftTargetBlockId"
-                                    :disabled="
-                                        uploadInProgress ||
-                                        saveForm.processing ||
-                                        addForm.processing ||
-                                        deleteForm.processing ||
-                                        orderForm.processing
-                                    "
-                                    :aria-invalid="
-                                        Boolean(
-                                            saveForm.errors[
-                                                'content.target_block_id'
-                                            ],
+                                        ['image', 'text_image'].includes(
+                                            selectedBlock.type,
                                         )
                                     "
-                                    :aria-describedby="
-                                        saveForm.errors[
-                                            'content.target_block_id'
-                                        ]
-                                            ? 'hero-section-target-error'
-                                            : undefined
-                                    "
-                                    class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 focus:outline-none disabled:opacity-60"
-                                    @change="clearContentError"
+                                    aria-labelledby="block-image-heading"
+                                    class="mt-6 space-y-4 border-t border-[var(--workspace-line)] pt-5"
                                 >
-                                    <option :value="null">
-                                        Choose a block
-                                    </option>
-                                    <option
-                                        v-for="target in props.blocks.filter(
-                                            (item) =>
-                                                item.id !== selectedBlock?.id,
-                                        )"
-                                        :key="target.id"
-                                        :value="target.id"
+                                    <h3
+                                        id="block-image-heading"
+                                        class="text-sm font-semibold"
                                     >
-                                        {{ target.position + 1 }}.
-                                        {{ labelFor(target.type) }}
-                                    </option>
-                                </select>
-                                <p
-                                    v-if="props.blocks.length === 1"
-                                    class="mt-2 text-xs text-[var(--workspace-muted)]"
-                                >
-                                    Add another block to link to a section.
-                                </p>
-                                <p
-                                    v-if="
-                                        saveForm.errors[
-                                            'content.target_block_id'
-                                        ]
-                                    "
-                                    id="hero-section-target-error"
-                                    role="alert"
-                                    class="mt-2 text-sm text-red-700 dark:text-red-300"
-                                >
-                                    {{
-                                        saveForm.errors[
-                                            'content.target_block_id'
-                                        ]
-                                    }}
-                                </p>
-                            </div>
-                            <div v-if="draftLinkType === 'external'">
-                                <label
-                                    for="hero-external-url"
-                                    class="mb-2 block text-sm font-semibold"
-                                    >Website URL</label
-                                >
-                                <input
-                                    id="hero-external-url"
-                                    ref="externalUrlInput"
-                                    v-model="draftExternalUrl"
-                                    type="url"
-                                    inputmode="url"
-                                    placeholder="https://example.org"
-                                    :disabled="
-                                        uploadInProgress ||
-                                        saveForm.processing ||
-                                        addForm.processing ||
-                                        deleteForm.processing ||
-                                        orderForm.processing
-                                    "
-                                    :aria-invalid="
-                                        Boolean(
-                                            saveForm.errors[
-                                                'content.external_url'
-                                            ],
-                                        )
-                                    "
-                                    :aria-describedby="
-                                        saveForm.errors['content.external_url']
-                                            ? 'hero-external-url-error'
-                                            : undefined
-                                    "
-                                    class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
-                                    @input="clearContentError"
-                                />
-                                <p
-                                    v-if="
-                                        saveForm.errors['content.external_url']
-                                    "
-                                    id="hero-external-url-error"
-                                    role="alert"
-                                    class="mt-2 text-sm text-red-700 dark:text-red-300"
-                                >
-                                    {{
-                                        saveForm.errors['content.external_url']
-                                    }}
-                                </p>
-                            </div>
-                        </template>
-                        <div
-                            v-if="selectedBlock.type === 'service_times'"
-                            class="border-t border-[var(--workspace-line)] pt-5"
-                        >
-                            <h3 class="text-sm font-semibold">
-                                Weekly gatherings
-                            </h3>
-                            <p
-                                class="mt-1 text-xs text-[var(--workspace-muted)]"
-                            >
-                                Times are local to your church. Add them in the
-                                order you want visitors to see.
-                            </p>
-                            <p
-                                v-if="!draftEntries.length"
-                                class="mt-4 text-sm text-[var(--workspace-muted)]"
-                            >
-                                No times yet. Add a weekly gathering below.
-                            </p>
-                            <ol v-else class="mt-4 space-y-4">
-                                <li
-                                    v-for="(entry, index) in draftEntries"
-                                    :key="index"
-                                    class="space-y-3 rounded-lg border border-[var(--workspace-line)] p-3"
-                                >
-                                    <div
-                                        class="flex items-center justify-between gap-2"
-                                    >
-                                        <span class="text-sm font-semibold"
-                                            >Gathering {{ index + 1 }}</span
+                                        Image
+                                    </h3>
+                                    <div>
+                                        <label
+                                            for="block-image-file"
+                                            class="mb-2 block text-sm font-semibold"
                                         >
-                                        <div class="flex gap-1">
-                                            <button
-                                                type="button"
-                                                :aria-label="`Move gathering ${index + 1} up`"
-                                                :disabled="
-                                                    uploadInProgress ||
-                                                    index === 0 ||
-                                                    saveForm.processing ||
-                                                    addForm.processing ||
-                                                    deleteForm.processing ||
-                                                    orderForm.processing
-                                                "
-                                                class="grid size-9 place-items-center rounded-md border border-[var(--workspace-line)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-40"
-                                                @click="
-                                                    moveServiceTime(index, -1)
-                                                "
-                                            >
-                                                ↑
-                                            </button>
-                                            <button
-                                                type="button"
-                                                :aria-label="`Move gathering ${index + 1} down`"
-                                                :disabled="
-                                                    uploadInProgress ||
-                                                    index ===
-                                                        draftEntries.length -
-                                                            1 ||
-                                                    saveForm.processing ||
-                                                    addForm.processing ||
-                                                    deleteForm.processing ||
-                                                    orderForm.processing
-                                                "
-                                                class="grid size-9 place-items-center rounded-md border border-[var(--workspace-line)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-40"
-                                                @click="
-                                                    moveServiceTime(index, 1)
-                                                "
-                                            >
-                                                ↓
-                                            </button>
-                                            <button
-                                                type="button"
-                                                :aria-label="`Remove gathering ${index + 1}`"
-                                                :disabled="
-                                                    uploadInProgress ||
-                                                    saveForm.processing ||
-                                                    addForm.processing ||
-                                                    deleteForm.processing ||
-                                                    orderForm.processing
-                                                "
-                                                class="min-h-9 rounded-md border border-red-300 px-2 text-xs font-semibold text-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:opacity-40 dark:text-red-300"
-                                                @click="
-                                                    removeServiceTime(index)
-                                                "
-                                            >
-                                                Remove
-                                            </button>
-                                        </div>
+                                            {{
+                                                selectedBlock.content
+                                                    .media_asset_id
+                                                    ? 'Replace image'
+                                                    : 'Choose image'
+                                            }}
+                                        </label>
+                                        <input
+                                            id="block-image-file"
+                                            ref="imageInput"
+                                            type="file"
+                                            accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                                            :disabled="
+                                                editorWriteInProgress ||
+                                                imageUploadForm.processing ||
+                                                altTextForm.processing
+                                            "
+                                            :aria-invalid="
+                                                Boolean(
+                                                    imageUploadError ||
+                                                    imageUploadForm.errors
+                                                        .image ||
+                                                    saveForm.errors[
+                                                        'content.media_asset_id'
+                                                    ],
+                                                )
+                                            "
+                                            :aria-describedby="
+                                                imageUploadError ||
+                                                imageUploadForm.errors.image ||
+                                                saveForm.errors[
+                                                    'content.media_asset_id'
+                                                ]
+                                                    ? 'block-image-error'
+                                                    : 'block-image-help'
+                                            "
+                                            class="block min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-2 text-sm text-[var(--workspace-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-60"
+                                            @change="selectImageFile"
+                                        />
+                                        <p
+                                            id="block-image-help"
+                                            class="mt-2 text-xs text-[var(--workspace-muted)]"
+                                        >
+                                            JPEG or PNG, up to 5 MB. Uploading
+                                            replaces the saved image.
+                                        </p>
+                                        <p
+                                            v-if="
+                                                imageUploadError ||
+                                                imageUploadForm.errors.image ||
+                                                saveForm.errors[
+                                                    'content.media_asset_id'
+                                                ]
+                                            "
+                                            id="block-image-error"
+                                            role="alert"
+                                            class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                        >
+                                            {{
+                                                imageUploadError ||
+                                                imageUploadForm.errors.image ||
+                                                saveForm.errors[
+                                                    'content.media_asset_id'
+                                                ]
+                                            }}
+                                        </p>
                                     </div>
                                     <p
-                                        v-if="entryRowError(index)"
-                                        role="alert"
-                                        class="text-sm text-red-700 dark:text-red-300"
+                                        v-if="
+                                            imageUploadForm.processing &&
+                                            imageUploadForm.progress
+                                        "
+                                        role="status"
+                                        aria-live="polite"
+                                        class="text-sm text-[var(--workspace-muted)]"
                                     >
-                                        {{ entryRowError(index) }}
+                                        Uploading image:
+                                        {{
+                                            imageUploadForm.progress.percentage
+                                        }}%
+                                    </p>
+                                    <p
+                                        v-else-if="imageUploadStatus"
+                                        role="status"
+                                        aria-live="polite"
+                                        class="text-sm text-[var(--workspace-muted)]"
+                                    >
+                                        {{ imageUploadStatus }}
                                     </p>
                                     <div>
                                         <label
-                                            :for="`service-day-${index}`"
-                                            class="mb-1 block text-sm font-semibold"
-                                            >Day</label
+                                            for="block-image-alt-text"
+                                            class="mb-2 block text-sm font-semibold"
                                         >
-                                        <select
-                                            :id="`service-day-${index}`"
-                                            v-model="entry.day"
+                                            Image description (alt text)
+                                        </label>
+                                        <input
+                                            id="block-image-alt-text"
+                                            ref="altTextInput"
+                                            v-model="draftAltText"
+                                            type="text"
+                                            maxlength="255"
+                                            placeholder="Describe the image, or leave blank if decorative"
+                                            :disabled="
+                                                uploadInProgress ||
+                                                imageUploadForm.processing ||
+                                                altTextForm.processing
+                                            "
+                                            :aria-invalid="
+                                                Boolean(
+                                                    altTextError ||
+                                                    altTextForm.errors
+                                                        .alt_text ||
+                                                    imageUploadForm.errors
+                                                        .alt_text,
+                                                )
+                                            "
+                                            :aria-describedby="
+                                                altTextError ||
+                                                altTextForm.errors.alt_text ||
+                                                imageUploadForm.errors.alt_text
+                                                    ? 'block-image-alt-error'
+                                                    : undefined
+                                            "
+                                            class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                            @input="clearAltTextFeedback"
+                                        />
+                                        <p
+                                            v-if="
+                                                altTextError ||
+                                                altTextForm.errors.alt_text ||
+                                                imageUploadForm.errors.alt_text
+                                            "
+                                            id="block-image-alt-error"
+                                            role="alert"
+                                            class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                        >
+                                            {{
+                                                altTextError ||
+                                                altTextForm.errors.alt_text ||
+                                                imageUploadForm.errors.alt_text
+                                            }}
+                                        </p>
+                                    </div>
+                                    <div class="flex flex-wrap gap-2">
+                                        <button
+                                            v-if="
+                                                selectedBlock.content
+                                                    .media_asset_id
+                                            "
+                                            type="button"
+                                            :disabled="
+                                                uploadInProgress ||
+                                                !isAltTextDirty ||
+                                                altTextForm.processing ||
+                                                imageUploadForm.processing ||
+                                                clearImagePending
+                                            "
+                                            class="min-h-10 rounded-lg border border-[var(--workspace-line)] px-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-50"
+                                            @click="saveAltText"
+                                        >
+                                            {{
+                                                altTextForm.processing
+                                                    ? 'Saving description…'
+                                                    : 'Save description'
+                                            }}
+                                        </button>
+                                        <button
+                                            v-if="
+                                                selectedBlock.content
+                                                    .media_asset_id
+                                            "
+                                            type="button"
+                                            :disabled="
+                                                uploadInProgress ||
+                                                (isAltTextDirty &&
+                                                    !clearImagePending) ||
+                                                imageUploadForm.processing ||
+                                                altTextForm.processing
+                                            "
+                                            aria-describedby="block-image-clear-help"
+                                            class="min-h-10 rounded-lg border border-red-300 px-3 text-sm font-semibold text-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:opacity-50 dark:text-red-300"
+                                            @click="requestClearBlockImage"
+                                        >
+                                            {{
+                                                clearImagePending
+                                                    ? 'Undo clear'
+                                                    : 'Clear image'
+                                            }}
+                                        </button>
+                                    </div>
+                                    <p
+                                        v-if="
+                                            selectedBlock.content.media_asset_id
+                                        "
+                                        id="block-image-clear-help"
+                                        class="text-xs text-[var(--workspace-muted)]"
+                                    >
+                                        <template v-if="clearImagePending">
+                                            Save the block to clear this image,
+                                            or undo the clear to keep it. You
+                                            can also choose a replacement image
+                                            now.
+                                        </template>
+                                        <template v-else>
+                                            Save a changed description before
+                                            clearing the image. Clear image
+                                            takes effect when you save the
+                                            block.
+                                        </template>
+                                    </p>
+                                    <p
+                                        v-if="altTextStatus"
+                                        role="status"
+                                        aria-live="polite"
+                                        class="text-sm text-[var(--workspace-muted)]"
+                                    >
+                                        {{ altTextStatus }}
+                                    </p>
+                                </section>
+                                <div
+                                    v-if="
+                                        selectedBlock.type !== 'plain_text' &&
+                                        selectedBlock.type !== 'image' &&
+                                        selectedBlock.type !== 'video'
+                                    "
+                                >
+                                    <label
+                                        for="block-heading"
+                                        class="mb-2 block text-sm font-semibold"
+                                        >Heading</label
+                                    >
+                                    <input
+                                        id="block-heading"
+                                        ref="headingInput"
+                                        v-model="draftHeading"
+                                        type="text"
+                                        :disabled="
+                                            uploadInProgress ||
+                                            saveForm.processing ||
+                                            addForm.processing ||
+                                            deleteForm.processing ||
+                                            orderForm.processing ||
+                                            imageUploadForm.processing ||
+                                            altTextForm.processing
+                                        "
+                                        :aria-invalid="
+                                            Boolean(
+                                                saveForm.errors[
+                                                    'content.heading'
+                                                ],
+                                            )
+                                        "
+                                        :aria-describedby="
+                                            saveForm.errors['content.heading']
+                                                ? 'block-heading-error'
+                                                : undefined
+                                        "
+                                        class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                        @input="clearContentError"
+                                    />
+                                    <p
+                                        v-if="
+                                            saveForm.errors['content.heading']
+                                        "
+                                        id="block-heading-error"
+                                        role="alert"
+                                        class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                    >
+                                        {{ saveForm.errors['content.heading'] }}
+                                    </p>
+                                </div>
+                                <div
+                                    v-if="
+                                        selectedBlock.type !==
+                                            'service_times' &&
+                                        selectedBlock.type !== 'contact' &&
+                                        selectedBlock.type !== 'image' &&
+                                        selectedBlock.type !== 'video'
+                                    "
+                                >
+                                    <label
+                                        for="block-body"
+                                        class="mb-2 block text-sm font-semibold"
+                                        >Text</label
+                                    >
+                                    <textarea
+                                        id="block-body"
+                                        ref="bodyInput"
+                                        v-model="draftBody"
+                                        rows="8"
+                                        :disabled="
+                                            uploadInProgress ||
+                                            saveForm.processing ||
+                                            addForm.processing ||
+                                            deleteForm.processing ||
+                                            orderForm.processing
+                                        "
+                                        :aria-invalid="
+                                            Boolean(
+                                                saveForm.errors['content.body'],
+                                            )
+                                        "
+                                        :aria-describedby="
+                                            saveForm.errors['content.body']
+                                                ? 'block-body-error'
+                                                : undefined
+                                        "
+                                        class="min-h-40 w-full resize-y rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                        @input="clearContentError"
+                                    />
+                                    <p
+                                        v-if="saveForm.errors['content.body']"
+                                        id="block-body-error"
+                                        role="alert"
+                                        class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                    >
+                                        {{ saveForm.errors['content.body'] }}
+                                    </p>
+                                </div>
+                                <div v-if="selectedBlock.type === 'video'">
+                                    <label
+                                        for="video-url"
+                                        class="mb-2 block text-sm font-semibold"
+                                        >Video URL</label
+                                    >
+                                    <input
+                                        id="video-url"
+                                        ref="videoUrlInput"
+                                        v-model="draftVideoUrl"
+                                        type="text"
+                                        inputmode="url"
+                                        autocomplete="url"
+                                        placeholder="https://www.youtube.com/watch?v=…"
+                                        :disabled="
+                                            uploadInProgress ||
+                                            saveForm.processing ||
+                                            addForm.processing ||
+                                            deleteForm.processing ||
+                                            orderForm.processing
+                                        "
+                                        :aria-invalid="
+                                            Boolean(
+                                                saveForm.errors['content.url'],
+                                            )
+                                        "
+                                        :aria-describedby="
+                                            saveForm.errors['content.url']
+                                                ? 'video-url-error'
+                                                : 'video-url-help'
+                                        "
+                                        class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                        @input="clearContentError"
+                                    />
+                                    <p
+                                        id="video-url-help"
+                                        class="mt-2 text-sm text-[var(--workspace-muted)]"
+                                    >
+                                        Paste an HTTPS link to one YouTube or
+                                        Vimeo video.
+                                    </p>
+                                    <p
+                                        v-if="saveForm.errors['content.url']"
+                                        id="video-url-error"
+                                        role="alert"
+                                        class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                    >
+                                        {{ saveForm.errors['content.url'] }}
+                                    </p>
+                                </div>
+                                <div
+                                    v-if="
+                                        selectedBlock.type === 'service_times'
+                                    "
+                                    class="border-t border-[var(--workspace-line)] pt-5"
+                                >
+                                    <h3 class="text-sm font-semibold">
+                                        Weekly gatherings
+                                    </h3>
+                                    <p
+                                        class="mt-1 text-xs text-[var(--workspace-muted)]"
+                                    >
+                                        Times are local to your church. Add them
+                                        in the order you want visitors to see.
+                                    </p>
+                                    <p
+                                        v-if="!draftEntries.length"
+                                        class="mt-4 text-sm text-[var(--workspace-muted)]"
+                                    >
+                                        No times yet. Add a weekly gathering
+                                        below.
+                                    </p>
+                                    <ol v-else class="mt-4 space-y-4">
+                                        <li
+                                            v-for="(
+                                                entry, index
+                                            ) in draftEntries"
+                                            :key="index"
+                                            class="space-y-3 rounded-lg border border-[var(--workspace-line)] p-3"
+                                        >
+                                            <div
+                                                class="flex items-center justify-between gap-2"
+                                            >
+                                                <span
+                                                    class="text-sm font-semibold"
+                                                    >Gathering
+                                                    {{ index + 1 }}</span
+                                                >
+                                                <div class="flex gap-1">
+                                                    <button
+                                                        type="button"
+                                                        :aria-label="`Move gathering ${index + 1} up`"
+                                                        :disabled="
+                                                            uploadInProgress ||
+                                                            index === 0 ||
+                                                            saveForm.processing ||
+                                                            addForm.processing ||
+                                                            deleteForm.processing ||
+                                                            orderForm.processing
+                                                        "
+                                                        class="grid size-9 place-items-center rounded-md border border-[var(--workspace-line)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-40"
+                                                        @click="
+                                                            moveServiceTime(
+                                                                index,
+                                                                -1,
+                                                            )
+                                                        "
+                                                    >
+                                                        ↑
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        :aria-label="`Move gathering ${index + 1} down`"
+                                                        :disabled="
+                                                            uploadInProgress ||
+                                                            index ===
+                                                                draftEntries.length -
+                                                                    1 ||
+                                                            saveForm.processing ||
+                                                            addForm.processing ||
+                                                            deleteForm.processing ||
+                                                            orderForm.processing
+                                                        "
+                                                        class="grid size-9 place-items-center rounded-md border border-[var(--workspace-line)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-40"
+                                                        @click="
+                                                            moveServiceTime(
+                                                                index,
+                                                                1,
+                                                            )
+                                                        "
+                                                    >
+                                                        ↓
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        :aria-label="`Remove gathering ${index + 1}`"
+                                                        :disabled="
+                                                            uploadInProgress ||
+                                                            saveForm.processing ||
+                                                            addForm.processing ||
+                                                            deleteForm.processing ||
+                                                            orderForm.processing
+                                                        "
+                                                        class="min-h-9 rounded-md border border-red-300 px-2 text-xs font-semibold text-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:opacity-40 dark:text-red-300"
+                                                        @click="
+                                                            removeServiceTime(
+                                                                index,
+                                                            )
+                                                        "
+                                                    >
+                                                        Remove
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <p
+                                                v-if="entryRowError(index)"
+                                                role="alert"
+                                                class="text-sm text-red-700 dark:text-red-300"
+                                            >
+                                                {{ entryRowError(index) }}
+                                            </p>
+                                            <div>
+                                                <label
+                                                    :for="`service-day-${index}`"
+                                                    class="mb-1 block text-sm font-semibold"
+                                                    >Day</label
+                                                >
+                                                <select
+                                                    :id="`service-day-${index}`"
+                                                    v-model="entry.day"
+                                                    :disabled="
+                                                        uploadInProgress ||
+                                                        saveForm.processing ||
+                                                        addForm.processing ||
+                                                        deleteForm.processing ||
+                                                        orderForm.processing
+                                                    "
+                                                    :aria-invalid="
+                                                        Boolean(
+                                                            entryError(
+                                                                index,
+                                                                'day',
+                                                            ),
+                                                        )
+                                                    "
+                                                    :aria-describedby="
+                                                        entryError(index, 'day')
+                                                            ? `service-day-error-${index}`
+                                                            : undefined
+                                                    "
+                                                    class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-60"
+                                                    @change="clearContentError"
+                                                >
+                                                    <option value="" disabled>
+                                                        Choose a day
+                                                    </option>
+                                                    <option
+                                                        v-for="day in weekdays"
+                                                        :key="day"
+                                                        :value="day"
+                                                    >
+                                                        {{
+                                                            day
+                                                                .charAt(0)
+                                                                .toUpperCase() +
+                                                            day.slice(1)
+                                                        }}
+                                                    </option>
+                                                </select>
+                                                <p
+                                                    v-if="
+                                                        entryError(index, 'day')
+                                                    "
+                                                    :id="`service-day-error-${index}`"
+                                                    role="alert"
+                                                    class="mt-1 text-sm text-red-700 dark:text-red-300"
+                                                >
+                                                    {{
+                                                        entryError(index, 'day')
+                                                    }}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <label
+                                                    :for="`service-time-${index}`"
+                                                    class="mb-1 block text-sm font-semibold"
+                                                    >Local time</label
+                                                >
+                                                <input
+                                                    :id="`service-time-${index}`"
+                                                    v-model="entry.time"
+                                                    type="time"
+                                                    :disabled="
+                                                        uploadInProgress ||
+                                                        saveForm.processing ||
+                                                        addForm.processing ||
+                                                        deleteForm.processing ||
+                                                        orderForm.processing
+                                                    "
+                                                    :aria-invalid="
+                                                        Boolean(
+                                                            entryError(
+                                                                index,
+                                                                'time',
+                                                            ),
+                                                        )
+                                                    "
+                                                    :aria-describedby="
+                                                        entryError(
+                                                            index,
+                                                            'time',
+                                                        )
+                                                            ? `service-time-error-${index}`
+                                                            : undefined
+                                                    "
+                                                    class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-60"
+                                                    @input="clearContentError"
+                                                />
+                                                <p
+                                                    v-if="
+                                                        entryError(
+                                                            index,
+                                                            'time',
+                                                        )
+                                                    "
+                                                    :id="`service-time-error-${index}`"
+                                                    role="alert"
+                                                    class="mt-1 text-sm text-red-700 dark:text-red-300"
+                                                >
+                                                    {{
+                                                        entryError(
+                                                            index,
+                                                            'time',
+                                                        )
+                                                    }}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <label
+                                                    :for="`service-label-${index}`"
+                                                    class="mb-1 block text-sm font-semibold"
+                                                    >Label (optional)</label
+                                                >
+                                                <input
+                                                    :id="`service-label-${index}`"
+                                                    v-model="entry.label"
+                                                    type="text"
+                                                    placeholder="Traditional service"
+                                                    :disabled="
+                                                        uploadInProgress ||
+                                                        saveForm.processing ||
+                                                        addForm.processing ||
+                                                        deleteForm.processing ||
+                                                        orderForm.processing
+                                                    "
+                                                    :aria-invalid="
+                                                        Boolean(
+                                                            entryError(
+                                                                index,
+                                                                'label',
+                                                            ),
+                                                        )
+                                                    "
+                                                    :aria-describedby="
+                                                        entryError(
+                                                            index,
+                                                            'label',
+                                                        )
+                                                            ? `service-label-error-${index}`
+                                                            : undefined
+                                                    "
+                                                    class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-60"
+                                                    @input="clearContentError"
+                                                />
+                                                <p
+                                                    v-if="
+                                                        entryError(
+                                                            index,
+                                                            'label',
+                                                        )
+                                                    "
+                                                    :id="`service-label-error-${index}`"
+                                                    role="alert"
+                                                    class="mt-1 text-sm text-red-700 dark:text-red-300"
+                                                >
+                                                    {{
+                                                        entryError(
+                                                            index,
+                                                            'label',
+                                                        )
+                                                    }}
+                                                </p>
+                                            </div>
+                                        </li>
+                                    </ol>
+                                    <button
+                                        ref="addServiceTimeButton"
+                                        type="button"
+                                        :disabled="
+                                            uploadInProgress ||
+                                            saveForm.processing ||
+                                            addForm.processing ||
+                                            deleteForm.processing ||
+                                            orderForm.processing
+                                        "
+                                        class="mt-4 min-h-11 w-full rounded-lg border border-[var(--workspace-line)] px-3 text-sm font-semibold hover:bg-[var(--workspace-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-60"
+                                        @click="addServiceTime"
+                                    >
+                                        Add a gathering
+                                    </button>
+                                    <p
+                                        v-if="serviceTimeStatus"
+                                        role="status"
+                                        class="mt-2 text-sm text-[var(--workspace-muted)]"
+                                    >
+                                        {{ serviceTimeStatus }}
+                                    </p>
+                                    <p
+                                        v-if="
+                                            saveForm.errors['content.entries']
+                                        "
+                                        role="alert"
+                                        class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                    >
+                                        {{ saveForm.errors['content.entries'] }}
+                                    </p>
+                                </div>
+                                <template
+                                    v-if="selectedBlock.type === 'contact'"
+                                >
+                                    <div>
+                                        <label
+                                            for="contact-email"
+                                            class="mb-2 block text-sm font-semibold"
+                                            >Email address</label
+                                        >
+                                        <input
+                                            id="contact-email"
+                                            ref="emailInput"
+                                            v-model="draftEmail"
+                                            type="email"
+                                            inputmode="email"
+                                            autocomplete="email"
                                             :disabled="
                                                 uploadInProgress ||
                                                 saveForm.processing ||
@@ -3041,92 +3134,679 @@ defineOptions({
                                             "
                                             :aria-invalid="
                                                 Boolean(
-                                                    entryError(index, 'day'),
+                                                    saveForm.errors[
+                                                        'content.email'
+                                                    ],
                                                 )
                                             "
                                             :aria-describedby="
-                                                entryError(index, 'day')
-                                                    ? `service-day-error-${index}`
+                                                saveForm.errors['content.email']
+                                                    ? 'contact-email-error'
                                                     : undefined
                                             "
-                                            class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-60"
+                                            class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                            @input="clearContentError"
+                                        />
+                                        <p
+                                            v-if="
+                                                saveForm.errors['content.email']
+                                            "
+                                            id="contact-email-error"
+                                            role="alert"
+                                            class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                        >
+                                            {{
+                                                saveForm.errors['content.email']
+                                            }}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <label
+                                            for="contact-phone"
+                                            class="mb-2 block text-sm font-semibold"
+                                            >Phone number</label
+                                        >
+                                        <input
+                                            id="contact-phone"
+                                            ref="phoneInput"
+                                            v-model="draftPhone"
+                                            type="tel"
+                                            inputmode="tel"
+                                            autocomplete="tel"
+                                            placeholder="+1 (555) 123-4567"
+                                            :disabled="
+                                                uploadInProgress ||
+                                                saveForm.processing ||
+                                                addForm.processing ||
+                                                deleteForm.processing ||
+                                                orderForm.processing
+                                            "
+                                            :aria-invalid="
+                                                Boolean(
+                                                    saveForm.errors[
+                                                        'content.phone'
+                                                    ],
+                                                )
+                                            "
+                                            :aria-describedby="
+                                                saveForm.errors['content.phone']
+                                                    ? 'contact-phone-error'
+                                                    : undefined
+                                            "
+                                            class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                            @input="clearContentError"
+                                        />
+                                        <p
+                                            v-if="
+                                                saveForm.errors['content.phone']
+                                            "
+                                            id="contact-phone-error"
+                                            role="alert"
+                                            class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                        >
+                                            {{
+                                                saveForm.errors['content.phone']
+                                            }}
+                                        </p>
+                                    </div>
+                                </template>
+                            </div>
+                        </details>
+                        <details
+                            :key="'background-' + selectedBlock.id"
+                            class="block-editor-section"
+                        >
+                            <summary>Background &amp; layout</summary>
+                            <div class="space-y-5 pt-4">
+                                <fieldset
+                                    class="space-y-4 rounded-xl bg-[var(--workspace-soft)] p-4"
+                                >
+                                    <legend class="px-1 text-sm font-semibold">
+                                        Block appearance
+                                    </legend>
+                                    <p
+                                        v-if="saveForm.errors['content.style']"
+                                        role="alert"
+                                        class="text-sm text-red-700 dark:text-red-300"
+                                    >
+                                        {{ saveForm.errors['content.style'] }}
+                                    </p>
+                                    <div
+                                        v-if="
+                                            selectedBlock.type === 'text_image'
+                                        "
+                                    >
+                                        <label
+                                            for="block-layout"
+                                            class="mb-2 block text-sm font-semibold"
+                                            >Image placement</label
+                                        >
+                                        <select
+                                            id="block-layout"
+                                            ref="blockLayoutInput"
+                                            v-model="draftBlockStyle.layout"
+                                            :disabled="
+                                                uploadInProgress ||
+                                                saveForm.processing ||
+                                                addForm.processing ||
+                                                deleteForm.processing ||
+                                                orderForm.processing ||
+                                                imageUploadForm.processing ||
+                                                altTextForm.processing
+                                            "
+                                            :aria-invalid="
+                                                Boolean(
+                                                    saveForm.errors[
+                                                        'content.style.layout'
+                                                    ],
+                                                )
+                                            "
+                                            :aria-describedby="
+                                                saveForm.errors[
+                                                    'content.style.layout'
+                                                ]
+                                                    ? 'block-layout-error'
+                                                    : undefined
+                                            "
+                                            class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
                                             @change="clearContentError"
                                         >
-                                            <option value="" disabled>
-                                                Choose a day
+                                            <option value="image_right">
+                                                Image on the right
                                             </option>
-                                            <option
-                                                v-for="day in weekdays"
-                                                :key="day"
-                                                :value="day"
-                                            >
-                                                {{
-                                                    day
-                                                        .charAt(0)
-                                                        .toUpperCase() +
-                                                    day.slice(1)
-                                                }}
+                                            <option value="image_left">
+                                                Image on the left
                                             </option>
                                         </select>
                                         <p
-                                            v-if="entryError(index, 'day')"
-                                            :id="`service-day-error-${index}`"
+                                            v-if="
+                                                saveForm.errors[
+                                                    'content.style.layout'
+                                                ]
+                                            "
+                                            id="block-layout-error"
                                             role="alert"
-                                            class="mt-1 text-sm text-red-700 dark:text-red-300"
+                                            class="mt-2 text-sm text-red-700 dark:text-red-300"
                                         >
-                                            {{ entryError(index, 'day') }}
+                                            {{
+                                                saveForm.errors[
+                                                    'content.style.layout'
+                                                ]
+                                            }}
                                         </p>
                                     </div>
                                     <div>
                                         <label
-                                            :for="`service-time-${index}`"
-                                            class="mb-1 block text-sm font-semibold"
-                                            >Local time</label
+                                            for="block-alignment"
+                                            class="mb-2 block text-sm font-semibold"
+                                            >Content alignment</label
                                         >
-                                        <input
-                                            :id="`service-time-${index}`"
-                                            v-model="entry.time"
-                                            type="time"
+                                        <select
+                                            id="block-alignment"
+                                            ref="blockAlignmentInput"
+                                            v-model="draftBlockStyle.alignment"
                                             :disabled="
                                                 uploadInProgress ||
                                                 saveForm.processing ||
                                                 addForm.processing ||
                                                 deleteForm.processing ||
-                                                orderForm.processing
+                                                orderForm.processing ||
+                                                imageUploadForm.processing ||
+                                                altTextForm.processing
                                             "
                                             :aria-invalid="
                                                 Boolean(
-                                                    entryError(index, 'time'),
+                                                    saveForm.errors[
+                                                        'content.style.alignment'
+                                                    ],
                                                 )
                                             "
                                             :aria-describedby="
-                                                entryError(index, 'time')
-                                                    ? `service-time-error-${index}`
+                                                saveForm.errors[
+                                                    'content.style.alignment'
+                                                ]
+                                                    ? 'block-alignment-error'
                                                     : undefined
                                             "
-                                            class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-60"
-                                            @input="clearContentError"
-                                        />
-                                        <p
-                                            v-if="entryError(index, 'time')"
-                                            :id="`service-time-error-${index}`"
-                                            role="alert"
-                                            class="mt-1 text-sm text-red-700 dark:text-red-300"
+                                            class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                            @change="clearContentError"
                                         >
-                                            {{ entryError(index, 'time') }}
+                                            <option value="left">Left</option>
+                                            <option value="center">
+                                                Center
+                                            </option>
+                                        </select>
+                                        <p
+                                            v-if="
+                                                saveForm.errors[
+                                                    'content.style.alignment'
+                                                ]
+                                            "
+                                            id="block-alignment-error"
+                                            role="alert"
+                                            class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                        >
+                                            {{
+                                                saveForm.errors[
+                                                    'content.style.alignment'
+                                                ]
+                                            }}
                                         </p>
                                     </div>
                                     <div>
                                         <label
-                                            :for="`service-label-${index}`"
-                                            class="mb-1 block text-sm font-semibold"
-                                            >Label (optional)</label
+                                            for="block-background"
+                                            class="mb-2 block text-sm font-semibold"
+                                            >Background</label
                                         >
+                                        <select
+                                            id="block-background"
+                                            ref="blockBackgroundInput"
+                                            v-model="draftBlockStyle.background"
+                                            :disabled="
+                                                uploadInProgress ||
+                                                saveForm.processing ||
+                                                addForm.processing ||
+                                                deleteForm.processing ||
+                                                orderForm.processing ||
+                                                imageUploadForm.processing ||
+                                                altTextForm.processing
+                                            "
+                                            :aria-invalid="
+                                                Boolean(
+                                                    saveForm.errors[
+                                                        'content.style.background'
+                                                    ],
+                                                )
+                                            "
+                                            :aria-describedby="
+                                                saveForm.errors[
+                                                    'content.style.background'
+                                                ]
+                                                    ? 'block-background-error'
+                                                    : undefined
+                                            "
+                                            class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                            @change="clearContentError"
+                                        >
+                                            <option value="theme">
+                                                Theme background
+                                            </option>
+                                            <option value="soft">
+                                                Soft contrast
+                                            </option>
+                                        </select>
+                                        <p
+                                            v-if="
+                                                saveForm.errors[
+                                                    'content.style.background'
+                                                ]
+                                            "
+                                            id="block-background-error"
+                                            role="alert"
+                                            class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                        >
+                                            {{
+                                                saveForm.errors[
+                                                    'content.style.background'
+                                                ]
+                                            }}
+                                        </p>
+                                    </div>
+                                </fieldset>
+                                <section
+                                    v-if="selectedBlock.type === 'hero'"
+                                    aria-labelledby="block-image-heading"
+                                    class="mt-6 space-y-4 border-t border-[var(--workspace-line)] pt-5"
+                                >
+                                    <h3
+                                        id="block-image-heading"
+                                        class="text-sm font-semibold"
+                                    >
+                                        Image
+                                    </h3>
+                                    <div>
+                                        <label
+                                            for="block-image-file"
+                                            class="mb-2 block text-sm font-semibold"
+                                        >
+                                            {{
+                                                selectedBlock.content
+                                                    .media_asset_id
+                                                    ? 'Replace image'
+                                                    : 'Choose image'
+                                            }}
+                                        </label>
                                         <input
-                                            :id="`service-label-${index}`"
-                                            v-model="entry.label"
+                                            id="block-image-file"
+                                            ref="imageInput"
+                                            type="file"
+                                            accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                                            :disabled="
+                                                editorWriteInProgress ||
+                                                imageUploadForm.processing ||
+                                                altTextForm.processing
+                                            "
+                                            :aria-invalid="
+                                                Boolean(
+                                                    imageUploadError ||
+                                                    imageUploadForm.errors
+                                                        .image ||
+                                                    saveForm.errors[
+                                                        'content.media_asset_id'
+                                                    ],
+                                                )
+                                            "
+                                            :aria-describedby="
+                                                imageUploadError ||
+                                                imageUploadForm.errors.image ||
+                                                saveForm.errors[
+                                                    'content.media_asset_id'
+                                                ]
+                                                    ? 'block-image-error'
+                                                    : 'block-image-help'
+                                            "
+                                            class="block min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-2 text-sm text-[var(--workspace-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-60"
+                                            @change="selectImageFile"
+                                        />
+                                        <p
+                                            id="block-image-help"
+                                            class="mt-2 text-xs text-[var(--workspace-muted)]"
+                                        >
+                                            JPEG or PNG, up to 5 MB. Uploading
+                                            replaces the saved image.
+                                        </p>
+                                        <p
+                                            v-if="
+                                                imageUploadError ||
+                                                imageUploadForm.errors.image ||
+                                                saveForm.errors[
+                                                    'content.media_asset_id'
+                                                ]
+                                            "
+                                            id="block-image-error"
+                                            role="alert"
+                                            class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                        >
+                                            {{
+                                                imageUploadError ||
+                                                imageUploadForm.errors.image ||
+                                                saveForm.errors[
+                                                    'content.media_asset_id'
+                                                ]
+                                            }}
+                                        </p>
+                                    </div>
+                                    <p
+                                        v-if="
+                                            imageUploadForm.processing &&
+                                            imageUploadForm.progress
+                                        "
+                                        role="status"
+                                        aria-live="polite"
+                                        class="text-sm text-[var(--workspace-muted)]"
+                                    >
+                                        Uploading image:
+                                        {{
+                                            imageUploadForm.progress.percentage
+                                        }}%
+                                    </p>
+                                    <p
+                                        v-else-if="imageUploadStatus"
+                                        role="status"
+                                        aria-live="polite"
+                                        class="text-sm text-[var(--workspace-muted)]"
+                                    >
+                                        {{ imageUploadStatus }}
+                                    </p>
+                                    <div>
+                                        <label
+                                            for="block-image-alt-text"
+                                            class="mb-2 block text-sm font-semibold"
+                                        >
+                                            Image description (alt text)
+                                        </label>
+                                        <input
+                                            id="block-image-alt-text"
+                                            ref="altTextInput"
+                                            v-model="draftAltText"
                                             type="text"
-                                            placeholder="Traditional service"
+                                            maxlength="255"
+                                            placeholder="Describe the image, or leave blank if decorative"
+                                            :disabled="
+                                                uploadInProgress ||
+                                                imageUploadForm.processing ||
+                                                altTextForm.processing
+                                            "
+                                            :aria-invalid="
+                                                Boolean(
+                                                    altTextError ||
+                                                    altTextForm.errors
+                                                        .alt_text ||
+                                                    imageUploadForm.errors
+                                                        .alt_text,
+                                                )
+                                            "
+                                            :aria-describedby="
+                                                altTextError ||
+                                                altTextForm.errors.alt_text ||
+                                                imageUploadForm.errors.alt_text
+                                                    ? 'block-image-alt-error'
+                                                    : undefined
+                                            "
+                                            class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                            @input="clearAltTextFeedback"
+                                        />
+                                        <p
+                                            v-if="
+                                                altTextError ||
+                                                altTextForm.errors.alt_text ||
+                                                imageUploadForm.errors.alt_text
+                                            "
+                                            id="block-image-alt-error"
+                                            role="alert"
+                                            class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                        >
+                                            {{
+                                                altTextError ||
+                                                altTextForm.errors.alt_text ||
+                                                imageUploadForm.errors.alt_text
+                                            }}
+                                        </p>
+                                    </div>
+                                    <div class="flex flex-wrap gap-2">
+                                        <button
+                                            v-if="
+                                                selectedBlock.content
+                                                    .media_asset_id
+                                            "
+                                            type="button"
+                                            :disabled="
+                                                uploadInProgress ||
+                                                !isAltTextDirty ||
+                                                altTextForm.processing ||
+                                                imageUploadForm.processing ||
+                                                clearImagePending
+                                            "
+                                            class="min-h-10 rounded-lg border border-[var(--workspace-line)] px-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-50"
+                                            @click="saveAltText"
+                                        >
+                                            {{
+                                                altTextForm.processing
+                                                    ? 'Saving description…'
+                                                    : 'Save description'
+                                            }}
+                                        </button>
+                                        <button
+                                            v-if="
+                                                selectedBlock.content
+                                                    .media_asset_id
+                                            "
+                                            type="button"
+                                            :disabled="
+                                                uploadInProgress ||
+                                                (isAltTextDirty &&
+                                                    !clearImagePending) ||
+                                                imageUploadForm.processing ||
+                                                altTextForm.processing
+                                            "
+                                            aria-describedby="block-image-clear-help"
+                                            class="min-h-10 rounded-lg border border-red-300 px-3 text-sm font-semibold text-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:opacity-50 dark:text-red-300"
+                                            @click="requestClearBlockImage"
+                                        >
+                                            {{
+                                                clearImagePending
+                                                    ? 'Undo clear'
+                                                    : 'Clear image'
+                                            }}
+                                        </button>
+                                    </div>
+                                    <p
+                                        v-if="
+                                            selectedBlock.content.media_asset_id
+                                        "
+                                        id="block-image-clear-help"
+                                        class="text-xs text-[var(--workspace-muted)]"
+                                    >
+                                        <template v-if="clearImagePending">
+                                            Save the block to clear this image,
+                                            or undo the clear to keep it. You
+                                            can also choose a replacement image
+                                            now.
+                                        </template>
+                                        <template v-else>
+                                            Save a changed description before
+                                            clearing the image. Clear image
+                                            takes effect when you save the
+                                            block.
+                                        </template>
+                                    </p>
+                                    <p
+                                        v-if="altTextStatus"
+                                        role="status"
+                                        aria-live="polite"
+                                        class="text-sm text-[var(--workspace-muted)]"
+                                    >
+                                        {{ altTextStatus }}
+                                    </p>
+                                </section>
+
+                                <fieldset
+                                    v-if="selectedBlock.type === 'hero'"
+                                    class="hero-options space-y-4"
+                                    :disabled="editorWriteInProgress"
+                                >
+                                    <legend class="mb-3 font-semibold">
+                                        Hero background settings
+                                    </legend>
+                                    <div>
+                                        <label for="hero-height"
+                                            >Hero height</label
+                                        >
+                                        <select
+                                            id="hero-height"
+                                            v-model="draftBlockStyle.height"
+                                            :aria-invalid="
+                                                Boolean(
+                                                    saveForm.errors[
+                                                        'content.style.height'
+                                                    ],
+                                                )
+                                            "
+                                            aria-describedby="hero-height-error"
+                                            @change="clearContentError"
+                                        >
+                                            <option value="current">
+                                                Current height
+                                            </option>
+                                            <option value="medium">
+                                                Medium (60vh)
+                                            </option>
+                                            <option value="full">
+                                                Full screen (100vh)
+                                            </option>
+                                        </select>
+                                        <p
+                                            v-if="
+                                                saveForm.errors[
+                                                    'content.style.height'
+                                                ]
+                                            "
+                                            id="hero-height-error"
+                                            role="alert"
+                                        >
+                                            {{
+                                                saveForm.errors[
+                                                    'content.style.height'
+                                                ]
+                                            }}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <label for="hero-overlay"
+                                            >Image overlay</label
+                                        >
+                                        <select
+                                            id="hero-overlay"
+                                            v-model="draftBlockStyle.overlay"
+                                            :aria-invalid="
+                                                Boolean(
+                                                    saveForm.errors[
+                                                        'content.style.overlay'
+                                                    ],
+                                                )
+                                            "
+                                            aria-describedby="hero-overlay-error"
+                                            @change="clearContentError"
+                                        >
+                                            <option value="light">Light</option>
+                                            <option value="medium">
+                                                Medium
+                                            </option>
+                                            <option value="dark">Dark</option>
+                                        </select>
+                                        <p
+                                            v-if="
+                                                saveForm.errors[
+                                                    'content.style.overlay'
+                                                ]
+                                            "
+                                            id="hero-overlay-error"
+                                            role="alert"
+                                        >
+                                            {{
+                                                saveForm.errors[
+                                                    'content.style.overlay'
+                                                ]
+                                            }}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <label for="hero-motion"
+                                            >Background motion</label
+                                        >
+                                        <select
+                                            id="hero-motion"
+                                            v-model="draftBlockStyle.motion"
+                                            :aria-invalid="
+                                                Boolean(
+                                                    saveForm.errors[
+                                                        'content.style.motion'
+                                                    ],
+                                                )
+                                            "
+                                            aria-describedby="hero-motion-error"
+                                            @change="clearContentError"
+                                        >
+                                            <option value="normal">
+                                                Normal scrolling
+                                            </option>
+                                            <option value="fixed">
+                                                Fixed background
+                                            </option>
+                                            <option value="half">
+                                                Half-speed parallax
+                                            </option>
+                                        </select>
+                                        <p
+                                            v-if="
+                                                saveForm.errors[
+                                                    'content.style.motion'
+                                                ]
+                                            "
+                                            id="hero-motion-error"
+                                            role="alert"
+                                        >
+                                            {{
+                                                saveForm.errors[
+                                                    'content.style.motion'
+                                                ]
+                                            }}
+                                        </p>
+                                    </div>
+                                </fieldset>
+                            </div>
+                        </details>
+                        <details
+                            v-if="selectedBlock.type === 'hero'"
+                            :key="'buttons-' + selectedBlock.id"
+                            class="block-editor-section"
+                        >
+                            <summary>Buttons</summary>
+                            <div class="space-y-5 pt-4">
+                                <template v-if="selectedBlock.type === 'hero'">
+                                    <div
+                                        class="border-t border-[var(--workspace-line)] pt-5"
+                                    >
+                                        <label
+                                            for="hero-link-type"
+                                            class="mb-2 block text-sm font-semibold"
+                                            >Button link</label
+                                        >
+                                        <select
+                                            id="hero-link-type"
+                                            ref="linkTypeInput"
+                                            v-model="draftLinkType"
                                             :disabled="
                                                 uploadInProgress ||
                                                 saveForm.processing ||
@@ -3136,145 +3816,255 @@ defineOptions({
                                             "
                                             :aria-invalid="
                                                 Boolean(
-                                                    entryError(index, 'label'),
+                                                    saveForm.errors[
+                                                        'content.link_type'
+                                                    ],
                                                 )
                                             "
                                             :aria-describedby="
-                                                entryError(index, 'label')
-                                                    ? `service-label-error-${index}`
+                                                saveForm.errors[
+                                                    'content.link_type'
+                                                ]
+                                                    ? 'hero-link-type-error'
                                                     : undefined
                                             "
-                                            class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-60"
+                                            class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 focus:outline-none disabled:opacity-60"
+                                            @change="changeHeroLinkType"
+                                        >
+                                            <option value="none">
+                                                No button
+                                            </option>
+                                            <option value="section">
+                                                A section on this page
+                                            </option>
+                                            <option value="page">
+                                                A page on this site
+                                            </option>
+                                            <option value="external">
+                                                An external website
+                                            </option>
+                                        </select>
+                                        <p
+                                            v-if="
+                                                saveForm.errors[
+                                                    'content.link_type'
+                                                ]
+                                            "
+                                            id="hero-link-type-error"
+                                            role="alert"
+                                            class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                        >
+                                            {{
+                                                saveForm.errors[
+                                                    'content.link_type'
+                                                ]
+                                            }}
+                                        </p>
+                                    </div>
+                                    <div v-if="draftLinkType !== 'none'">
+                                        <label
+                                            for="hero-button-label"
+                                            class="mb-2 block text-sm font-semibold"
+                                            >Button text</label
+                                        >
+                                        <input
+                                            id="hero-button-label"
+                                            ref="buttonLabelInput"
+                                            v-model="draftButtonLabel"
+                                            type="text"
+                                            :disabled="
+                                                uploadInProgress ||
+                                                saveForm.processing ||
+                                                addForm.processing ||
+                                                deleteForm.processing ||
+                                                orderForm.processing
+                                            "
+                                            :aria-invalid="
+                                                Boolean(
+                                                    saveForm.errors[
+                                                        'content.button_label'
+                                                    ],
+                                                )
+                                            "
+                                            :aria-describedby="
+                                                saveForm.errors[
+                                                    'content.button_label'
+                                                ]
+                                                    ? 'hero-button-label-error'
+                                                    : undefined
+                                            "
+                                            class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
                                             @input="clearContentError"
                                         />
                                         <p
-                                            v-if="entryError(index, 'label')"
-                                            :id="`service-label-error-${index}`"
+                                            v-if="
+                                                saveForm.errors[
+                                                    'content.button_label'
+                                                ]
+                                            "
+                                            id="hero-button-label-error"
                                             role="alert"
-                                            class="mt-1 text-sm text-red-700 dark:text-red-300"
+                                            class="mt-2 text-sm text-red-700 dark:text-red-300"
                                         >
-                                            {{ entryError(index, 'label') }}
+                                            {{
+                                                saveForm.errors[
+                                                    'content.button_label'
+                                                ]
+                                            }}
                                         </p>
                                     </div>
-                                </li>
-                            </ol>
-                            <button
-                                ref="addServiceTimeButton"
-                                type="button"
-                                :disabled="
-                                    uploadInProgress ||
-                                    saveForm.processing ||
-                                    addForm.processing ||
-                                    deleteForm.processing ||
-                                    orderForm.processing
-                                "
-                                class="mt-4 min-h-11 w-full rounded-lg border border-[var(--workspace-line)] px-3 text-sm font-semibold hover:bg-[var(--workspace-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-60"
-                                @click="addServiceTime"
-                            >
-                                Add a gathering
-                            </button>
-                            <p
-                                v-if="serviceTimeStatus"
-                                role="status"
-                                class="mt-2 text-sm text-[var(--workspace-muted)]"
-                            >
-                                {{ serviceTimeStatus }}
-                            </p>
-                            <p
-                                v-if="saveForm.errors['content.entries']"
-                                role="alert"
-                                class="mt-2 text-sm text-red-700 dark:text-red-300"
-                            >
-                                {{ saveForm.errors['content.entries'] }}
-                            </p>
-                        </div>
-                        <template v-if="selectedBlock.type === 'contact'">
-                            <div>
-                                <label
-                                    for="contact-email"
-                                    class="mb-2 block text-sm font-semibold"
-                                    >Email address</label
-                                >
-                                <input
-                                    id="contact-email"
-                                    ref="emailInput"
-                                    v-model="draftEmail"
-                                    type="email"
-                                    inputmode="email"
-                                    autocomplete="email"
-                                    :disabled="
-                                        uploadInProgress ||
-                                        saveForm.processing ||
-                                        addForm.processing ||
-                                        deleteForm.processing ||
-                                        orderForm.processing
-                                    "
-                                    :aria-invalid="
-                                        Boolean(
-                                            saveForm.errors['content.email'],
-                                        )
-                                    "
-                                    :aria-describedby="
-                                        saveForm.errors['content.email']
-                                            ? 'contact-email-error'
-                                            : undefined
-                                    "
-                                    class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
-                                    @input="clearContentError"
-                                />
-                                <p
-                                    v-if="saveForm.errors['content.email']"
-                                    id="contact-email-error"
-                                    role="alert"
-                                    class="mt-2 text-sm text-red-700 dark:text-red-300"
-                                >
-                                    {{ saveForm.errors['content.email'] }}
-                                </p>
+                                    <div v-if="draftLinkType === 'section'">
+                                        <label
+                                            for="hero-section-target"
+                                            class="mb-2 block text-sm font-semibold"
+                                            >Link to block</label
+                                        >
+                                        <select
+                                            id="hero-section-target"
+                                            ref="targetBlockInput"
+                                            v-model.number="draftTargetBlockId"
+                                            :disabled="
+                                                uploadInProgress ||
+                                                saveForm.processing ||
+                                                addForm.processing ||
+                                                deleteForm.processing ||
+                                                orderForm.processing
+                                            "
+                                            :aria-invalid="
+                                                Boolean(
+                                                    saveForm.errors[
+                                                        'content.target_block_id'
+                                                    ],
+                                                )
+                                            "
+                                            :aria-describedby="
+                                                saveForm.errors[
+                                                    'content.target_block_id'
+                                                ]
+                                                    ? 'hero-section-target-error'
+                                                    : undefined
+                                            "
+                                            class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 focus:outline-none disabled:opacity-60"
+                                            @change="clearContentError"
+                                        >
+                                            <option :value="null">
+                                                Choose a block
+                                            </option>
+                                            <option
+                                                v-for="target in props.blocks.filter(
+                                                    (item) =>
+                                                        item.id !==
+                                                        selectedBlock?.id,
+                                                )"
+                                                :key="target.id"
+                                                :value="target.id"
+                                            >
+                                                {{ target.position + 1 }}.
+                                                {{ labelFor(target.type) }}
+                                            </option>
+                                        </select>
+                                        <p
+                                            v-if="props.blocks.length === 1"
+                                            class="mt-2 text-xs text-[var(--workspace-muted)]"
+                                        >
+                                            Add another block to link to a
+                                            section.
+                                        </p>
+                                        <p
+                                            v-if="
+                                                saveForm.errors[
+                                                    'content.target_block_id'
+                                                ]
+                                            "
+                                            id="hero-section-target-error"
+                                            role="alert"
+                                            class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                        >
+                                            {{
+                                                saveForm.errors[
+                                                    'content.target_block_id'
+                                                ]
+                                            }}
+                                        </p>
+                                    </div>
+                                    <div v-if="draftLinkType === 'external'">
+                                        <label
+                                            for="hero-external-url"
+                                            class="mb-2 block text-sm font-semibold"
+                                            >Website URL</label
+                                        >
+                                        <input
+                                            id="hero-external-url"
+                                            ref="externalUrlInput"
+                                            v-model="draftExternalUrl"
+                                            type="url"
+                                            inputmode="url"
+                                            placeholder="https://example.org"
+                                            :disabled="
+                                                uploadInProgress ||
+                                                saveForm.processing ||
+                                                addForm.processing ||
+                                                deleteForm.processing ||
+                                                orderForm.processing
+                                            "
+                                            :aria-invalid="
+                                                Boolean(
+                                                    saveForm.errors[
+                                                        'content.external_url'
+                                                    ],
+                                                )
+                                            "
+                                            :aria-describedby="
+                                                saveForm.errors[
+                                                    'content.external_url'
+                                                ]
+                                                    ? 'hero-external-url-error'
+                                                    : undefined
+                                            "
+                                            class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                            @input="clearContentError"
+                                        />
+                                        <p
+                                            v-if="
+                                                saveForm.errors[
+                                                    'content.external_url'
+                                                ]
+                                            "
+                                            id="hero-external-url-error"
+                                            role="alert"
+                                            class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                        >
+                                            {{
+                                                saveForm.errors[
+                                                    'content.external_url'
+                                                ]
+                                            }}
+                                        </p>
+                                    </div>
+                                    <HeroOptions
+                                        section="buttons"
+                                        v-model="draftHero"
+                                        :primary-type="draftLinkType"
+                                        :pages="props.navigation_pages"
+                                        :sections="
+                                            props.blocks
+                                                .filter(
+                                                    (item) =>
+                                                        item.id !==
+                                                        selectedBlock?.id,
+                                                )
+                                                .map((item) => ({
+                                                    id: item.id,
+                                                    name: `${item.position + 1}. ${labelFor(item.type)}`,
+                                                }))
+                                        "
+                                        :disabled="editorWriteInProgress"
+                                        :errors="saveForm.errors"
+                                        @change="clearContentError"
+                                    />
+                                </template>
                             </div>
-                            <div>
-                                <label
-                                    for="contact-phone"
-                                    class="mb-2 block text-sm font-semibold"
-                                    >Phone number</label
-                                >
-                                <input
-                                    id="contact-phone"
-                                    ref="phoneInput"
-                                    v-model="draftPhone"
-                                    type="tel"
-                                    inputmode="tel"
-                                    autocomplete="tel"
-                                    placeholder="+1 (555) 123-4567"
-                                    :disabled="
-                                        uploadInProgress ||
-                                        saveForm.processing ||
-                                        addForm.processing ||
-                                        deleteForm.processing ||
-                                        orderForm.processing
-                                    "
-                                    :aria-invalid="
-                                        Boolean(
-                                            saveForm.errors['content.phone'],
-                                        )
-                                    "
-                                    :aria-describedby="
-                                        saveForm.errors['content.phone']
-                                            ? 'contact-phone-error'
-                                            : undefined
-                                    "
-                                    class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
-                                    @input="clearContentError"
-                                />
-                                <p
-                                    v-if="saveForm.errors['content.phone']"
-                                    id="contact-phone-error"
-                                    role="alert"
-                                    class="mt-2 text-sm text-red-700 dark:text-red-300"
-                                >
-                                    {{ saveForm.errors['content.phone'] }}
-                                </p>
-                            </div>
-                        </template>
+                        </details>
                         <p
                             v-if="isDirty"
                             role="status"

@@ -27,7 +27,7 @@ class SiteMediaController extends Controller
         $this->uploadAndAssign($request, $site, $file, $this->validatedAltText($request), function (Site $ownedSite, MediaAsset $asset) use ($request, $block): void {
             $ownedBlock = $ownedSite->editorPage($request->route('page'))->blocks()->whereKey($block)->lockForUpdate()->firstOrFail();
 
-            if (! in_array($ownedBlock->type, ['image', 'text_image'], true)) {
+            if (! in_array($ownedBlock->type, ['image', 'text_image', 'hero'], true)) {
                 abort(404);
             }
 

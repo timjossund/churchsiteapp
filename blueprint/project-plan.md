@@ -80,6 +80,19 @@ The site also has an editable header and footer, including a church name or logo
 - Use Laravel Cashier with Stripe. Offer monthly and annual billing.
 - If a site no longer has an active subscription, its custom hostname stops serving the site; the published subdirectory version remains available.
 
+### Planned block and styling improvements
+
+Deliver these improvements after the existing launch features, in the order listed in the build plan:
+
+- **Hero blocks:** background images, readable overlays, height options, an editable welcome label, and a second button. Background motion has three modes: normal scrolling, fixed relative to the viewport, and parallax moving at 0.5 times the page's scroll speed. Text and buttons retain normal scrolling. Respect reduced-motion preferences with a static image and ensure mobile usability.
+- **Shared block styling:** section spacing, content width, heading sizes, and additional theme-aware backgrounds.
+- **Image and text blocks:** image proportions, crop position, corner styles, captions, and optional buttons on text-bearing blocks.
+- **Church information blocks:** service-time layout choices, plus contact addresses and directions links.
+- **Site-wide styling:** font pairings, an editable accent color, and consistent button styles.
+- **Rich text block:** a new dedicated block where users can compose formatted text, bulleted and numbered lists, and nested outlines. Preserve the existing plain text and heading-and-text blocks. Choose the exact toolbar, nesting behavior, editor dependency if needed, and stored document format during its feature spec. Render supported formatting safely rather than trusting arbitrary user HTML.
+
+Keep existing sites' appearance unchanged until owners select the new options. All new content and styling follow the existing draft/Publish boundary and must match between the editor preview and published Blade pages. Exact presets belong in each feature spec, not this roadmap.
+
 ## 4. Data
 
 Persist users; sites and their owners; pages and their order within each site; theme choices; draft and published site content per page; block types, order, styling, and fields; uploaded image references; structured service times; site metadata; custom-hostname connection and SSL status; and each site's subscription state in MySQL.

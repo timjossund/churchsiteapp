@@ -21,7 +21,17 @@ Features 1-5 establish the editor and single-page publishing baseline. The next 
     - [x] 7a. **Worker connection** - Establish authenticated Cloudflare Worker forwarding to Laravel, isolate public requests from platform routes, and prove the connection using an operator-owned test hostname.
     - [x] 7b. **Customer domains** - Add the connect-domain UI, Stripe handoff, automatic DNS/SSL status checks, and published-site routing with paid-access enforcement.
 
+## Block and styling improvements
+
+- [x] 10. **Hero blocks** - Add background images with readable overlays, height options, an editable welcome label, and a second button; offer normal scrolling, fixed backgrounds, and half-speed (0.5) parallax with a static reduced-motion fallback.
+- [ ] 11. **Shared block styling** - Add section spacing, content width, heading sizes, and additional theme-aware background choices while preserving existing block defaults.
+- [ ] 12. **Image and text blocks** - Add image proportions, crop position, corner styles, captions, and optional buttons for text-bearing blocks.
+- [ ] 13. **Church information blocks** - Add service-time layout choices and contact addresses with directions links.
+- [ ] 14. **Site-wide styling** - Add font pairings, an editable accent color, and consistent button styles across the site.
+- [ ] 15. **Rich text block** - Add a dedicated block for formatted text, bulleted and numbered lists, and nested outlines, with safe published rendering and matching editor previews.
+
 ## Planning TODOs
 
 - Prove the Worker forwarding path in Feature 7a before rolling out self-service customer domains in Feature 7b.
 - Choose the MySQL hosting arrangement and final deployment setup.
+- Define exact style presets and controls in each feature spec; define the rich text toolbar, nesting behavior, and stored document format before implementing Feature 15.

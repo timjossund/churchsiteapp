@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Vite;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -23,6 +24,11 @@ class HandleInertiaRequests extends Middleware
      */
     public function version(Request $request): ?string
     {
+        // Builds must not reload an editor using Vite's development assets.
+        if (Vite::isRunningHot()) {
+            return null;
+        }
+
         return parent::version($request);
     }
 

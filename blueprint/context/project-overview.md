@@ -1,6 +1,6 @@
 # Churchsite - Project Overview
 
-<!-- blueprint:source-hash e42eccde5d2b4af1b6e6881cecbbabf96050d96d46ab9fa2071a055a590a13b5 -->
+<!-- blueprint:source-hash cc78c966018c0e36fa19dc412a22bedc6af331a18f0ea3ae70cc0a1051e3789c -->
 
 > A block-based church website builder with shareable multi-page previews and later paid custom domains.
 
@@ -35,6 +35,13 @@ Churches need modern websites, while the people responsible for them may have li
     - **7a.** **Worker connection** - Authenticated Worker forwarding to Laravel, isolated public routing, and an operator-owned test hostname.
     - **7b.** **Customer domains** - Domain UI, Stripe handoff, automatic DNS/SSL checks, and published-site routing with paid-access enforcement.
 
+- **10.** **Hero blocks** - Add background images with readable overlays, height options, an editable welcome label, and a second button; offer normal scrolling, fixed backgrounds, and half-speed (0.5) parallax with a static reduced-motion fallback.
+- **11.** **Shared block styling** - Add section spacing, content width, heading sizes, and additional theme-aware background choices while preserving existing block defaults.
+- **12.** **Image and text blocks** - Add image proportions, crop position, corner styles, captions, and optional buttons for text-bearing blocks.
+- **13.** **Church information blocks** - Add service-time layout choices and contact addresses with directions links.
+- **14.** **Site-wide styling** - Add font pairings, an editable accent color, and consistent button styles across the site.
+- **15.** **Rich text block** - Add a dedicated block for formatted text, bulleted and numbered lists, and nested outlines, with safe published rendering and matching editor previews.
+
 ## Data model
 
 These are the initial logical shapes; later feature specs choose migrations and exact column names. Preserve the boundary between editable drafts and published content.
@@ -63,6 +70,13 @@ These are the initial logical shapes; later feature specs choose migrations and 
 - `id` (integer), `site_id` (foreign key), `page_id` (page relationship), `type` (block type), `position` (integer), and structured content and styling options.
 - `content` holds fields for the selected block. Service times are structured day/time entries with an optional label; contact details supply email and telephone links; video embeds use a YouTube or Vimeo URL.
 - Image-bearing blocks refer to site media assets. Block position determines page order.
+
+### Planned block and appearance data
+
+- Features 10-14 extend draft block options and shared site appearance settings; their specs define exact presets and stored fields. Existing blocks keep their current appearance until owners choose new options.
+- Hero background motion offers normal scrolling, viewport-fixed images, and images moving at 0.5 times page scroll speed. Hero text and buttons scroll normally; reduced-motion users receive static images.
+- Feature 15 adds a dedicated rich text block with formatted text, bulleted and numbered lists, and nested outlines. Its spec must choose a document format and safe rendering contract; arbitrary user HTML is not trusted. Existing plain text blocks remain available.
+- All new settings and rich text participate in the existing publication snapshot and site ownership rules.
 
 ### MediaAsset
 
@@ -99,6 +113,7 @@ Users can create and publish shareable subdirectory sites before paying. Each si
 - Users can configure expanded block-specific styling and options in addition to choosing a site theme.
 - An explicit Publish action distinguishes drafts from the version visitors see.
 - Initial themes span warm/traditional, clean/minimal, and bold/contemporary styles. Switching themes changes styling, not content or order.
+- Planned appearance controls include hero imagery and parallax, shared spacing/width/heading/background options, image crop/proportions/corners/captions, optional text-block buttons, service-time layouts, contact addresses/directions, and site font pairings/accent/button styles. Preview and published rendering must agree, including mobile and reduced-motion behavior.
 - Domain setup shows DNS values and explains connection and SSL progress in plain language.
 - Public sites should be responsive and accessible, including usable links and image descriptions.
 
@@ -114,3 +129,6 @@ Configure Stripe webhooks, mail, IONOS storage access, and queues or scheduled c
 
 - Worker deployment and its independent transport proof remain pending in Feature 7a.
 - Where will production MySQL run, and what are the final deploy and operational checks?
+
+- Define exact style presets per feature and the rich text toolbar, nesting behavior, and stored document format before their implementation.
+- The build plan marks Features 7a/7b complete, while deployment notes still describe Worker transport proof as pending; reconcile this separately from the block roadmap.

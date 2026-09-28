@@ -38,7 +38,7 @@ class UpdateSiteBlockRequest extends FormRequest
         $fields = match ($type) {
             'plain_text' => ['body'],
             'about', 'heading_text' => ['heading', 'body'],
-            'hero' => ['heading', 'body', 'button_label', 'link_type', 'target_block_id', 'external_url'],
+            'hero' => ['heading', 'body', 'button_label', 'link_type', 'target_block_id', 'external_url', 'welcome_label', 'media_asset_id', 'target_page_id', 'secondary_button'],
             'service_times' => ['heading', 'entries'],
             'contact' => ['heading', 'email', 'phone'],
             'image' => ['media_asset_id'],
@@ -52,7 +52,9 @@ class UpdateSiteBlockRequest extends FormRequest
             'type' => ['prohibited'],
             'position' => ['prohibited'],
             'content' => ['required', 'array:'.implode(',', [...$fields, 'style'])],
-            'content.style' => ['sometimes', 'array:alignment,background,layout'],
+            'content.style' => ['sometimes', $type === 'hero'
+                ? 'array:alignment,background,layout,height,overlay,motion'
+                : 'array:alignment,background,layout'],
             'content.style.alignment' => ['sometimes', 'string', Rule::in(['left', 'center'])],
             'content.style.background' => ['sometimes', 'string', Rule::in(['theme', 'soft'])],
             'content.style.layout' => $type === 'text_image'
@@ -61,7 +63,7 @@ class UpdateSiteBlockRequest extends FormRequest
         ];
 
         foreach ($fields as $field) {
-            if (in_array($field, ['entries', 'target_block_id', 'media_asset_id'], true)) {
+            if (in_array($field, ['entries', 'target_block_id', 'media_asset_id', 'welcome_label', 'target_page_id', 'secondary_button'], true)) {
                 continue;
             }
 
@@ -69,31 +71,14 @@ class UpdateSiteBlockRequest extends FormRequest
         }
 
         if ($type === 'hero') {
-            $linkType = $this->input('content.link_type');
-            $rules['content.link_type'] = ['required', 'string', Rule::in(['none', 'section', 'external'])];
-            $rules['content.target_block_id'] = ['present', 'nullable', 'integer'];
-
-            if ($linkType === 'section') {
-                $rules['content.button_label'][] = 'required';
-                $rules['content.target_block_id'][] = 'required';
-                $rules['content.target_block_id'][] = Rule::notIn([$this->ownedBlock()->id]);
-                $rules['content.target_block_id'][] = Rule::exists('site_blocks', 'id')
-                    ->where('site_id', $this->ownedBlock()->site_id)
-                    ->where('page_id', $this->ownedBlock()->page_id);
-                $rules['content.external_url'][] = Rule::in(['']);
-            } elseif ($linkType === 'external') {
-                $rules['content.button_label'][] = 'required';
-                $rules['content.external_url'][] = 'required';
-                $rules['content.external_url'][] = 'url:http,https';
-            }
-
-            if ($linkType !== 'section') {
-                $rules['content.target_block_id'][] = Rule::in([null]);
-            }
-
-            if ($linkType === 'none') {
-                $rules['content.button_label'][] = Rule::in(['']);
-                $rules['content.external_url'][] = Rule::in(['']);
+            $rules['content.welcome_label'] = ['sometimes', 'string'];
+            $rules['content.style.height'] = ['sometimes', 'string', Rule::in(['current', 'medium', 'full'])];
+            $rules['content.style.overlay'] = ['sometimes', 'string', Rule::in(['light', 'medium', 'dark'])];
+            $rules['content.style.motion'] = ['sometimes', 'string', Rule::in(['normal', 'fixed', 'half'])];
+            $rules = array_merge($rules, $this->buttonRules('content', false));
+            $rules['content.secondary_button'] = ['sometimes', 'array:button_label,link_type,target_block_id,target_page_id,external_url'];
+            if ($this->has('content.secondary_button')) {
+                $rules = array_merge($rules, $this->buttonRules('content.secondary_button', true));
             }
         }
 
@@ -113,9 +98,9 @@ class UpdateSiteBlockRequest extends FormRequest
             $rules['content.phone'][] = 'regex:/[0-9]/';
         }
 
-        if (in_array($type, ['image', 'text_image'], true)) {
+        if (in_array($type, ['image', 'text_image', 'hero'], true)) {
             $rules['content.media_asset_id'] = [
-                'present',
+                $type === 'hero' ? 'sometimes' : 'present',
                 'nullable',
                 'integer',
                 Rule::exists('media_assets', 'id')->where('site_id', $this->ownedBlock()->site_id),
@@ -123,6 +108,24 @@ class UpdateSiteBlockRequest extends FormRequest
         }
 
         return $rules;
+    }
+
+    /** @return array<string, mixed> */
+    private function buttonRules(string $prefix, bool $secondary): array
+    {
+        $type = $this->input($prefix.'.link_type');
+
+        return [
+            $prefix.'.link_type' => ['required', 'string', Rule::in(['none', 'section', 'page', 'external'])],
+            $prefix.'.button_label' => [$type === 'none' ? 'present' : 'required', 'string'],
+            $prefix.'.external_url' => $type === 'external' ? ['required', 'string', 'url:http,https'] : ['present', 'string'],
+            $prefix.'.target_block_id' => $type === 'section'
+                ? ['required', 'integer', Rule::notIn([$this->ownedBlock()->id]), Rule::exists('site_blocks', 'id')->where('site_id', $this->ownedBlock()->site_id)->where('page_id', $this->ownedBlock()->page_id)]
+                : ['present', 'nullable', 'integer'],
+            $prefix.'.target_page_id' => $type === 'page'
+                ? ['required', 'integer', Rule::exists('site_pages', 'id')->where('site_id', $this->ownedBlock()->site_id)]
+                : [$secondary ? 'present' : 'sometimes', 'nullable', 'integer'],
+        ];
     }
 
     public function ownedBlock(): SiteBlock
@@ -143,7 +146,7 @@ class UpdateSiteBlockRequest extends FormRequest
             $type = $this->ownedBlock()->type;
             $content = $this->input('content');
 
-            if (in_array($type, ['image', 'text_image'], true)
+            if (in_array($type, ['image', 'text_image', 'hero'], true)
                 && is_array($content)
                 && array_key_exists('media_asset_id', $content)
                 && $content['media_asset_id'] === '') {

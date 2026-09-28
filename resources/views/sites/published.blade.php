@@ -90,20 +90,29 @@
             @php($alignment = in_array($style['alignment'] ?? null, ['left', 'center'], true) ? $style['alignment'] : ($block['type'] === 'video' ? 'center' : 'left'))
             @php($background = in_array($style['background'] ?? null, ['theme', 'soft'], true) ? $style['background'] : ($block['type'] === 'about' ? 'soft' : 'theme'))
             @php($imageOnLeft = $block['type'] === 'text_image' && ($style['layout'] ?? 'image_right') === 'image_left')
-            <section id="block-{{ $block['id'] }}" class="border-b border-[var(--site-preview-border)] px-6 py-12 last:border-b-0 sm:px-10 {{ $alignment === 'center' ? 'text-center' : '' }} {{ $background === 'soft' ? 'bg-[var(--site-preview-soft)]' : '' }}">
-                <div class="mx-auto max-w-5xl">
+            <section id="block-{{ $block['id'] }}" @if ($block['type'] === 'hero') data-height="{{ $style['height'] ?? 'current' }}" data-overlay="{{ $style['overlay'] ?? 'medium' }}" data-motion="{{ $style['motion'] ?? 'normal' }}" @if ($block['image_url']) data-has-image="true" @endif @endif class="{{ $block['type'] === 'hero' ? 'site-hero' : '' }} border-b border-[var(--site-preview-border)] px-6 py-12 last:border-b-0 sm:px-10 {{ $alignment === 'center' ? 'text-center' : '' }} {{ $background === 'soft' ? 'bg-[var(--site-preview-soft)]' : '' }}">
+                @if ($block['type'] === 'hero' && $block['image_url'])
+                    <img src="{{ $block['image_url'] }}" alt="" class="site-hero-image">
+                @endif
+                <div class="mx-auto w-full max-w-5xl {{ $block['type'] === 'hero' ? 'site-hero-content' : '' }}">
                     @switch($block['type'])
                         @case('hero')
-                            <p class="text-xs font-bold tracking-[0.14em] text-[var(--site-preview-accent)] uppercase">Welcome</p>
+                            @if (($content['welcome_label'] ?? 'Welcome') !== '')
+                                <p class="text-xs font-bold tracking-[0.14em] text-[var(--site-preview-accent)] uppercase">{{ $content['welcome_label'] ?? 'Welcome' }}</p>
+                            @endif
                             <h2 class="mt-4 max-w-xl font-serif text-4xl leading-tight sm:text-5xl {{ $alignment === 'center' ? 'mx-auto' : '' }}">{{ $block['heading'] }}</h2>
                             @if (! empty($content['body']))
                                 <p class="mt-5 max-w-prose whitespace-pre-line text-[var(--site-preview-muted)] {{ $alignment === 'center' ? 'mx-auto' : '' }}">{{ $content['body'] }}</p>
                             @endif
-                            @if ($block['hero_href'])
-                                <a href="{{ $block['hero_href'] }}" @if ($block['hero_external']) target="_blank" rel="noopener noreferrer" @endif class="mt-7 inline-flex min-h-11 items-center rounded-lg bg-[var(--site-preview-action)] px-5 py-2 text-sm font-semibold text-[var(--site-preview-action-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]">
-                                    {{ $content['button_label'] }}
-                                </a>
-                            @endif
+                            @foreach ([false, true] as $secondary)
+                                @php($href = $secondary ? $block['hero_secondary_href'] : $block['hero_href'])
+                                @php($external = $secondary ? $block['hero_secondary_external'] : $block['hero_external'])
+                                @if ($href)
+                                    <a href="{{ $href }}" @if ($external) target="_blank" rel="noopener noreferrer" @endif class="site-hero-button mt-7 inline-flex min-h-11 items-center rounded-lg bg-[var(--site-preview-action)] px-5 py-2 text-sm font-semibold text-[var(--site-preview-action-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)] {{ $secondary ? 'ms-3' : '' }}">
+                                        {{ $secondary ? $content['secondary_button']['button_label'] : $content['button_label'] }}
+                                    </a>
+                                @endif
+                            @endforeach
                             @break
 
                         @case('about')

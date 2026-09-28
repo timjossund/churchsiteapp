@@ -54,13 +54,38 @@ class SiteBlockController extends Controller
             $ownedBlock = $ownedPage->blocks()->whereKey($block)->firstOrFail();
             $content = $request->validated('content');
 
-            if ($ownedBlock->type === 'hero' && $content['link_type'] === 'section') {
-                $content['target_block_id'] = (int) $content['target_block_id'];
-
-                if (! $ownedPage->blocks()->whereKey($content['target_block_id'])->exists()) {
-                    throw ValidationException::withMessages([
-                        'content.target_block_id' => 'This section is no longer available. Choose another block.',
-                    ]);
+            if ($ownedBlock->type === 'hero') {
+                foreach (['', 'secondary_button.'] as $prefix) {
+                    if ($prefix !== '' && ! isset($content['secondary_button'])) {
+                        continue;
+                    }
+                    $button = $prefix === '' ? $content : $content['secondary_button'];
+                    $type = $button['link_type'];
+                    foreach (['section' => 'target_block_id', 'page' => 'target_page_id'] as $linkType => $field) {
+                        if ($type === $linkType) {
+                            $target = (int) $button[$field];
+                            $query = $linkType === 'section' ? $ownedPage->blocks() : $ownedSite->pages();
+                            if (! $query->whereKey($target)->exists()) {
+                                throw ValidationException::withMessages([
+                                    'content.'.$prefix.$field => 'This destination is no longer available. Choose another destination.',
+                                ]);
+                            }
+                            $button[$field] = $target;
+                        } elseif (array_key_exists($field, $button)) {
+                            $button[$field] = null;
+                        }
+                    }
+                    if ($type !== 'external') {
+                        $button['external_url'] = '';
+                    }
+                    if ($type === 'none') {
+                        $button['button_label'] = '';
+                    }
+                    if ($prefix === '') {
+                        $content = $button;
+                    } else {
+                        $content['secondary_button'] = $button;
+                    }
                 }
             }
 
@@ -83,16 +108,7 @@ class SiteBlockController extends Controller
             $ownedPage->blocks()->whereKey($block)->firstOrFail()->delete();
 
             foreach ($ownedPage->blocks()->where('type', 'hero')->get() as $hero) {
-                if ($hero->content['link_type'] !== 'section' || (int) $hero->content['target_block_id'] !== $block) {
-                    continue;
-                }
-
-                $content = $hero->content;
-                $content['button_label'] = '';
-                $content['link_type'] = 'none';
-                $content['target_block_id'] = null;
-                $content['external_url'] = '';
-                $hero->update(['content' => $content]);
+                $hero->disableLinksTo('section', $block);
             }
 
             $remaining = $ownedPage->blocks()->orderBy('position')->orderBy('id')->get(['id']);

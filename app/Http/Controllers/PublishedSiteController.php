@@ -37,7 +37,7 @@ class PublishedSiteController extends Controller
             ->pluck('id')
             ->filter(fn ($id): bool => is_int($id) && $id > 0)
             ->all();
-        $blocks = collect($page['blocks'])->map(function (array $block) use ($blockIds, $media, $mediaUrls): array {
+        $blocks = collect($page['blocks'])->map(function (array $block) use ($blockIds, $media, $mediaUrls, $snapshot, $pageUrl): array {
             $content = is_array($block['content'] ?? null) ? $block['content'] : [];
             $type = is_string($block['type'] ?? null) ? $block['type'] : '';
             $id = is_int($block['id'] ?? null) ? $block['id'] : 0;
@@ -57,20 +57,25 @@ class PublishedSiteController extends Controller
             $asset = (is_int($mediaId) || (is_string($mediaId) && ctype_digit($mediaId)))
                 ? $media->get((int) $mediaId)
                 : null;
-            $target = $content['target_block_id'] ?? null;
-            $linkType = $content['link_type'] ?? null;
-            $heroHref = null;
-            $heroExternal = false;
-            if ($type === 'hero' && trim((string) ($content['button_label'] ?? '')) !== '') {
-                if ($linkType === 'section'
-                    && is_numeric($target)
-                    && (int) $target !== $id
-                    && in_array((int) $target, $blockIds, true)) {
-                    $heroHref = '#block-'.(int) $target;
-                } elseif ($linkType === 'external') {
-                    $heroHref = $this->safeExternalUrl($content['external_url'] ?? null);
-                    $heroExternal = $heroHref !== null;
+            $heroLinks = [];
+            foreach ([$content, $content['secondary_button'] ?? []] as $button) {
+                $href = null;
+                $external = false;
+                if ($type === 'hero' && is_array($button) && is_string($button['button_label'] ?? null) && trim($button['button_label']) !== '') {
+                    $target = $button['target_block_id'] ?? null;
+                    if (($button['link_type'] ?? null) === 'section' && is_numeric($target) && (int) $target !== $id && in_array((int) $target, $blockIds, true)) {
+                        $href = '#block-'.(int) $target;
+                    } elseif (($button['link_type'] ?? null) === 'page' && is_int($button['target_page_id'] ?? null)) {
+                        $targetPage = collect($snapshot['pages'])->first(fn (array $candidate): bool => ($candidate['id'] ?? null) === $button['target_page_id']);
+                        if ($targetPage !== null) {
+                            $href = $pageUrl($targetPage['is_home'] ? null : $targetPage['path']);
+                        }
+                    } elseif (($button['link_type'] ?? null) === 'external') {
+                        $href = $this->safeExternalUrl($button['external_url'] ?? null);
+                        $external = $href !== null;
+                    }
                 }
+                $heroLinks[] = ['href' => $href, 'external' => $external];
             }
 
             $email = is_string($content['email'] ?? null) ? $content['email'] : '';
@@ -86,8 +91,10 @@ class PublishedSiteController extends Controller
                 'position' => $block['position'] ?? 0,
                 'content' => $content,
                 'heading' => $heading !== '' ? $heading : $fallback,
-                'hero_href' => $heroHref,
-                'hero_external' => $heroExternal,
+                'hero_href' => $heroLinks[0]['href'],
+                'hero_external' => $heroLinks[0]['external'],
+                'hero_secondary_href' => $heroLinks[1]['href'],
+                'hero_secondary_external' => $heroLinks[1]['external'],
                 'email_href' => filter_var($email, FILTER_VALIDATE_EMAIL) !== false
                     ? 'mailto:'.$email
                     : null,

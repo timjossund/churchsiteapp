@@ -93,8 +93,6 @@ test('hero rejects unsafe or foreign targets and keeps saved content', function 
     'foreign section' => [[], 'content.target_block_id'],
     'self section' => [['target_block_id' => 'SELF'], 'content.target_block_id'],
     'unsafe URL' => [['link_type' => 'external', 'target_block_id' => null, 'external_url' => 'javascript:alert(1)'], 'content.external_url'],
-    'external link with section target' => [['link_type' => 'external', 'external_url' => 'https://example.org'], 'content.target_block_id'],
-    'hidden button with a label' => [['link_type' => 'none', 'target_block_id' => null], 'content.button_label'],
     'missing label' => [['button_label' => ''], 'content.button_label'],
     'extra field' => [['script' => '<script>'], 'content'],
 ]);

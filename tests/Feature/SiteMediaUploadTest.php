@@ -46,7 +46,7 @@ test('owners can upload private JPEG and PNG assets to image-bearing blocks', fu
     }
 });
 
-test('invalid files and files over 5 MB leave an existing block image unchanged', function () {
+test('invalid files and files over 5 MB leave an existing block image unchanged', function (string $type) {
     Storage::fake('s3');
 
     $site = Site::factory()->create();
@@ -57,7 +57,7 @@ test('invalid files and files over 5 MB leave an existing block image unchanged'
     ]);
     Storage::disk('s3')->put($asset->storage_key, 'existing image bytes', ['visibility' => 'private']);
     $block = $site->blocks()->create([
-        'type' => 'image', 'position' => 0, 'content' => ['media_asset_id' => $asset->id],
+        'type' => $type, 'position' => 0, 'content' => ['media_asset_id' => $asset->id],
     ]);
     $this->actingAs($site->user);
 
@@ -86,9 +86,9 @@ test('invalid files and files over 5 MB leave an existing block image unchanged'
         ->and($asset->fresh()->alt_text)->toBe('Existing image')
         ->and($site->mediaAssets()->count())->toBe(1);
     Storage::disk('s3')->assertExists($asset->storage_key);
-});
+})->with(['image', 'hero']);
 
-test('storage failure is returned as an image error without changing the saved reference', function () {
+test('storage failure is returned as an image error without changing the saved reference', function (string $type) {
     $site = Site::factory()->create();
     $asset = $site->mediaAssets()->create([
         'storage_key' => "sites/{$site->id}/existing",
@@ -96,7 +96,7 @@ test('storage failure is returned as an image error without changing the saved r
         'alt_text' => 'Existing image',
     ]);
     $block = $site->blocks()->create([
-        'type' => 'image', 'position' => 0, 'content' => ['media_asset_id' => $asset->id],
+        'type' => $type, 'position' => 0, 'content' => ['media_asset_id' => $asset->id],
     ]);
     $disk = Mockery::mock(FilesystemAdapter::class);
     $disk->shouldReceive('putFileAs')->once()->andReturn(false);
@@ -109,9 +109,9 @@ test('storage failure is returned as an image error without changing the saved r
 
     expect($block->fresh()->content['media_asset_id'])->toBe($asset->id)
         ->and($site->mediaAssets()->count())->toBe(1);
-});
+})->with(['image', 'hero']);
 
-test('a database failure rolls back the new block reference and cleans up its uploaded object', function () {
+test('a database failure rolls back the new block reference and cleans up its uploaded object', function (string $type) {
     Storage::fake('s3');
 
     $site = Site::factory()->create();
@@ -122,7 +122,7 @@ test('a database failure rolls back the new block reference and cleans up its up
     ]);
     Storage::disk('s3')->put($oldAsset->storage_key, 'old image', ['visibility' => 'private']);
     $block = $site->blocks()->create([
-        'type' => 'image', 'position' => 0, 'content' => ['media_asset_id' => $oldAsset->id],
+        'type' => $type, 'position' => 0, 'content' => ['media_asset_id' => $oldAsset->id],
     ]);
     SiteBlock::updating(fn () => throw new RuntimeException('Simulated database write failure.'));
 
@@ -135,7 +135,7 @@ test('a database failure rolls back the new block reference and cleans up its up
         ->and($site->mediaAssets()->count())->toBe(1);
     Storage::disk('s3')->assertExists($oldAsset->storage_key);
     expect(Storage::disk('s3')->allFiles("sites/{$site->id}"))->toBe([$oldAsset->storage_key]);
-});
+})->with(['image', 'hero']);
 
 test('owners can read only their private same-site media and edit its alt text', function () {
     Storage::fake('s3');

@@ -25,7 +25,7 @@ class StoreSiteImageRequest extends FormRequest
 
         $block = $site->editorPage($pageId)->blocks()->whereKey($blockId)->firstOrFail();
 
-        return in_array($block->type, ['image', 'text_image'], true);
+        return in_array($block->type, ['image', 'text_image', 'hero'], true);
     }
 
     /** @return array<string, array<int, mixed>> */

@@ -46,6 +46,32 @@ test('owners can upload private JPEG and PNG assets to image-bearing blocks', fu
     }
 });
 
+test('uploading and replacing a block image keeps its saved caption', function (string $type) {
+    Storage::fake('s3');
+
+    $site = Site::factory()->create();
+    $block = $site->blocks()->create([
+        'type' => $type,
+        'position' => 0,
+        'content' => $type === 'image'
+            ? ['media_asset_id' => null, 'caption' => 'A Sunday gathering']
+            : ['heading' => 'Welcome', 'body' => 'Visit us', 'media_asset_id' => null, 'caption' => 'A Sunday gathering'],
+    ]);
+    $this->actingAs($site->user);
+
+    foreach (['first.png', 'replacement.png'] as $name) {
+        $this->post(route('sites.blocks.image.store', [$site, $block]), [
+            'image' => UploadedFile::fake()->image($name, 20, 20),
+            'alt_text' => 'People outside the church',
+        ])->assertRedirect(route('sites.show', $site));
+
+        expect($block->fresh()->content['caption'])->toBe('A Sunday gathering');
+    }
+
+    expect($site->mediaAssets()->count())->toBe(2)
+        ->and($block->fresh()->content['media_asset_id'])->toBe($site->mediaAssets()->latest('id')->firstOrFail()->id);
+})->with(['image', 'text_image']);
+
 test('invalid files and files over 5 MB leave an existing block image unchanged', function (string $type) {
     Storage::fake('s3');
 

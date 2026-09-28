@@ -35,17 +35,22 @@ class UpdateSiteBlockRequest extends FormRequest
     public function rules(): array
     {
         $type = $this->ownedBlock()->type;
+        $hasImagePresentation = in_array($type, ['image', 'text_image'], true);
+        $hasTextButton = in_array($type, ['about', 'heading_text', 'plain_text', 'text_image'], true);
         $fields = match ($type) {
             'plain_text' => ['body'],
             'about', 'heading_text' => ['heading', 'body'],
             'hero' => ['heading', 'body', 'button_label', 'link_type', 'target_block_id', 'external_url', 'welcome_label', 'media_asset_id', 'target_page_id', 'secondary_button'],
             'service_times' => ['heading', 'entries'],
             'contact' => ['heading', 'email', 'phone'],
-            'image' => ['media_asset_id'],
-            'text_image' => ['heading', 'body', 'media_asset_id'],
+            'image' => ['media_asset_id', 'caption'],
+            'text_image' => ['heading', 'body', 'media_asset_id', 'caption'],
             'video' => ['url'],
             default => throw new LogicException('Unsupported block type.'),
         };
+        if ($hasTextButton) {
+            $fields = [...$fields, 'button_label', 'link_type', 'target_block_id', 'target_page_id', 'external_url'];
+        }
 
         $rules = [
             'site_id' => ['prohibited'],
@@ -54,7 +59,7 @@ class UpdateSiteBlockRequest extends FormRequest
             'content' => ['required', 'array:'.implode(',', [...$fields, 'style'])],
             'content.style' => ['sometimes', $type === 'hero'
                 ? 'array:alignment,background,layout,spacing,content_width,heading_size,height,overlay,motion'
-                : 'array:alignment,background,layout,spacing,content_width,heading_size'],
+                : 'array:alignment,background,layout,spacing,content_width,heading_size'.($hasImagePresentation ? ',image_ratio,crop_position,corner_style' : '')],
             'content.style.alignment' => ['sometimes', 'string', Rule::in(['left', 'center'])],
             'content.style.background' => ['sometimes', 'string', Rule::in(['theme', 'soft', 'accent', 'contrast'])],
             'content.style.spacing' => ['sometimes', 'string', Rule::in(['compact', 'current', 'spacious'])],
@@ -65,10 +70,23 @@ class UpdateSiteBlockRequest extends FormRequest
             'content.style.layout' => $type === 'text_image'
                 ? ['sometimes', 'string', Rule::in(['image_left', 'image_right'])]
                 : ['prohibited'],
+            'content.style.image_ratio' => $hasImagePresentation
+                ? ['sometimes', 'string', Rule::in(['original', 'landscape', 'square', 'portrait'])]
+                : ['prohibited'],
+            'content.style.crop_position' => $hasImagePresentation
+                ? ['sometimes', 'string', Rule::in(['top', 'center', 'bottom'])]
+                : ['prohibited'],
+            'content.style.corner_style' => $hasImagePresentation
+                ? ['sometimes', 'string', Rule::in(['current', 'square', 'rounded'])]
+                : ['prohibited'],
+            'content.caption' => $hasImagePresentation
+                ? ['sometimes', 'string']
+                : ['prohibited'],
         ];
 
         foreach ($fields as $field) {
-            if (in_array($field, ['entries', 'target_block_id', 'media_asset_id', 'welcome_label', 'target_page_id', 'secondary_button'], true)) {
+            if (in_array($field, ['entries', 'target_block_id', 'media_asset_id', 'caption', 'welcome_label', 'target_page_id', 'secondary_button'], true)
+                || ($hasTextButton && in_array($field, ['button_label', 'link_type', 'external_url'], true))) {
                 continue;
             }
 
@@ -85,6 +103,11 @@ class UpdateSiteBlockRequest extends FormRequest
             if ($this->has('content.secondary_button')) {
                 $rules = array_merge($rules, $this->buttonRules('content.secondary_button', true));
             }
+        }
+
+        if ($hasTextButton && collect(['button_label', 'link_type', 'target_block_id', 'target_page_id', 'external_url'])
+            ->contains(fn (string $field): bool => $this->has('content.'.$field))) {
+            $rules = array_merge($rules, $this->buttonRules('content', false));
         }
 
         if ($type === 'service_times') {

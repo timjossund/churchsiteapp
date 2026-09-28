@@ -43,6 +43,9 @@ type BlockStyle = HeroStyle & {
     spacing?: 'compact' | 'current' | 'spacious';
     content_width?: 'narrow' | 'current' | 'full';
     heading_size?: 'small' | 'current' | 'large';
+    image_ratio?: 'original' | 'landscape' | 'square' | 'portrait';
+    crop_position?: 'top' | 'center' | 'bottom';
+    corner_style?: 'current' | 'square' | 'rounded';
 };
 type ServiceTimeEntry = { day: string; time: string; label: string };
 type BlockContent = {
@@ -59,6 +62,7 @@ type BlockContent = {
     email?: string;
     phone?: string;
     media_asset_id?: number | null;
+    caption?: string;
     url?: string;
     style?: BlockStyle;
 };
@@ -226,6 +230,8 @@ const draftHeading = ref('');
 const draftBody = ref('');
 const savedHeading = ref('');
 const savedBody = ref('');
+const draftCaption = ref('');
+const savedCaption = ref('');
 const draftButtonLabel = ref('');
 const draftLinkType = ref<HeroLinkType>('none');
 const draftTargetBlockId = ref<number | null>(null);
@@ -264,9 +270,15 @@ const isContentDirty = computed(
         !!selectedBlock.value &&
         (draftHeading.value !== savedHeading.value ||
             draftBody.value !== savedBody.value ||
-            (selectedBlock.value?.type === 'hero' &&
-                (JSON.stringify(draftHero.value) !==
-                    JSON.stringify(savedHero.value) ||
+            (['image', 'text_image'].includes(selectedBlock.value.type) &&
+                draftCaption.value !== savedCaption.value) ||
+            ((selectedBlock.value.type === 'hero' ||
+                blockHasTextButton(selectedBlock.value)) &&
+                (draftHero.value.target_page_id !==
+                    savedHero.value.target_page_id ||
+                    (selectedBlock.value.type === 'hero' &&
+                        JSON.stringify(draftHero.value) !==
+                            JSON.stringify(savedHero.value)) ||
                     draftButtonLabel.value !== savedButtonLabel.value ||
                     draftLinkType.value !== savedLinkType.value ||
                     draftTargetBlockId.value !== savedTargetBlockId.value ||
@@ -308,6 +320,7 @@ const saveError = ref('');
 const contentSaved = ref(false);
 const headingInput = ref<HTMLInputElement | null>(null);
 const bodyInput = ref<HTMLTextAreaElement | null>(null);
+const captionInput = ref<HTMLTextAreaElement | null>(null);
 const buttonLabelInput = ref<HTMLInputElement | null>(null);
 const linkTypeInput = ref<HTMLSelectElement | null>(null);
 const targetBlockInput = ref<HTMLSelectElement | null>(null);
@@ -334,6 +347,7 @@ watch(
         savedHero.value = heroExtras(block?.content);
         draftHeading.value = block?.content.heading ?? '';
         draftBody.value = block?.content.body ?? '';
+        draftCaption.value = block?.content.caption ?? '';
         draftButtonLabel.value = block?.content.button_label ?? '';
         draftLinkType.value = block?.content.link_type ?? 'none';
         draftTargetBlockId.value = block?.content.target_block_id ?? null;
@@ -360,6 +374,7 @@ watch(
         altTextError.value = '';
         savedHeading.value = draftHeading.value;
         savedBody.value = draftBody.value;
+        savedCaption.value = draftCaption.value;
         savedButtonLabel.value = draftButtonLabel.value;
         savedLinkType.value = draftLinkType.value;
         savedTargetBlockId.value = draftTargetBlockId.value;
@@ -385,6 +400,7 @@ function resetDraft() {
     draftHero.value = heroExtras(savedHero.value);
     draftHeading.value = savedHeading.value;
     draftBody.value = savedBody.value;
+    draftCaption.value = savedCaption.value;
     draftButtonLabel.value = savedButtonLabel.value;
     draftLinkType.value = savedLinkType.value;
     draftTargetBlockId.value = savedTargetBlockId.value;
@@ -702,6 +718,12 @@ function blockHasHeading(block: SiteBlock): boolean {
     return !['plain_text', 'image', 'video'].includes(block.type);
 }
 
+function blockHasTextButton(block: SiteBlock): boolean {
+    return ['about', 'heading_text', 'plain_text', 'text_image'].includes(
+        block.type,
+    );
+}
+
 function styleForBlock(block: SiteBlock): BlockStyle {
     const saved = block.content.style ?? {};
     return {
@@ -718,6 +740,26 @@ function styleForBlock(block: SiteBlock): BlockStyle {
                       saved.layout === 'image_left'
                           ? 'image_left'
                           : 'image_right',
+              }
+            : {}),
+        ...(['image', 'text_image'].includes(block.type)
+            ? {
+                  image_ratio:
+                      saved.image_ratio === 'landscape' ||
+                      saved.image_ratio === 'square' ||
+                      saved.image_ratio === 'portrait'
+                          ? saved.image_ratio
+                          : 'original',
+                  crop_position:
+                      saved.crop_position === 'top' ||
+                      saved.crop_position === 'bottom'
+                          ? saved.crop_position
+                          : 'center',
+                  corner_style:
+                      saved.corner_style === 'square' ||
+                      saved.corner_style === 'rounded'
+                          ? saved.corner_style
+                          : 'current',
               }
             : {}),
         spacing:
@@ -786,6 +828,7 @@ function contentFor(block: SiteBlock): BlockContent {
             media_asset_id: clearImagePending.value
                 ? null
                 : (block.content.media_asset_id ?? null),
+            caption: draftCaption.value,
         };
     } else if (block.type === 'text_image') {
         content = {
@@ -794,6 +837,7 @@ function contentFor(block: SiteBlock): BlockContent {
             media_asset_id: clearImagePending.value
                 ? null
                 : (block.content.media_asset_id ?? null),
+            caption: draftCaption.value,
         };
     } else if (block.type === 'video') {
         content = { url: draftVideoUrl.value };
@@ -801,6 +845,16 @@ function contentFor(block: SiteBlock): BlockContent {
         content = { body: draftBody.value };
     } else {
         content = { heading: draftHeading.value, body: draftBody.value };
+    }
+    if (blockHasTextButton(block)) {
+        content = {
+            ...content,
+            button_label: draftButtonLabel.value,
+            link_type: draftLinkType.value,
+            target_block_id: draftTargetBlockId.value,
+            target_page_id: draftHero.value.target_page_id,
+            external_url: draftExternalUrl.value,
+        };
     }
     return { ...content, style: { ...draftBlockStyle.value } };
 }
@@ -821,6 +875,23 @@ function blockBackground(block: SiteBlock): string {
         : block.type === 'about'
           ? 'soft'
           : 'theme';
+}
+
+function imageRatio(block: SiteBlock): string {
+    const ratio = contentFor(block).style?.image_ratio;
+    return ratio === 'landscape' || ratio === 'square' || ratio === 'portrait'
+        ? ratio
+        : 'original';
+}
+
+function imageCropPosition(block: SiteBlock): string {
+    const position = contentFor(block).style?.crop_position;
+    return position === 'top' || position === 'bottom' ? position : 'center';
+}
+
+function imageCornerStyle(block: SiteBlock): string {
+    const corners = contentFor(block).style?.corner_style;
+    return corners === 'square' || corners === 'rounded' ? corners : 'current';
 }
 
 function previewHeading(block: SiteBlock, fallback: string): string {
@@ -1049,12 +1120,16 @@ function saveBlock() {
                 : block.type === 'video'
                   ? { url: draftVideoUrl.value }
                   : block.type === 'image'
-                    ? { media_asset_id: mediaAssetId }
+                    ? {
+                          media_asset_id: mediaAssetId,
+                          caption: draftCaption.value,
+                      }
                     : block.type === 'text_image'
                       ? {
                             heading: draftHeading.value,
                             body: draftBody.value,
                             media_asset_id: mediaAssetId,
+                            caption: draftCaption.value,
                         }
                       : block.type === 'plain_text'
                         ? { body: draftBody.value }
@@ -1062,6 +1137,16 @@ function saveBlock() {
                               heading: draftHeading.value,
                               body: draftBody.value,
                           };
+    if (blockHasTextButton(block)) {
+        saveForm.content = {
+            ...saveForm.content,
+            button_label: draftButtonLabel.value,
+            link_type: draftLinkType.value,
+            target_block_id: draftTargetBlockId.value,
+            target_page_id: draftHero.value.target_page_id,
+            external_url: draftExternalUrl.value,
+        };
+    }
     saveForm.content.style = { ...draftBlockStyle.value };
 
     runOwnVisit(() =>
@@ -1071,6 +1156,7 @@ function saveBlock() {
                 savedHero.value = heroExtras(draftHero.value);
                 savedHeading.value = draftHeading.value;
                 savedBody.value = draftBody.value;
+                savedCaption.value = draftCaption.value;
                 savedButtonLabel.value = draftButtonLabel.value;
                 savedLinkType.value = draftLinkType.value;
                 savedTargetBlockId.value = draftTargetBlockId.value;
@@ -1098,15 +1184,20 @@ function saveBlock() {
                 if (
                     !errors['content.heading'] &&
                     !errors['content.body'] &&
+                    !errors['content.caption'] &&
                     !errors['content.button_label'] &&
                     !errors['content.link_type'] &&
                     !errors['content.target_block_id'] &&
+                    !errors['content.target_page_id'] &&
                     !errors['content.external_url'] &&
                     !errors['content.email'] &&
                     !errors['content.phone'] &&
                     !errors['content.url'] &&
                     !errors['content.style'] &&
                     !errors['content.style.layout'] &&
+                    !errors['content.style.image_ratio'] &&
+                    !errors['content.style.crop_position'] &&
+                    !errors['content.style.corner_style'] &&
                     !errors['content.style.alignment'] &&
                     !errors['content.style.background'] &&
                     !errors['content.style.spacing'] &&
@@ -1138,6 +1229,8 @@ function saveBlock() {
                     }
                     if (errors['content.heading']) headingInput.value?.focus();
                     else if (errors['content.body']) bodyInput.value?.focus();
+                    else if (errors['content.caption'])
+                        captionInput.value?.focus();
                     else if (errors['content.button_label'])
                         buttonLabelInput.value?.focus();
                     else if (errors['content.link_type'])
@@ -2263,39 +2356,63 @@ defineOptions({
                                     </p>
                                 </template>
                                 <template v-else-if="block.type === 'image'">
-                                    <div
-                                        class="overflow-hidden rounded-xl border border-[var(--site-preview-border)] bg-[var(--site-preview-soft)]"
+                                    <figure
                                         :class="
                                             blockIsCentered(block)
                                                 ? 'mx-auto max-w-3xl'
                                                 : ''
                                         "
                                     >
-                                        <img
-                                            v-if="blockMediaUrl(block)"
-                                            :src="
-                                                blockMediaUrl(block) ??
-                                                undefined
-                                            "
-                                            :alt="blockPreviewAltText(block)"
-                                            class="max-h-[32rem] w-full object-contain"
-                                        />
                                         <div
-                                            v-else
-                                            role="group"
-                                            aria-label="Image placeholder"
-                                            class="flex min-h-64 flex-col items-center justify-center p-8 text-center"
+                                            class="site-image-frame overflow-hidden rounded-xl border border-[var(--site-preview-border)] bg-[var(--site-preview-soft)]"
+                                            :data-image-ratio="
+                                                imageRatio(block)
+                                            "
+                                            :data-crop-position="
+                                                imageCropPosition(block)
+                                            "
+                                            :data-corner-style="
+                                                imageCornerStyle(block)
+                                            "
                                         >
-                                            <span class="font-semibold"
-                                                >Image</span
+                                            <img
+                                                v-if="blockMediaUrl(block)"
+                                                :src="
+                                                    blockMediaUrl(block) ??
+                                                    undefined
+                                                "
+                                                :alt="
+                                                    blockPreviewAltText(block)
+                                                "
+                                                class="max-h-[32rem] w-full object-contain"
+                                            />
+                                            <div
+                                                v-else
+                                                data-image-placeholder
+                                                role="group"
+                                                aria-label="Image placeholder"
+                                                class="flex min-h-64 flex-col items-center justify-center p-8 text-center"
                                             >
-                                            <span
-                                                class="mt-2 text-sm text-[var(--site-preview-muted)]"
-                                                >Choose an image in the
-                                                editor.</span
-                                            >
+                                                <span class="font-semibold"
+                                                    >Image</span
+                                                >
+                                                <span
+                                                    class="mt-2 text-sm text-[var(--site-preview-muted)]"
+                                                    >Choose an image in the
+                                                    editor.</span
+                                                >
+                                            </div>
                                         </div>
-                                    </div>
+                                        <figcaption
+                                            v-if="
+                                                blockMediaUrl(block) &&
+                                                contentFor(block).caption
+                                            "
+                                            class="mt-3 text-sm whitespace-pre-line text-[var(--site-preview-muted)]"
+                                        >
+                                            {{ contentFor(block).caption }}
+                                        </figcaption>
+                                    </figure>
                                 </template>
                                 <template
                                     v-else-if="block.type === 'text_image'"
@@ -2327,9 +2444,34 @@ defineOptions({
                                                     'Add the details you want visitors to know.'
                                                 }}
                                             </p>
+                                            <a
+                                                v-if="
+                                                    blockHasTextButton(block) &&
+                                                    heroHref(block)
+                                                "
+                                                :href="
+                                                    heroHref(block) ?? undefined
+                                                "
+                                                :target="
+                                                    heroLinkType(block) ===
+                                                    'external'
+                                                        ? '_blank'
+                                                        : undefined
+                                                "
+                                                :rel="
+                                                    heroLinkType(block) ===
+                                                    'external'
+                                                        ? 'noopener noreferrer'
+                                                        : undefined
+                                                "
+                                                class="site-hero-button mt-7 inline-flex min-h-11 items-center rounded-lg bg-[var(--site-preview-action)] px-5 py-2 text-sm font-semibold text-[var(--site-preview-action-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]"
+                                                >{{
+                                                    contentFor(block)
+                                                        .button_label
+                                                }}</a
+                                            >
                                         </div>
-                                        <div
-                                            class="overflow-hidden rounded-xl border border-[var(--site-preview-border)] bg-[var(--site-preview-soft)]"
+                                        <figure
                                             :class="
                                                 contentFor(block).style
                                                     ?.layout === 'image_left'
@@ -2337,33 +2479,58 @@ defineOptions({
                                                     : 'md:order-2'
                                             "
                                         >
-                                            <img
-                                                v-if="blockMediaUrl(block)"
-                                                :src="
-                                                    blockMediaUrl(block) ??
-                                                    undefined
-                                                "
-                                                :alt="
-                                                    blockPreviewAltText(block)
-                                                "
-                                                class="max-h-[32rem] min-h-56 w-full object-contain"
-                                            />
                                             <div
-                                                v-else
-                                                role="group"
-                                                aria-label="Image placeholder"
-                                                class="flex min-h-56 flex-col items-center justify-center p-8 text-center"
+                                                class="site-image-frame overflow-hidden rounded-xl border border-[var(--site-preview-border)] bg-[var(--site-preview-soft)]"
+                                                :data-image-ratio="
+                                                    imageRatio(block)
+                                                "
+                                                :data-crop-position="
+                                                    imageCropPosition(block)
+                                                "
+                                                :data-corner-style="
+                                                    imageCornerStyle(block)
+                                                "
                                             >
-                                                <span class="font-semibold"
-                                                    >Image</span
+                                                <img
+                                                    v-if="blockMediaUrl(block)"
+                                                    :src="
+                                                        blockMediaUrl(block) ??
+                                                        undefined
+                                                    "
+                                                    :alt="
+                                                        blockPreviewAltText(
+                                                            block,
+                                                        )
+                                                    "
+                                                    class="max-h-[32rem] min-h-56 w-full object-contain"
+                                                />
+                                                <div
+                                                    v-else
+                                                    data-image-placeholder
+                                                    role="group"
+                                                    aria-label="Image placeholder"
+                                                    class="flex min-h-56 flex-col items-center justify-center p-8 text-center"
                                                 >
-                                                <span
-                                                    class="mt-2 text-sm text-[var(--site-preview-muted)]"
-                                                    >Choose an image in the
-                                                    editor.</span
-                                                >
+                                                    <span class="font-semibold"
+                                                        >Image</span
+                                                    >
+                                                    <span
+                                                        class="mt-2 text-sm text-[var(--site-preview-muted)]"
+                                                        >Choose an image in the
+                                                        editor.</span
+                                                    >
+                                                </div>
                                             </div>
-                                        </div>
+                                            <figcaption
+                                                v-if="
+                                                    blockMediaUrl(block) &&
+                                                    contentFor(block).caption
+                                                "
+                                                class="mt-3 text-sm whitespace-pre-line text-[var(--site-preview-muted)]"
+                                            >
+                                                {{ contentFor(block).caption }}
+                                            </figcaption>
+                                        </figure>
                                     </div>
                                 </template>
                                 <template v-else-if="block.type === 'video'">
@@ -2422,6 +2589,26 @@ defineOptions({
                                 >
                                     {{ labelFor(block.type) }} block
                                 </p>
+                                <a
+                                    v-if="
+                                        block.type !== 'text_image' &&
+                                        blockHasTextButton(block) &&
+                                        heroHref(block)
+                                    "
+                                    :href="heroHref(block) ?? undefined"
+                                    :target="
+                                        heroLinkType(block) === 'external'
+                                            ? '_blank'
+                                            : undefined
+                                    "
+                                    :rel="
+                                        heroLinkType(block) === 'external'
+                                            ? 'noopener noreferrer'
+                                            : undefined
+                                    "
+                                    class="site-hero-button mt-7 inline-flex min-h-11 items-center rounded-lg bg-[var(--site-preview-action)] px-5 py-2 text-sm font-semibold text-[var(--site-preview-action-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]"
+                                    >{{ contentFor(block).button_label }}</a
+                                >
                             </div>
                         </section>
                     </div>
@@ -2729,6 +2916,66 @@ defineOptions({
                                         {{ altTextStatus }}
                                     </p>
                                 </section>
+                                <div
+                                    v-if="
+                                        selectedBlock.type === 'image' ||
+                                        selectedBlock.type === 'text_image'
+                                    "
+                                >
+                                    <label
+                                        for="block-caption"
+                                        class="mb-2 block text-sm font-semibold"
+                                        >Caption (optional)</label
+                                    >
+                                    <textarea
+                                        id="block-caption"
+                                        ref="captionInput"
+                                        v-model="draftCaption"
+                                        rows="3"
+                                        :disabled="
+                                            uploadInProgress ||
+                                            saveForm.processing ||
+                                            addForm.processing ||
+                                            deleteForm.processing ||
+                                            orderForm.processing ||
+                                            imageUploadForm.processing ||
+                                            altTextForm.processing
+                                        "
+                                        :aria-invalid="
+                                            Boolean(
+                                                saveForm.errors[
+                                                    'content.caption'
+                                                ],
+                                            )
+                                        "
+                                        :aria-describedby="
+                                            saveForm.errors['content.caption']
+                                                ? 'block-caption-help block-caption-error'
+                                                : 'block-caption-help'
+                                        "
+                                        class="min-h-24 w-full resize-y rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                        @input="clearContentError"
+                                    />
+                                    <p
+                                        id="block-caption-help"
+                                        class="mt-2 text-xs text-[var(--workspace-muted)]"
+                                    >
+                                        Displayed below the image. The image
+                                        description above remains for screen
+                                        readers. The caption stays saved if you
+                                        replace or clear the image.
+                                    </p>
+                                    <p
+                                        v-if="
+                                            saveForm.errors['content.caption']
+                                        "
+                                        id="block-caption-error"
+                                        role="alert"
+                                        class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                    >
+                                        {{ saveForm.errors['content.caption'] }}
+                                    </p>
+                                </div>
                                 <div
                                     v-if="
                                         selectedBlock.type !== 'plain_text' &&
@@ -3382,6 +3629,213 @@ defineOptions({
                                             }}
                                         </p>
                                     </div>
+                                    <fieldset
+                                        v-if="
+                                            selectedBlock.type === 'image' ||
+                                            selectedBlock.type === 'text_image'
+                                        "
+                                        class="space-y-4"
+                                        :disabled="
+                                            uploadInProgress ||
+                                            saveForm.processing ||
+                                            addForm.processing ||
+                                            deleteForm.processing ||
+                                            orderForm.processing ||
+                                            imageUploadForm.processing ||
+                                            altTextForm.processing
+                                        "
+                                    >
+                                        <legend
+                                            class="mb-2 text-sm font-semibold"
+                                        >
+                                            Image presentation
+                                        </legend>
+                                        <div>
+                                            <label
+                                                for="block-image-ratio"
+                                                class="mb-2 block text-sm font-semibold"
+                                                >Image shape</label
+                                            >
+                                            <select
+                                                id="block-image-ratio"
+                                                v-model="
+                                                    draftBlockStyle.image_ratio
+                                                "
+                                                :aria-invalid="
+                                                    Boolean(
+                                                        saveForm.errors[
+                                                            'content.style.image_ratio'
+                                                        ],
+                                                    )
+                                                "
+                                                :aria-describedby="
+                                                    saveForm.errors[
+                                                        'content.style.image_ratio'
+                                                    ]
+                                                        ? 'image-ratio-help image-ratio-error'
+                                                        : 'image-ratio-help'
+                                                "
+                                                class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                                @change="clearContentError"
+                                            >
+                                                <option value="original">
+                                                    Original
+                                                </option>
+                                                <option value="landscape">
+                                                    16:9 landscape
+                                                </option>
+                                                <option value="square">
+                                                    Square
+                                                </option>
+                                                <option value="portrait">
+                                                    4:5 portrait
+                                                </option>
+                                            </select>
+                                            <p
+                                                id="image-ratio-help"
+                                                class="mt-2 text-xs text-[var(--workspace-muted)]"
+                                            >
+                                                Original keeps the full image
+                                                and its current sizing. Other
+                                                shapes crop to fill the frame.
+                                            </p>
+                                            <p
+                                                v-if="
+                                                    saveForm.errors[
+                                                        'content.style.image_ratio'
+                                                    ]
+                                                "
+                                                id="image-ratio-error"
+                                                role="alert"
+                                                class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                            >
+                                                {{
+                                                    saveForm.errors[
+                                                        'content.style.image_ratio'
+                                                    ]
+                                                }}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <label
+                                                for="block-crop-position"
+                                                class="mb-2 block text-sm font-semibold"
+                                                >Vertical crop position</label
+                                            >
+                                            <select
+                                                id="block-crop-position"
+                                                v-model="
+                                                    draftBlockStyle.crop_position
+                                                "
+                                                :disabled="
+                                                    draftBlockStyle.image_ratio ===
+                                                    'original'
+                                                "
+                                                :aria-invalid="
+                                                    Boolean(
+                                                        saveForm.errors[
+                                                            'content.style.crop_position'
+                                                        ],
+                                                    )
+                                                "
+                                                :aria-describedby="
+                                                    saveForm.errors[
+                                                        'content.style.crop_position'
+                                                    ]
+                                                        ? 'crop-position-help crop-position-error'
+                                                        : 'crop-position-help'
+                                                "
+                                                class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                                @change="clearContentError"
+                                            >
+                                                <option value="top">Top</option>
+                                                <option value="center">
+                                                    Center
+                                                </option>
+                                                <option value="bottom">
+                                                    Bottom
+                                                </option>
+                                            </select>
+                                            <p
+                                                id="crop-position-help"
+                                                class="mt-2 text-xs text-[var(--workspace-muted)]"
+                                            >
+                                                Applies when an image shape
+                                                crops the photo.
+                                            </p>
+                                            <p
+                                                v-if="
+                                                    saveForm.errors[
+                                                        'content.style.crop_position'
+                                                    ]
+                                                "
+                                                id="crop-position-error"
+                                                role="alert"
+                                                class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                            >
+                                                {{
+                                                    saveForm.errors[
+                                                        'content.style.crop_position'
+                                                    ]
+                                                }}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <label
+                                                for="block-corner-style"
+                                                class="mb-2 block text-sm font-semibold"
+                                                >Corners</label
+                                            >
+                                            <select
+                                                id="block-corner-style"
+                                                v-model="
+                                                    draftBlockStyle.corner_style
+                                                "
+                                                :aria-invalid="
+                                                    Boolean(
+                                                        saveForm.errors[
+                                                            'content.style.corner_style'
+                                                        ],
+                                                    )
+                                                "
+                                                :aria-describedby="
+                                                    saveForm.errors[
+                                                        'content.style.corner_style'
+                                                    ]
+                                                        ? 'corner-style-error'
+                                                        : undefined
+                                                "
+                                                class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                                @change="clearContentError"
+                                            >
+                                                <option value="current">
+                                                    Current
+                                                </option>
+                                                <option value="square">
+                                                    Square
+                                                </option>
+                                                <option value="rounded">
+                                                    More rounded
+                                                </option>
+                                            </select>
+                                            <p
+                                                v-if="
+                                                    saveForm.errors[
+                                                        'content.style.corner_style'
+                                                    ]
+                                                "
+                                                id="corner-style-error"
+                                                role="alert"
+                                                class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                            >
+                                                {{
+                                                    saveForm.errors[
+                                                        'content.style.corner_style'
+                                                    ]
+                                                }}
+                                            </p>
+                                        </div>
+                                    </fieldset>
                                     <div>
                                         <label
                                             for="block-alignment"
@@ -4067,13 +4521,16 @@ defineOptions({
                             </div>
                         </details>
                         <details
-                            v-if="selectedBlock.type === 'hero'"
+                            v-if="
+                                selectedBlock.type === 'hero' ||
+                                blockHasTextButton(selectedBlock)
+                            "
                             :key="'buttons-' + selectedBlock.id"
                             class="block-editor-section"
                         >
                             <summary>Buttons</summary>
                             <div class="space-y-5 pt-4">
-                                <template v-if="selectedBlock.type === 'hero'">
+                                <div class="space-y-5">
                                     <div
                                         class="border-t border-[var(--workspace-line)] pt-5"
                                     >
@@ -4320,7 +4777,70 @@ defineOptions({
                                             }}
                                         </p>
                                     </div>
+                                    <div
+                                        v-if="
+                                            selectedBlock.type !== 'hero' &&
+                                            draftLinkType === 'page'
+                                        "
+                                    >
+                                        <label
+                                            for="text-button-page"
+                                            class="mb-2 block text-sm font-semibold"
+                                            >Link to page</label
+                                        >
+                                        <select
+                                            id="text-button-page"
+                                            v-model.number="
+                                                draftHero.target_page_id
+                                            "
+                                            :disabled="editorWriteInProgress"
+                                            :aria-invalid="
+                                                Boolean(
+                                                    saveForm.errors[
+                                                        'content.target_page_id'
+                                                    ],
+                                                )
+                                            "
+                                            :aria-describedby="
+                                                saveForm.errors[
+                                                    'content.target_page_id'
+                                                ]
+                                                    ? 'text-button-page-error'
+                                                    : undefined
+                                            "
+                                            class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 focus:outline-none disabled:opacity-60"
+                                            @change="clearContentError"
+                                        >
+                                            <option :value="null">
+                                                Choose a page
+                                            </option>
+                                            <option
+                                                v-for="page in props.navigation_pages"
+                                                :key="page.id"
+                                                :value="page.id"
+                                            >
+                                                {{ page.name }}
+                                            </option>
+                                        </select>
+                                        <p
+                                            v-if="
+                                                saveForm.errors[
+                                                    'content.target_page_id'
+                                                ]
+                                            "
+                                            id="text-button-page-error"
+                                            role="alert"
+                                            class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                        >
+                                            {{
+                                                saveForm.errors[
+                                                    'content.target_page_id'
+                                                ]
+                                            }}
+                                        </p>
+                                    </div>
                                     <HeroOptions
+                                        v-if="selectedBlock.type === 'hero'"
                                         section="buttons"
                                         v-model="draftHero"
                                         :primary-type="draftLinkType"
@@ -4341,7 +4861,7 @@ defineOptions({
                                         :errors="saveForm.errors"
                                         @change="clearContentError"
                                     />
-                                </template>
+                                </div>
                             </div>
                         </details>
                         <p

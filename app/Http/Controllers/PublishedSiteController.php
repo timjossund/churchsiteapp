@@ -61,7 +61,8 @@ class PublishedSiteController extends Controller
             foreach ([$content, $content['secondary_button'] ?? []] as $button) {
                 $href = null;
                 $external = false;
-                if ($type === 'hero' && is_array($button) && is_string($button['button_label'] ?? null) && trim($button['button_label']) !== '') {
+                if (in_array($type, ['hero', 'about', 'heading_text', 'plain_text', 'text_image'], true)
+                    && is_array($button) && is_string($button['button_label'] ?? null) && trim($button['button_label']) !== '') {
                     $target = $button['target_block_id'] ?? null;
                     if (($button['link_type'] ?? null) === 'section' && is_numeric($target) && (int) $target !== $id && in_array((int) $target, $blockIds, true)) {
                         $href = '#block-'.(int) $target;

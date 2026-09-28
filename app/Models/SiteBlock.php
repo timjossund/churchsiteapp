@@ -57,7 +57,7 @@ class SiteBlock extends Model
     {
         $content = $this->content;
         $field = $type === 'page' ? 'target_page_id' : 'target_block_id';
-        foreach (['primary', 'secondary'] as $slot) {
+        foreach ($this->type === 'hero' ? ['primary', 'secondary'] : ['primary'] as $slot) {
             $button = $slot === 'primary' ? $content : ($content['secondary_button'] ?? []);
             if (($button['link_type'] ?? null) !== $type || (int) ($button[$field] ?? 0) !== $target) {
                 continue;

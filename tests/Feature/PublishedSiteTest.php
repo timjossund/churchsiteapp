@@ -189,6 +189,135 @@ test('published rendering applies curated block styles from the published snapsh
         ->assertSee('md:order-1', false);
 });
 
+test('published image presentation uses the saved ratios, crop positions, and corners', function () {
+    Storage::fake('s3');
+    $site = Site::factory()->create(['slug' => 'image-presentation']);
+    $asset = $site->mediaAssets()->create([
+        'storage_key' => "sites/{$site->id}/presentation-image",
+        'mime_type' => 'image/png',
+        'alt_text' => 'People gathering.',
+    ]);
+    Storage::disk('s3')->put($asset->storage_key, 'image', ['visibility' => 'private']);
+    $image = $site->blocks()->create([
+        'type' => 'image',
+        'position' => 0,
+        'content' => [
+            'media_asset_id' => $asset->id,
+            'style' => [
+                'image_ratio' => 'landscape',
+                'crop_position' => 'top',
+                'corner_style' => 'square',
+            ],
+        ],
+    ]);
+    $site->blocks()->create([
+        'type' => 'text_image',
+        'position' => 1,
+        'content' => [
+            'heading' => 'Welcome',
+            'body' => 'Join us',
+            'media_asset_id' => $asset->id,
+            'style' => [
+                'image_ratio' => 'portrait',
+                'crop_position' => 'bottom',
+                'corner_style' => 'rounded',
+            ],
+        ],
+    ]);
+    $site->blocks()->create([
+        'type' => 'image',
+        'position' => 2,
+        'content' => ['media_asset_id' => $asset->id],
+    ]);
+
+    $this->actingAs($site->user)->post(route('sites.publish', $site));
+    auth()->logout();
+
+    $this->get(route('sites.published.show', $site->slug))
+        ->assertOk()
+        ->assertSee('data-image-ratio="landscape" data-crop-position="top" data-corner-style="square"', false)
+        ->assertSee('data-image-ratio="portrait" data-crop-position="bottom" data-corner-style="rounded"', false)
+        ->assertSee('data-image-ratio="original" data-crop-position="center" data-corner-style="current"', false);
+
+    expect($site->fresh()->published_snapshot['pages'][0]['blocks'][0]['content']['style']['image_ratio'])->toBe('landscape');
+
+    $this->actingAs($site->user)->patch(route('sites.blocks.update', [$site, $image]), [
+        'content' => [
+            'media_asset_id' => $asset->id,
+            'style' => ['image_ratio' => 'square', 'crop_position' => 'center', 'corner_style' => 'current'],
+        ],
+    ])->assertRedirect(route('sites.show', $site));
+    auth()->logout();
+
+    $this->get(route('sites.published.show', $site->slug))
+        ->assertOk()
+        ->assertSee('data-image-ratio="landscape" data-crop-position="top" data-corner-style="square"', false);
+});
+
+test('image captions are escaped, published with their images, and hidden when an image is cleared', function () {
+    Storage::fake('s3');
+    $site = Site::factory()->create(['slug' => 'image-captions']);
+    $asset = $site->mediaAssets()->create([
+        'storage_key' => "sites/{$site->id}/caption-image",
+        'mime_type' => 'image/png',
+        'alt_text' => 'A group meeting on Sunday',
+    ]);
+    Storage::disk('s3')->put($asset->storage_key, 'image', ['visibility' => 'private']);
+    $image = $site->blocks()->create([
+        'type' => 'image',
+        'position' => 0,
+        'content' => ['media_asset_id' => $asset->id, 'caption' => '<b>Gather</b>'],
+    ]);
+    $site->blocks()->create([
+        'type' => 'text_image',
+        'position' => 1,
+        'content' => [
+            'heading' => 'Welcome',
+            'body' => 'Join us',
+            'media_asset_id' => $asset->id,
+            'caption' => '0',
+        ],
+    ]);
+
+    $this->actingAs($site->user)->post(route('sites.publish', $site));
+    auth()->logout();
+
+    $this->get(route('sites.published.show', $site->slug))
+        ->assertOk()
+        ->assertSee('alt="A group meeting on Sunday"', false)
+        ->assertSee('&lt;b&gt;Gather&lt;/b&gt;', false)
+        ->assertSee('>0</figcaption>', false)
+        ->assertDontSee('<b>Gather</b>', false);
+
+    $this->actingAs($site->user)->patch(route('sites.blocks.update', [$site, $image]), [
+        'content' => ['media_asset_id' => $asset->id, 'caption' => 'Draft only'],
+    ])->assertRedirect(route('sites.show', $site));
+    auth()->logout();
+    $this->get(route('sites.published.show', $site->slug))
+        ->assertOk()
+        ->assertSee('&lt;b&gt;Gather&lt;/b&gt;', false)
+        ->assertDontSee('Draft only');
+
+    $this->actingAs($site->user)->patch(route('sites.blocks.update', [$site, $image]), [
+        'content' => ['media_asset_id' => null, 'caption' => '<b>Gather</b>'],
+    ])->assertRedirect(route('sites.show', $site));
+    $this->post(route('sites.publish', $site))->assertRedirect();
+    auth()->logout();
+    $this->get(route('sites.published.show', $site->slug))
+        ->assertOk()
+        ->assertDontSee('&lt;b&gt;Gather&lt;/b&gt;', false)
+        ->assertSee('>0</figcaption>', false);
+
+    $this->actingAs($site->user)->patch(route('sites.blocks.update', [$site, $image]), [
+        'content' => ['media_asset_id' => $asset->id, 'caption' => '<b>Gather</b>'],
+    ])->assertRedirect(route('sites.show', $site));
+    $this->post(route('sites.publish', $site))->assertRedirect();
+    auth()->logout();
+    $this->get(route('sites.published.show', $site->slug))
+        ->assertOk()
+        ->assertSee('&lt;b&gt;Gather&lt;/b&gt;', false);
+});
+
 test('unknown and unpublished sites return not found', function () {
     $unpublished = Site::factory()->create(['slug' => 'not-published']);
 

@@ -44,7 +44,7 @@ Generate an application key only for a genuinely new environment; preserve an ex
 
 The following is an ordered checklist, not an unattended deployment script. Resolve the PHP binary and application path for the actual Plesk host before running it.
 
-1. Deploy a reviewed Git commit to the application directory. The repository contains tracked dependency/build artifacts; install dependencies and rebuild instead of trusting those generated files as current production output. Keep `public/hot` absent on the server.
+1. Deploy a reviewed Git commit to the application directory. Generated frontend assets and Wayfinder helpers are not committed; install dependencies and build them on the server. Keep `public/hot` absent on the server.
 2. Run `composer install --no-dev --prefer-dist --optimize-autoloader` and `composer check-platform-reqs --no-dev` using the selected PHP runtime.
 3. Run `npm ci` and `npm run build`. The build invokes Artisan for Wayfinder, so PHP dependencies and the environment must already be available. Do not use a Vite development server for production.
 4. Back up any existing database, inspect pending migrations and run `php artisan migrate --force` only on the intended application database. For Feature 7b, the pending domain migrations add the custom-hostname table and reconciliation fields; inspect the actual pending list instead of rerunning earlier migrations.

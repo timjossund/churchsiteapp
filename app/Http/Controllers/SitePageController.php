@@ -88,8 +88,8 @@ class SitePageController extends Controller
                 throw ValidationException::withMessages(['page' => 'The Home page cannot be deleted.']);
             }
             $ownedPage->delete();
-            foreach ($ownedSite->blocks()->where('type', 'hero')->get() as $hero) {
-                $hero->disableLinksTo('page', $page);
+            foreach ($ownedSite->blocks()->whereIn('type', ['hero', 'about', 'heading_text', 'plain_text', 'text_image'])->get() as $linkedBlock) {
+                $linkedBlock->disableLinksTo('page', $page);
             }
             foreach ($ownedSite->pages()->orderBy('position')->orderBy('id')->get() as $position => $remaining) {
                 $remaining->update(['position' => $position]);

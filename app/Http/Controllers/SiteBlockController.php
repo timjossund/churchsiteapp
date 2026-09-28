@@ -54,8 +54,9 @@ class SiteBlockController extends Controller
             $ownedBlock = $ownedPage->blocks()->whereKey($block)->firstOrFail();
             $content = $request->validated('content');
 
-            if ($ownedBlock->type === 'hero') {
-                foreach (['', 'secondary_button.'] as $prefix) {
+            if (in_array($ownedBlock->type, ['hero', 'about', 'heading_text', 'plain_text', 'text_image'], true)
+                && isset($content['link_type'])) {
+                foreach ($ownedBlock->type === 'hero' ? ['', 'secondary_button.'] : [''] as $prefix) {
                     if ($prefix !== '' && ! isset($content['secondary_button'])) {
                         continue;
                     }
@@ -80,6 +81,9 @@ class SiteBlockController extends Controller
                     }
                     if ($type === 'none') {
                         $button['button_label'] = '';
+                    }
+                    if ($ownedBlock->type !== 'hero' && ! array_key_exists('target_page_id', $button)) {
+                        $button['target_page_id'] = null;
                     }
                     if ($prefix === '') {
                         $content = $button;
@@ -107,8 +111,8 @@ class SiteBlockController extends Controller
             $ownedPage = $ownedSite->editorPage($request->route('page'));
             $ownedPage->blocks()->whereKey($block)->firstOrFail()->delete();
 
-            foreach ($ownedPage->blocks()->where('type', 'hero')->get() as $hero) {
-                $hero->disableLinksTo('section', $block);
+            foreach ($ownedPage->blocks()->whereIn('type', ['hero', 'about', 'heading_text', 'plain_text', 'text_image'])->get() as $linkedBlock) {
+                $linkedBlock->disableLinksTo('section', $block);
             }
 
             $remaining = $ownedPage->blocks()->orderBy('position')->orderBy('id')->get(['id']);

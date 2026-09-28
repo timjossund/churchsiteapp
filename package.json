@@ -8,6 +8,7 @@
         "dev": "vp dev",
         "check": "vp check",
         "check:fix": "vp check --fix",
+        "pretypes:check": "php artisan wayfinder:generate --with-form",
         "types:check": "vue-tsc --noEmit"
     },
     "dependencies": {

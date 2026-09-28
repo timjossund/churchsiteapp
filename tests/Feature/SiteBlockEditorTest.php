@@ -173,6 +173,107 @@ test('invalid curated style options cannot change a saved block', function ($sty
     'unknown layout' => [['layout' => 'stacked'], 'text_image'],
 ]);
 
+test('image presentation options save only on image-bearing blocks', function (string $type) {
+    $site = Site::factory()->create();
+    $block = SiteBlock::factory()->for($site)->create([
+        'type' => $type,
+        'content' => $type === 'image'
+            ? ['media_asset_id' => null]
+            : ['heading' => 'Welcome', 'body' => 'Visit us', 'media_asset_id' => null],
+    ]);
+    $content = [
+        ...$block->content,
+        'style' => [
+            'image_ratio' => 'portrait',
+            'crop_position' => 'top',
+            'corner_style' => 'rounded',
+        ],
+    ];
+
+    $this->actingAs($site->user)
+        ->patch(route('sites.blocks.update', [$site, $block]), ['content' => $content])
+        ->assertRedirect(route('sites.show', $site));
+
+    expect($block->fresh()->content['style'])->toBe($content['style']);
+})->with(['image', 'text_image']);
+
+test('image presentation rejects invalid values and unsupported block types', function ($style, $type, $field) {
+    $site = Site::factory()->create();
+    $block = SiteBlock::factory()->for($site)->create([
+        'type' => $type,
+        'content' => $type === 'image'
+            ? ['media_asset_id' => null]
+            : ['body' => 'Saved text'],
+    ]);
+
+    $this->actingAs($site->user)
+        ->patch(route('sites.blocks.update', [$site, $block]), [
+            'content' => [...$block->content, 'style' => $style],
+        ])->assertSessionHasErrors($field);
+
+    expect($block->fresh()->content['style'] ?? null)->toBeNull();
+})->with([
+    'unknown image shape' => [['image_ratio' => 'wide'], 'image', 'content.style.image_ratio'],
+    'unknown crop position' => [['crop_position' => 'left'], 'image', 'content.style.crop_position'],
+    'unknown corner style' => [['corner_style' => 'pill'], 'image', 'content.style.corner_style'],
+    'image shape on text' => [['image_ratio' => 'square'], 'plain_text', 'content.style.image_ratio'],
+]);
+
+test('captions stay with an image block when its image is cleared or replaced', function (string $type) {
+    $site = Site::factory()->create();
+    $first = $site->mediaAssets()->create([
+        'storage_key' => "sites/{$site->id}/first-caption-image",
+        'mime_type' => 'image/png',
+        'alt_text' => 'First image description',
+    ]);
+    $replacement = $site->mediaAssets()->create([
+        'storage_key' => "sites/{$site->id}/replacement-caption-image",
+        'mime_type' => 'image/png',
+        'alt_text' => 'Replacement image description',
+    ]);
+    $block = SiteBlock::factory()->for($site)->create([
+        'type' => $type,
+        'content' => $type === 'image'
+            ? ['media_asset_id' => $first->id]
+            : ['heading' => 'Welcome', 'body' => 'Visit us', 'media_asset_id' => $first->id],
+    ]);
+    $content = [...$block->content, 'caption' => 'Sunday gathering'];
+
+    $this->actingAs($site->user);
+    $this->patch(route('sites.blocks.update', [$site, $block]), ['content' => $content])
+        ->assertRedirect(route('sites.show', $site));
+    expect($block->fresh()->content['caption'])->toBe('Sunday gathering');
+
+    $content['media_asset_id'] = null;
+    $this->patch(route('sites.blocks.update', [$site, $block]), ['content' => $content])
+        ->assertRedirect(route('sites.show', $site));
+    expect($block->fresh()->content)->toMatchArray(['media_asset_id' => null, 'caption' => 'Sunday gathering']);
+
+    $content['media_asset_id'] = $replacement->id;
+    $this->patch(route('sites.blocks.update', [$site, $block]), ['content' => $content])
+        ->assertRedirect(route('sites.show', $site));
+    expect($block->fresh()->content)->toMatchArray(['media_asset_id' => $replacement->id, 'caption' => 'Sunday gathering']);
+    expect($replacement->fresh()->alt_text)->toBe('Replacement image description');
+})->with(['image', 'text_image']);
+
+test('captions reject non-text input and unsupported block types', function ($type, $caption) {
+    $site = Site::factory()->create();
+    $block = SiteBlock::factory()->for($site)->create([
+        'type' => $type,
+        'content' => $type === 'image' ? ['media_asset_id' => null] : ['body' => 'Saved text'],
+    ]);
+
+    $this->actingAs($site->user)
+        ->patch(route('sites.blocks.update', [$site, $block]), [
+            'content' => [...$block->content, 'caption' => $caption],
+        ])->assertSessionHasErrors('content.caption');
+
+    expect($block->fresh()->content)->toBe($block->content);
+})->with([
+    'non-text caption' => ['image', ['not text']],
+    'caption on plain text' => ['plain_text', 'Not an image caption'],
+]);
+
 test('invalid or extra content fields cannot change a saved block', function ($content, $extra = []) {
     $site = Site::factory()->create();
     $block = SiteBlock::factory()->for($site)->create([

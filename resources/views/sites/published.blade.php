@@ -93,6 +93,9 @@
             @php($spacing = in_array($style['spacing'] ?? null, ['compact', 'current', 'spacious'], true) ? $style['spacing'] : 'current')
             @php($contentWidth = in_array($style['content_width'] ?? null, ['narrow', 'current', 'full'], true) ? $style['content_width'] : 'current')
             @php($headingSize = !in_array($block['type'], ['plain_text', 'image', 'video'], true) && in_array($style['heading_size'] ?? null, ['small', 'current', 'large'], true) ? $style['heading_size'] : 'current')
+            @php($imageRatio = in_array($style['image_ratio'] ?? null, ['landscape', 'square', 'portrait'], true) ? $style['image_ratio'] : 'original')
+            @php($cropPosition = in_array($style['crop_position'] ?? null, ['top', 'bottom'], true) ? $style['crop_position'] : 'center')
+            @php($cornerStyle = in_array($style['corner_style'] ?? null, ['square', 'rounded'], true) ? $style['corner_style'] : 'current')
             <section id="block-{{ $block['id'] }}" data-block-type="{{ $block['type'] }}" data-spacing="{{ $spacing }}" data-content-width="{{ $contentWidth }}" data-heading-size="{{ $headingSize }}" data-background="{{ $background }}" @if ($block['type'] === 'hero') data-height="{{ $style['height'] ?? 'current' }}" data-overlay="{{ $style['overlay'] ?? 'medium' }}" data-motion="{{ $style['motion'] ?? 'normal' }}" @if ($block['image_url']) data-has-image="true" @endif @endif class="site-block {{ $block['type'] === 'hero' ? 'site-hero' : '' }} border-b border-[var(--site-preview-border)] px-6 py-12 last:border-b-0 sm:px-10 {{ $alignment === 'center' ? 'text-center' : '' }}">
                 @if ($block['type'] === 'hero' && $block['image_url'])
                     <img src="{{ $block['image_url'] }}" alt="" class="site-hero-image">
@@ -182,9 +185,14 @@
 
                         @case('image')
                             @if ($block['image_url'])
-                                <div class="overflow-hidden rounded-xl border border-[var(--site-preview-border)] bg-[var(--site-preview-soft)] {{ $alignment === 'center' ? 'mx-auto max-w-3xl' : '' }}">
-                                    <img src="{{ $block['image_url'] }}" alt="{{ $block['image_alt'] }}" class="max-h-[32rem] w-full object-contain">
-                                   </div>
+                                <figure class="{{ $alignment === 'center' ? 'mx-auto max-w-3xl' : '' }}">
+                                    <div data-image-ratio="{{ $imageRatio }}" data-crop-position="{{ $cropPosition }}" data-corner-style="{{ $cornerStyle }}" class="site-image-frame overflow-hidden rounded-xl border border-[var(--site-preview-border)] bg-[var(--site-preview-soft)]">
+                                        <img src="{{ $block['image_url'] }}" alt="{{ $block['image_alt'] }}" class="max-h-[32rem] w-full object-contain">
+                                    </div>
+                                    @if (is_string($content['caption'] ?? null) && $content['caption'] !== '')
+                                        <figcaption class="mt-3 text-sm whitespace-pre-line text-[var(--site-preview-muted)]">{{ $content['caption'] }}</figcaption>
+                                    @endif
+                                </figure>
                             @endif
                             @break
 
@@ -195,11 +203,19 @@
                                     @if (! empty($content['body']))
                                         <p class="mt-4 whitespace-pre-line text-[var(--site-preview-muted)]">{{ $content['body'] }}</p>
                                     @endif
+                                    @if ($block['hero_href'])
+                                        <a href="{{ $block['hero_href'] }}" @if ($block['hero_external']) target="_blank" rel="noopener noreferrer" @endif class="site-hero-button mt-7 inline-flex min-h-11 items-center rounded-lg bg-[var(--site-preview-action)] px-5 py-2 text-sm font-semibold text-[var(--site-preview-action-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]">{{ $content['button_label'] }}</a>
+                                    @endif
                                    </div>
                                 @if ($block['image_url'])
-                                    <div class="overflow-hidden rounded-xl border border-[var(--site-preview-border)] bg-[var(--site-preview-soft)] {{ $imageOnLeft ? 'md:order-1' : 'md:order-2' }}">
-                                        <img src="{{ $block['image_url'] }}" alt="{{ $block['image_alt'] }}" class="max-h-[32rem] min-h-56 w-full object-contain">
-                                       </div>
+                                    <figure class="{{ $imageOnLeft ? 'md:order-1' : 'md:order-2' }}">
+                                        <div data-image-ratio="{{ $imageRatio }}" data-crop-position="{{ $cropPosition }}" data-corner-style="{{ $cornerStyle }}" class="site-image-frame overflow-hidden rounded-xl border border-[var(--site-preview-border)] bg-[var(--site-preview-soft)]">
+                                            <img src="{{ $block['image_url'] }}" alt="{{ $block['image_alt'] }}" class="max-h-[32rem] min-h-56 w-full object-contain">
+                                        </div>
+                                        @if (is_string($content['caption'] ?? null) && $content['caption'] !== '')
+                                            <figcaption class="mt-3 text-sm whitespace-pre-line text-[var(--site-preview-muted)]">{{ $content['caption'] }}</figcaption>
+                                        @endif
+                                    </figure>
                                 @endif
                                </div>
                             @break
@@ -220,6 +236,9 @@
                             @endif
                             @break
                     @endswitch
+                    @if (in_array($block['type'], ['about', 'heading_text', 'plain_text'], true) && $block['hero_href'])
+                        <a href="{{ $block['hero_href'] }}" @if ($block['hero_external']) target="_blank" rel="noopener noreferrer" @endif class="site-hero-button mt-7 inline-flex min-h-11 items-center rounded-lg bg-[var(--site-preview-action)] px-5 py-2 text-sm font-semibold text-[var(--site-preview-action-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]">{{ $content['button_label'] }}</a>
+                    @endif
                 </div>
             </section>
         @endforeach

@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition, applyUrlDefaults } from './../../../../wayfinder'
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:141
+* @see app/Http/Controllers/PublishedSiteController.php:151
 * @route '/s/{slug}/media/{mediaAsset}'
 */
 export const show = (args: { slug: string | number, mediaAsset: string | number } | [slug: string | number, mediaAsset: string | number ], options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -16,7 +16,7 @@ show.definition = {
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:141
+* @see app/Http/Controllers/PublishedSiteController.php:151
 * @route '/s/{slug}/media/{mediaAsset}'
 */
 show.url = (args: { slug: string | number, mediaAsset: string | number } | [slug: string | number, mediaAsset: string | number ], options?: RouteQueryOptions) => {
@@ -42,7 +42,7 @@ show.url = (args: { slug: string | number, mediaAsset: string | number } | [slug
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:141
+* @see app/Http/Controllers/PublishedSiteController.php:151
 * @route '/s/{slug}/media/{mediaAsset}'
 */
 show.get = (args: { slug: string | number, mediaAsset: string | number } | [slug: string | number, mediaAsset: string | number ], options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -52,7 +52,7 @@ show.get = (args: { slug: string | number, mediaAsset: string | number } | [slug
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:141
+* @see app/Http/Controllers/PublishedSiteController.php:151
 * @route '/s/{slug}/media/{mediaAsset}'
 */
 show.head = (args: { slug: string | number, mediaAsset: string | number } | [slug: string | number, mediaAsset: string | number ], options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -62,7 +62,7 @@ show.head = (args: { slug: string | number, mediaAsset: string | number } | [slu
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:141
+* @see app/Http/Controllers/PublishedSiteController.php:151
 * @route '/s/{slug}/media/{mediaAsset}'
 */
 const showForm = (args: { slug: string | number, mediaAsset: string | number } | [slug: string | number, mediaAsset: string | number ], options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -72,7 +72,7 @@ const showForm = (args: { slug: string | number, mediaAsset: string | number } |
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:141
+* @see app/Http/Controllers/PublishedSiteController.php:151
 * @route '/s/{slug}/media/{mediaAsset}'
 */
 showForm.get = (args: { slug: string | number, mediaAsset: string | number } | [slug: string | number, mediaAsset: string | number ], options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -82,7 +82,7 @@ showForm.get = (args: { slug: string | number, mediaAsset: string | number } | [
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:141
+* @see app/Http/Controllers/PublishedSiteController.php:151
 * @route '/s/{slug}/media/{mediaAsset}'
 */
 showForm.head = (args: { slug: string | number, mediaAsset: string | number } | [slug: string | number, mediaAsset: string | number ], options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({

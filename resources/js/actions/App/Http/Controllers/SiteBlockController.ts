@@ -157,7 +157,7 @@ export const store = {
 
 /**
 * @see \App\Http\Controllers\SiteBlockController::order
-* @see app/Http/Controllers/SiteBlockController.php:125
+* @see app/Http/Controllers/SiteBlockController.php:129
 * @route '/sites/{site}/pages/{page}/blocks/order'
 */
 const orderae19dd920148d682ed68706986365f83 = (args: { site: string | number, page: string | number } | [site: string | number, page: string | number ], options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
@@ -172,7 +172,7 @@ orderae19dd920148d682ed68706986365f83.definition = {
 
 /**
 * @see \App\Http\Controllers\SiteBlockController::order
-* @see app/Http/Controllers/SiteBlockController.php:125
+* @see app/Http/Controllers/SiteBlockController.php:129
 * @route '/sites/{site}/pages/{page}/blocks/order'
 */
 orderae19dd920148d682ed68706986365f83.url = (args: { site: string | number, page: string | number } | [site: string | number, page: string | number ], options?: RouteQueryOptions) => {
@@ -198,7 +198,7 @@ orderae19dd920148d682ed68706986365f83.url = (args: { site: string | number, page
 
 /**
 * @see \App\Http\Controllers\SiteBlockController::order
-* @see app/Http/Controllers/SiteBlockController.php:125
+* @see app/Http/Controllers/SiteBlockController.php:129
 * @route '/sites/{site}/pages/{page}/blocks/order'
 */
 orderae19dd920148d682ed68706986365f83.patch = (args: { site: string | number, page: string | number } | [site: string | number, page: string | number ], options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
@@ -208,7 +208,7 @@ orderae19dd920148d682ed68706986365f83.patch = (args: { site: string | number, pa
 
 /**
 * @see \App\Http\Controllers\SiteBlockController::order
-* @see app/Http/Controllers/SiteBlockController.php:125
+* @see app/Http/Controllers/SiteBlockController.php:129
 * @route '/sites/{site}/pages/{page}/blocks/order'
 */
 const orderae19dd920148d682ed68706986365f83Form = (args: { site: string | number, page: string | number } | [site: string | number, page: string | number ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -223,7 +223,7 @@ const orderae19dd920148d682ed68706986365f83Form = (args: { site: string | number
 
 /**
 * @see \App\Http\Controllers\SiteBlockController::order
-* @see app/Http/Controllers/SiteBlockController.php:125
+* @see app/Http/Controllers/SiteBlockController.php:129
 * @route '/sites/{site}/pages/{page}/blocks/order'
 */
 orderae19dd920148d682ed68706986365f83Form.patch = (args: { site: string | number, page: string | number } | [site: string | number, page: string | number ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -239,7 +239,7 @@ orderae19dd920148d682ed68706986365f83Form.patch = (args: { site: string | number
 orderae19dd920148d682ed68706986365f83.form = orderae19dd920148d682ed68706986365f83Form
 /**
 * @see \App\Http\Controllers\SiteBlockController::order
-* @see app/Http/Controllers/SiteBlockController.php:125
+* @see app/Http/Controllers/SiteBlockController.php:129
 * @route '/sites/{site}/blocks/order'
 */
 const ordere3aeea529e8e10deb029ad61370673ad = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
@@ -254,7 +254,7 @@ ordere3aeea529e8e10deb029ad61370673ad.definition = {
 
 /**
 * @see \App\Http\Controllers\SiteBlockController::order
-* @see app/Http/Controllers/SiteBlockController.php:125
+* @see app/Http/Controllers/SiteBlockController.php:129
 * @route '/sites/{site}/blocks/order'
 */
 ordere3aeea529e8e10deb029ad61370673ad.url = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions) => {
@@ -281,7 +281,7 @@ ordere3aeea529e8e10deb029ad61370673ad.url = (args: { site: string | number } | [
 
 /**
 * @see \App\Http\Controllers\SiteBlockController::order
-* @see app/Http/Controllers/SiteBlockController.php:125
+* @see app/Http/Controllers/SiteBlockController.php:129
 * @route '/sites/{site}/blocks/order'
 */
 ordere3aeea529e8e10deb029ad61370673ad.patch = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
@@ -291,7 +291,7 @@ ordere3aeea529e8e10deb029ad61370673ad.patch = (args: { site: string | number } |
 
 /**
 * @see \App\Http\Controllers\SiteBlockController::order
-* @see app/Http/Controllers/SiteBlockController.php:125
+* @see app/Http/Controllers/SiteBlockController.php:129
 * @route '/sites/{site}/blocks/order'
 */
 const ordere3aeea529e8e10deb029ad61370673adForm = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -306,7 +306,7 @@ const ordere3aeea529e8e10deb029ad61370673adForm = (args: { site: string | number
 
 /**
 * @see \App\Http\Controllers\SiteBlockController::order
-* @see app/Http/Controllers/SiteBlockController.php:125
+* @see app/Http/Controllers/SiteBlockController.php:129
 * @route '/sites/{site}/blocks/order'
 */
 ordere3aeea529e8e10deb029ad61370673adForm.patch = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -511,7 +511,7 @@ export const update = {
 
 /**
 * @see \App\Http\Controllers\SiteBlockController::destroy
-* @see app/Http/Controllers/SiteBlockController.php:102
+* @see app/Http/Controllers/SiteBlockController.php:106
 * @route '/sites/{site}/pages/{page}/blocks/{block}'
 */
 const destroya954e5f2875e8b8aa9f18f25506db8a1 = (args: { site: string | number, page: string | number, block: string | number } | [site: string | number, page: string | number, block: string | number ], options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
@@ -526,7 +526,7 @@ destroya954e5f2875e8b8aa9f18f25506db8a1.definition = {
 
 /**
 * @see \App\Http\Controllers\SiteBlockController::destroy
-* @see app/Http/Controllers/SiteBlockController.php:102
+* @see app/Http/Controllers/SiteBlockController.php:106
 * @route '/sites/{site}/pages/{page}/blocks/{block}'
 */
 destroya954e5f2875e8b8aa9f18f25506db8a1.url = (args: { site: string | number, page: string | number, block: string | number } | [site: string | number, page: string | number, block: string | number ], options?: RouteQueryOptions) => {
@@ -555,7 +555,7 @@ destroya954e5f2875e8b8aa9f18f25506db8a1.url = (args: { site: string | number, pa
 
 /**
 * @see \App\Http\Controllers\SiteBlockController::destroy
-* @see app/Http/Controllers/SiteBlockController.php:102
+* @see app/Http/Controllers/SiteBlockController.php:106
 * @route '/sites/{site}/pages/{page}/blocks/{block}'
 */
 destroya954e5f2875e8b8aa9f18f25506db8a1.delete = (args: { site: string | number, page: string | number, block: string | number } | [site: string | number, page: string | number, block: string | number ], options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
@@ -565,7 +565,7 @@ destroya954e5f2875e8b8aa9f18f25506db8a1.delete = (args: { site: string | number,
 
 /**
 * @see \App\Http\Controllers\SiteBlockController::destroy
-* @see app/Http/Controllers/SiteBlockController.php:102
+* @see app/Http/Controllers/SiteBlockController.php:106
 * @route '/sites/{site}/pages/{page}/blocks/{block}'
 */
 const destroya954e5f2875e8b8aa9f18f25506db8a1Form = (args: { site: string | number, page: string | number, block: string | number } | [site: string | number, page: string | number, block: string | number ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -580,7 +580,7 @@ const destroya954e5f2875e8b8aa9f18f25506db8a1Form = (args: { site: string | numb
 
 /**
 * @see \App\Http\Controllers\SiteBlockController::destroy
-* @see app/Http/Controllers/SiteBlockController.php:102
+* @see app/Http/Controllers/SiteBlockController.php:106
 * @route '/sites/{site}/pages/{page}/blocks/{block}'
 */
 destroya954e5f2875e8b8aa9f18f25506db8a1Form.delete = (args: { site: string | number, page: string | number, block: string | number } | [site: string | number, page: string | number, block: string | number ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -596,7 +596,7 @@ destroya954e5f2875e8b8aa9f18f25506db8a1Form.delete = (args: { site: string | num
 destroya954e5f2875e8b8aa9f18f25506db8a1.form = destroya954e5f2875e8b8aa9f18f25506db8a1Form
 /**
 * @see \App\Http\Controllers\SiteBlockController::destroy
-* @see app/Http/Controllers/SiteBlockController.php:102
+* @see app/Http/Controllers/SiteBlockController.php:106
 * @route '/sites/{site}/blocks/{block}'
 */
 const destroy384a1139c967221040dcf01c4506ebd9 = (args: { site: string | number, block: string | number } | [site: string | number, block: string | number ], options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
@@ -611,7 +611,7 @@ destroy384a1139c967221040dcf01c4506ebd9.definition = {
 
 /**
 * @see \App\Http\Controllers\SiteBlockController::destroy
-* @see app/Http/Controllers/SiteBlockController.php:102
+* @see app/Http/Controllers/SiteBlockController.php:106
 * @route '/sites/{site}/blocks/{block}'
 */
 destroy384a1139c967221040dcf01c4506ebd9.url = (args: { site: string | number, block: string | number } | [site: string | number, block: string | number ], options?: RouteQueryOptions) => {
@@ -637,7 +637,7 @@ destroy384a1139c967221040dcf01c4506ebd9.url = (args: { site: string | number, bl
 
 /**
 * @see \App\Http\Controllers\SiteBlockController::destroy
-* @see app/Http/Controllers/SiteBlockController.php:102
+* @see app/Http/Controllers/SiteBlockController.php:106
 * @route '/sites/{site}/blocks/{block}'
 */
 destroy384a1139c967221040dcf01c4506ebd9.delete = (args: { site: string | number, block: string | number } | [site: string | number, block: string | number ], options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
@@ -647,7 +647,7 @@ destroy384a1139c967221040dcf01c4506ebd9.delete = (args: { site: string | number,
 
 /**
 * @see \App\Http\Controllers\SiteBlockController::destroy
-* @see app/Http/Controllers/SiteBlockController.php:102
+* @see app/Http/Controllers/SiteBlockController.php:106
 * @route '/sites/{site}/blocks/{block}'
 */
 const destroy384a1139c967221040dcf01c4506ebd9Form = (args: { site: string | number, block: string | number } | [site: string | number, block: string | number ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -662,7 +662,7 @@ const destroy384a1139c967221040dcf01c4506ebd9Form = (args: { site: string | numb
 
 /**
 * @see \App\Http\Controllers\SiteBlockController::destroy
-* @see app/Http/Controllers/SiteBlockController.php:102
+* @see app/Http/Controllers/SiteBlockController.php:106
 * @route '/sites/{site}/blocks/{block}'
 */
 destroy384a1139c967221040dcf01c4506ebd9Form.delete = (args: { site: string | number, block: string | number } | [site: string | number, block: string | number ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({

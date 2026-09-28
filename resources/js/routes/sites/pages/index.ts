@@ -162,7 +162,7 @@ order.form = orderForm
 
 /**
 * @see \App\Http\Controllers\SiteController::show
-* @see app/Http/Controllers/SiteController.php:39
+* @see app/Http/Controllers/SiteController.php:53
 * @route '/sites/{site}/pages/{page}'
 */
 export const show = (args: { site: string | number, page: string | number } | [site: string | number, page: string | number ], options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -177,7 +177,7 @@ show.definition = {
 
 /**
 * @see \App\Http\Controllers\SiteController::show
-* @see app/Http/Controllers/SiteController.php:39
+* @see app/Http/Controllers/SiteController.php:53
 * @route '/sites/{site}/pages/{page}'
 */
 show.url = (args: { site: string | number, page: string | number } | [site: string | number, page: string | number ], options?: RouteQueryOptions) => {
@@ -203,7 +203,7 @@ show.url = (args: { site: string | number, page: string | number } | [site: stri
 
 /**
 * @see \App\Http\Controllers\SiteController::show
-* @see app/Http/Controllers/SiteController.php:39
+* @see app/Http/Controllers/SiteController.php:53
 * @route '/sites/{site}/pages/{page}'
 */
 show.get = (args: { site: string | number, page: string | number } | [site: string | number, page: string | number ], options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -213,7 +213,7 @@ show.get = (args: { site: string | number, page: string | number } | [site: stri
 
 /**
 * @see \App\Http\Controllers\SiteController::show
-* @see app/Http/Controllers/SiteController.php:39
+* @see app/Http/Controllers/SiteController.php:53
 * @route '/sites/{site}/pages/{page}'
 */
 show.head = (args: { site: string | number, page: string | number } | [site: string | number, page: string | number ], options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -223,7 +223,7 @@ show.head = (args: { site: string | number, page: string | number } | [site: str
 
 /**
 * @see \App\Http\Controllers\SiteController::show
-* @see app/Http/Controllers/SiteController.php:39
+* @see app/Http/Controllers/SiteController.php:53
 * @route '/sites/{site}/pages/{page}'
 */
 const showForm = (args: { site: string | number, page: string | number } | [site: string | number, page: string | number ], options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -233,7 +233,7 @@ const showForm = (args: { site: string | number, page: string | number } | [site
 
 /**
 * @see \App\Http\Controllers\SiteController::show
-* @see app/Http/Controllers/SiteController.php:39
+* @see app/Http/Controllers/SiteController.php:53
 * @route '/sites/{site}/pages/{page}'
 */
 showForm.get = (args: { site: string | number, page: string | number } | [site: string | number, page: string | number ], options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -243,7 +243,7 @@ showForm.get = (args: { site: string | number, page: string | number } | [site: 
 
 /**
 * @see \App\Http\Controllers\SiteController::show
-* @see app/Http/Controllers/SiteController.php:39
+* @see app/Http/Controllers/SiteController.php:53
 * @route '/sites/{site}/pages/{page}'
 */
 showForm.head = (args: { site: string | number, page: string | number } | [site: string | number, page: string | number ], options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({

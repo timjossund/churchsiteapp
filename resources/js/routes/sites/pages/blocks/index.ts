@@ -75,7 +75,7 @@ store.form = storeForm
 
 /**
 * @see \App\Http\Controllers\SiteBlockController::order
-* @see app/Http/Controllers/SiteBlockController.php:125
+* @see app/Http/Controllers/SiteBlockController.php:129
 * @route '/sites/{site}/pages/{page}/blocks/order'
 */
 export const order = (args: { site: string | number, page: string | number } | [site: string | number, page: string | number ], options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
@@ -90,7 +90,7 @@ order.definition = {
 
 /**
 * @see \App\Http\Controllers\SiteBlockController::order
-* @see app/Http/Controllers/SiteBlockController.php:125
+* @see app/Http/Controllers/SiteBlockController.php:129
 * @route '/sites/{site}/pages/{page}/blocks/order'
 */
 order.url = (args: { site: string | number, page: string | number } | [site: string | number, page: string | number ], options?: RouteQueryOptions) => {
@@ -116,7 +116,7 @@ order.url = (args: { site: string | number, page: string | number } | [site: str
 
 /**
 * @see \App\Http\Controllers\SiteBlockController::order
-* @see app/Http/Controllers/SiteBlockController.php:125
+* @see app/Http/Controllers/SiteBlockController.php:129
 * @route '/sites/{site}/pages/{page}/blocks/order'
 */
 order.patch = (args: { site: string | number, page: string | number } | [site: string | number, page: string | number ], options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
@@ -126,7 +126,7 @@ order.patch = (args: { site: string | number, page: string | number } | [site: s
 
 /**
 * @see \App\Http\Controllers\SiteBlockController::order
-* @see app/Http/Controllers/SiteBlockController.php:125
+* @see app/Http/Controllers/SiteBlockController.php:129
 * @route '/sites/{site}/pages/{page}/blocks/order'
 */
 const orderForm = (args: { site: string | number, page: string | number } | [site: string | number, page: string | number ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -141,7 +141,7 @@ const orderForm = (args: { site: string | number, page: string | number } | [sit
 
 /**
 * @see \App\Http\Controllers\SiteBlockController::order
-* @see app/Http/Controllers/SiteBlockController.php:125
+* @see app/Http/Controllers/SiteBlockController.php:129
 * @route '/sites/{site}/pages/{page}/blocks/order'
 */
 orderForm.patch = (args: { site: string | number, page: string | number } | [site: string | number, page: string | number ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -244,7 +244,7 @@ update.form = updateForm
 
 /**
 * @see \App\Http\Controllers\SiteBlockController::destroy
-* @see app/Http/Controllers/SiteBlockController.php:102
+* @see app/Http/Controllers/SiteBlockController.php:106
 * @route '/sites/{site}/pages/{page}/blocks/{block}'
 */
 export const destroy = (args: { site: string | number, page: string | number, block: string | number } | [site: string | number, page: string | number, block: string | number ], options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
@@ -259,7 +259,7 @@ destroy.definition = {
 
 /**
 * @see \App\Http\Controllers\SiteBlockController::destroy
-* @see app/Http/Controllers/SiteBlockController.php:102
+* @see app/Http/Controllers/SiteBlockController.php:106
 * @route '/sites/{site}/pages/{page}/blocks/{block}'
 */
 destroy.url = (args: { site: string | number, page: string | number, block: string | number } | [site: string | number, page: string | number, block: string | number ], options?: RouteQueryOptions) => {
@@ -288,7 +288,7 @@ destroy.url = (args: { site: string | number, page: string | number, block: stri
 
 /**
 * @see \App\Http\Controllers\SiteBlockController::destroy
-* @see app/Http/Controllers/SiteBlockController.php:102
+* @see app/Http/Controllers/SiteBlockController.php:106
 * @route '/sites/{site}/pages/{page}/blocks/{block}'
 */
 destroy.delete = (args: { site: string | number, page: string | number, block: string | number } | [site: string | number, page: string | number, block: string | number ], options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
@@ -298,7 +298,7 @@ destroy.delete = (args: { site: string | number, page: string | number, block: s
 
 /**
 * @see \App\Http\Controllers\SiteBlockController::destroy
-* @see app/Http/Controllers/SiteBlockController.php:102
+* @see app/Http/Controllers/SiteBlockController.php:106
 * @route '/sites/{site}/pages/{page}/blocks/{block}'
 */
 const destroyForm = (args: { site: string | number, page: string | number, block: string | number } | [site: string | number, page: string | number, block: string | number ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -313,7 +313,7 @@ const destroyForm = (args: { site: string | number, page: string | number, block
 
 /**
 * @see \App\Http\Controllers\SiteBlockController::destroy
-* @see app/Http/Controllers/SiteBlockController.php:102
+* @see app/Http/Controllers/SiteBlockController.php:106
 * @route '/sites/{site}/pages/{page}/blocks/{block}'
 */
 destroyForm.delete = (args: { site: string | number, page: string | number, block: string | number } | [site: string | number, page: string | number, block: string | number ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({

@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition, applyUrlDefaults } from './../../../../wayfinder'
 /**
 * @see \App\Http\Controllers\SiteController::index
-* @see app/Http/Controllers/SiteController.php:23
+* @see app/Http/Controllers/SiteController.php:27
 * @route '/dashboard'
 */
 export const index = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -16,7 +16,7 @@ index.definition = {
 
 /**
 * @see \App\Http\Controllers\SiteController::index
-* @see app/Http/Controllers/SiteController.php:23
+* @see app/Http/Controllers/SiteController.php:27
 * @route '/dashboard'
 */
 index.url = (options?: RouteQueryOptions) => {
@@ -25,7 +25,7 @@ index.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\SiteController::index
-* @see app/Http/Controllers/SiteController.php:23
+* @see app/Http/Controllers/SiteController.php:27
 * @route '/dashboard'
 */
 index.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -35,7 +35,7 @@ index.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\SiteController::index
-* @see app/Http/Controllers/SiteController.php:23
+* @see app/Http/Controllers/SiteController.php:27
 * @route '/dashboard'
 */
 index.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -45,7 +45,7 @@ index.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
 /**
 * @see \App\Http\Controllers\SiteController::index
-* @see app/Http/Controllers/SiteController.php:23
+* @see app/Http/Controllers/SiteController.php:27
 * @route '/dashboard'
 */
 const indexForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -55,7 +55,7 @@ const indexForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => (
 
 /**
 * @see \App\Http\Controllers\SiteController::index
-* @see app/Http/Controllers/SiteController.php:23
+* @see app/Http/Controllers/SiteController.php:27
 * @route '/dashboard'
 */
 indexForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -65,7 +65,7 @@ indexForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\SiteController::index
-* @see app/Http/Controllers/SiteController.php:23
+* @see app/Http/Controllers/SiteController.php:27
 * @route '/dashboard'
 */
 indexForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -82,7 +82,7 @@ index.form = indexForm
 
 /**
 * @see \App\Http\Controllers\SiteController::store
-* @see app/Http/Controllers/SiteController.php:32
+* @see app/Http/Controllers/SiteController.php:46
 * @route '/sites'
 */
 export const store = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -97,7 +97,7 @@ store.definition = {
 
 /**
 * @see \App\Http\Controllers\SiteController::store
-* @see app/Http/Controllers/SiteController.php:32
+* @see app/Http/Controllers/SiteController.php:46
 * @route '/sites'
 */
 store.url = (options?: RouteQueryOptions) => {
@@ -106,7 +106,7 @@ store.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\SiteController::store
-* @see app/Http/Controllers/SiteController.php:32
+* @see app/Http/Controllers/SiteController.php:46
 * @route '/sites'
 */
 store.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -116,7 +116,7 @@ store.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\SiteController::store
-* @see app/Http/Controllers/SiteController.php:32
+* @see app/Http/Controllers/SiteController.php:46
 * @route '/sites'
 */
 const storeForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -126,7 +126,7 @@ const storeForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => 
 
 /**
 * @see \App\Http\Controllers\SiteController::store
-* @see app/Http/Controllers/SiteController.php:32
+* @see app/Http/Controllers/SiteController.php:46
 * @route '/sites'
 */
 storeForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -138,7 +138,7 @@ store.form = storeForm
 
 /**
 * @see \App\Http\Controllers\SiteController::goLive
-* @see app/Http/Controllers/SiteController.php:140
+* @see app/Http/Controllers/SiteController.php:156
 * @route '/sites/{site}/go-live'
 */
 export const goLive = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -153,7 +153,7 @@ goLive.definition = {
 
 /**
 * @see \App\Http\Controllers\SiteController::goLive
-* @see app/Http/Controllers/SiteController.php:140
+* @see app/Http/Controllers/SiteController.php:156
 * @route '/sites/{site}/go-live'
 */
 goLive.url = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions) => {
@@ -180,7 +180,7 @@ goLive.url = (args: { site: string | number } | [site: string | number ] | strin
 
 /**
 * @see \App\Http\Controllers\SiteController::goLive
-* @see app/Http/Controllers/SiteController.php:140
+* @see app/Http/Controllers/SiteController.php:156
 * @route '/sites/{site}/go-live'
 */
 goLive.get = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -190,7 +190,7 @@ goLive.get = (args: { site: string | number } | [site: string | number ] | strin
 
 /**
 * @see \App\Http\Controllers\SiteController::goLive
-* @see app/Http/Controllers/SiteController.php:140
+* @see app/Http/Controllers/SiteController.php:156
 * @route '/sites/{site}/go-live'
 */
 goLive.head = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -200,7 +200,7 @@ goLive.head = (args: { site: string | number } | [site: string | number ] | stri
 
 /**
 * @see \App\Http\Controllers\SiteController::goLive
-* @see app/Http/Controllers/SiteController.php:140
+* @see app/Http/Controllers/SiteController.php:156
 * @route '/sites/{site}/go-live'
 */
 const goLiveForm = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -210,7 +210,7 @@ const goLiveForm = (args: { site: string | number } | [site: string | number ] |
 
 /**
 * @see \App\Http\Controllers\SiteController::goLive
-* @see app/Http/Controllers/SiteController.php:140
+* @see app/Http/Controllers/SiteController.php:156
 * @route '/sites/{site}/go-live'
 */
 goLiveForm.get = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -220,7 +220,7 @@ goLiveForm.get = (args: { site: string | number } | [site: string | number ] | s
 
 /**
 * @see \App\Http\Controllers\SiteController::goLive
-* @see app/Http/Controllers/SiteController.php:140
+* @see app/Http/Controllers/SiteController.php:156
 * @route '/sites/{site}/go-live'
 */
 goLiveForm.head = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -237,7 +237,7 @@ goLive.form = goLiveForm
 
 /**
 * @see \App\Http\Controllers\SiteController::show
-* @see app/Http/Controllers/SiteController.php:39
+* @see app/Http/Controllers/SiteController.php:53
 * @route '/sites/{site}'
 */
 const showf191c6db5f5282fd865f0b8900f6468d = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -252,7 +252,7 @@ showf191c6db5f5282fd865f0b8900f6468d.definition = {
 
 /**
 * @see \App\Http\Controllers\SiteController::show
-* @see app/Http/Controllers/SiteController.php:39
+* @see app/Http/Controllers/SiteController.php:53
 * @route '/sites/{site}'
 */
 showf191c6db5f5282fd865f0b8900f6468d.url = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions) => {
@@ -279,7 +279,7 @@ showf191c6db5f5282fd865f0b8900f6468d.url = (args: { site: string | number } | [s
 
 /**
 * @see \App\Http\Controllers\SiteController::show
-* @see app/Http/Controllers/SiteController.php:39
+* @see app/Http/Controllers/SiteController.php:53
 * @route '/sites/{site}'
 */
 showf191c6db5f5282fd865f0b8900f6468d.get = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -289,7 +289,7 @@ showf191c6db5f5282fd865f0b8900f6468d.get = (args: { site: string | number } | [s
 
 /**
 * @see \App\Http\Controllers\SiteController::show
-* @see app/Http/Controllers/SiteController.php:39
+* @see app/Http/Controllers/SiteController.php:53
 * @route '/sites/{site}'
 */
 showf191c6db5f5282fd865f0b8900f6468d.head = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -299,7 +299,7 @@ showf191c6db5f5282fd865f0b8900f6468d.head = (args: { site: string | number } | [
 
 /**
 * @see \App\Http\Controllers\SiteController::show
-* @see app/Http/Controllers/SiteController.php:39
+* @see app/Http/Controllers/SiteController.php:53
 * @route '/sites/{site}'
 */
 const showf191c6db5f5282fd865f0b8900f6468dForm = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -309,7 +309,7 @@ const showf191c6db5f5282fd865f0b8900f6468dForm = (args: { site: string | number 
 
 /**
 * @see \App\Http\Controllers\SiteController::show
-* @see app/Http/Controllers/SiteController.php:39
+* @see app/Http/Controllers/SiteController.php:53
 * @route '/sites/{site}'
 */
 showf191c6db5f5282fd865f0b8900f6468dForm.get = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -319,7 +319,7 @@ showf191c6db5f5282fd865f0b8900f6468dForm.get = (args: { site: string | number } 
 
 /**
 * @see \App\Http\Controllers\SiteController::show
-* @see app/Http/Controllers/SiteController.php:39
+* @see app/Http/Controllers/SiteController.php:53
 * @route '/sites/{site}'
 */
 showf191c6db5f5282fd865f0b8900f6468dForm.head = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -335,7 +335,7 @@ showf191c6db5f5282fd865f0b8900f6468dForm.head = (args: { site: string | number }
 showf191c6db5f5282fd865f0b8900f6468d.form = showf191c6db5f5282fd865f0b8900f6468dForm
 /**
 * @see \App\Http\Controllers\SiteController::show
-* @see app/Http/Controllers/SiteController.php:39
+* @see app/Http/Controllers/SiteController.php:53
 * @route '/sites/{site}/pages/{page}'
 */
 const show7b87ae99c433cd798e25390270c00445 = (args: { site: string | number, page: string | number } | [site: string | number, page: string | number ], options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -350,7 +350,7 @@ show7b87ae99c433cd798e25390270c00445.definition = {
 
 /**
 * @see \App\Http\Controllers\SiteController::show
-* @see app/Http/Controllers/SiteController.php:39
+* @see app/Http/Controllers/SiteController.php:53
 * @route '/sites/{site}/pages/{page}'
 */
 show7b87ae99c433cd798e25390270c00445.url = (args: { site: string | number, page: string | number } | [site: string | number, page: string | number ], options?: RouteQueryOptions) => {
@@ -376,7 +376,7 @@ show7b87ae99c433cd798e25390270c00445.url = (args: { site: string | number, page:
 
 /**
 * @see \App\Http\Controllers\SiteController::show
-* @see app/Http/Controllers/SiteController.php:39
+* @see app/Http/Controllers/SiteController.php:53
 * @route '/sites/{site}/pages/{page}'
 */
 show7b87ae99c433cd798e25390270c00445.get = (args: { site: string | number, page: string | number } | [site: string | number, page: string | number ], options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -386,7 +386,7 @@ show7b87ae99c433cd798e25390270c00445.get = (args: { site: string | number, page:
 
 /**
 * @see \App\Http\Controllers\SiteController::show
-* @see app/Http/Controllers/SiteController.php:39
+* @see app/Http/Controllers/SiteController.php:53
 * @route '/sites/{site}/pages/{page}'
 */
 show7b87ae99c433cd798e25390270c00445.head = (args: { site: string | number, page: string | number } | [site: string | number, page: string | number ], options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -396,7 +396,7 @@ show7b87ae99c433cd798e25390270c00445.head = (args: { site: string | number, page
 
 /**
 * @see \App\Http\Controllers\SiteController::show
-* @see app/Http/Controllers/SiteController.php:39
+* @see app/Http/Controllers/SiteController.php:53
 * @route '/sites/{site}/pages/{page}'
 */
 const show7b87ae99c433cd798e25390270c00445Form = (args: { site: string | number, page: string | number } | [site: string | number, page: string | number ], options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -406,7 +406,7 @@ const show7b87ae99c433cd798e25390270c00445Form = (args: { site: string | number,
 
 /**
 * @see \App\Http\Controllers\SiteController::show
-* @see app/Http/Controllers/SiteController.php:39
+* @see app/Http/Controllers/SiteController.php:53
 * @route '/sites/{site}/pages/{page}'
 */
 show7b87ae99c433cd798e25390270c00445Form.get = (args: { site: string | number, page: string | number } | [site: string | number, page: string | number ], options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -416,7 +416,7 @@ show7b87ae99c433cd798e25390270c00445Form.get = (args: { site: string | number, p
 
 /**
 * @see \App\Http\Controllers\SiteController::show
-* @see app/Http/Controllers/SiteController.php:39
+* @see app/Http/Controllers/SiteController.php:53
 * @route '/sites/{site}/pages/{page}'
 */
 show7b87ae99c433cd798e25390270c00445Form.head = (args: { site: string | number, page: string | number } | [site: string | number, page: string | number ], options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -442,8 +442,92 @@ export const show = {
 }
 
 /**
+* @see \App\Http\Controllers\SiteController::destroy
+* @see app/Http/Controllers/SiteController.php:37
+* @route '/sites/{site}'
+*/
+export const destroy = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
+    url: destroy.url(args, options),
+    method: 'delete',
+})
+
+destroy.definition = {
+    methods: ["delete"],
+    url: '/sites/{site}',
+} satisfies RouteDefinition<["delete"]>
+
+/**
+* @see \App\Http\Controllers\SiteController::destroy
+* @see app/Http/Controllers/SiteController.php:37
+* @route '/sites/{site}'
+*/
+destroy.url = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions) => {
+    if (typeof args === 'string' || typeof args === 'number') {
+        args = { site: args }
+    }
+
+    if (Array.isArray(args)) {
+        args = {
+            site: args[0],
+        }
+    }
+
+    args = applyUrlDefaults(args)
+
+    const parsedArgs = {
+        site: args.site,
+    }
+
+    return destroy.definition.url
+            .replace('{site}', parsedArgs.site.toString())
+            .replace(/\/+$/, '') + queryParams(options)
+}
+
+/**
+* @see \App\Http\Controllers\SiteController::destroy
+* @see app/Http/Controllers/SiteController.php:37
+* @route '/sites/{site}'
+*/
+destroy.delete = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
+    url: destroy.url(args, options),
+    method: 'delete',
+})
+
+/**
+* @see \App\Http\Controllers\SiteController::destroy
+* @see app/Http/Controllers/SiteController.php:37
+* @route '/sites/{site}'
+*/
+const destroyForm = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: destroy.url(args, {
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'DELETE',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\SiteController::destroy
+* @see app/Http/Controllers/SiteController.php:37
+* @route '/sites/{site}'
+*/
+destroyForm.delete = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: destroy.url(args, {
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'DELETE',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'post',
+})
+
+destroy.form = destroyForm
+
+/**
 * @see \App\Http\Controllers\SiteController::update
-* @see app/Http/Controllers/SiteController.php:151
+* @see app/Http/Controllers/SiteController.php:167
 * @route '/sites/{site}'
 */
 export const update = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
@@ -458,7 +542,7 @@ update.definition = {
 
 /**
 * @see \App\Http\Controllers\SiteController::update
-* @see app/Http/Controllers/SiteController.php:151
+* @see app/Http/Controllers/SiteController.php:167
 * @route '/sites/{site}'
 */
 update.url = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions) => {
@@ -485,7 +569,7 @@ update.url = (args: { site: string | number } | [site: string | number ] | strin
 
 /**
 * @see \App\Http\Controllers\SiteController::update
-* @see app/Http/Controllers/SiteController.php:151
+* @see app/Http/Controllers/SiteController.php:167
 * @route '/sites/{site}'
 */
 update.patch = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
@@ -495,7 +579,7 @@ update.patch = (args: { site: string | number } | [site: string | number ] | str
 
 /**
 * @see \App\Http\Controllers\SiteController::update
-* @see app/Http/Controllers/SiteController.php:151
+* @see app/Http/Controllers/SiteController.php:167
 * @route '/sites/{site}'
 */
 const updateForm = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -510,7 +594,7 @@ const updateForm = (args: { site: string | number } | [site: string | number ] |
 
 /**
 * @see \App\Http\Controllers\SiteController::update
-* @see app/Http/Controllers/SiteController.php:151
+* @see app/Http/Controllers/SiteController.php:167
 * @route '/sites/{site}'
 */
 updateForm.patch = (args: { site: string | number } | [site: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -525,6 +609,6 @@ updateForm.patch = (args: { site: string | number } | [site: string | number ] |
 
 update.form = updateForm
 
-const SiteController = { index, store, goLive, show, update }
+const SiteController = { index, store, goLive, show, destroy, update }
 
 export default SiteController

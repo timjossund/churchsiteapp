@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition, applyUrlDefaults } from './../../../../wayfinder'
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:16
+* @see app/Http/Controllers/PublishedSiteController.php:17
 * @route '/s/{slug}/{path}'
 */
 export const show = (args: { slug: string | number, path: string | number } | [slug: string | number, path: string | number ], options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -16,7 +16,7 @@ show.definition = {
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:16
+* @see app/Http/Controllers/PublishedSiteController.php:17
 * @route '/s/{slug}/{path}'
 */
 show.url = (args: { slug: string | number, path: string | number } | [slug: string | number, path: string | number ], options?: RouteQueryOptions) => {
@@ -42,7 +42,7 @@ show.url = (args: { slug: string | number, path: string | number } | [slug: stri
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:16
+* @see app/Http/Controllers/PublishedSiteController.php:17
 * @route '/s/{slug}/{path}'
 */
 show.get = (args: { slug: string | number, path: string | number } | [slug: string | number, path: string | number ], options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -52,7 +52,7 @@ show.get = (args: { slug: string | number, path: string | number } | [slug: stri
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:16
+* @see app/Http/Controllers/PublishedSiteController.php:17
 * @route '/s/{slug}/{path}'
 */
 show.head = (args: { slug: string | number, path: string | number } | [slug: string | number, path: string | number ], options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -62,7 +62,7 @@ show.head = (args: { slug: string | number, path: string | number } | [slug: str
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:16
+* @see app/Http/Controllers/PublishedSiteController.php:17
 * @route '/s/{slug}/{path}'
 */
 const showForm = (args: { slug: string | number, path: string | number } | [slug: string | number, path: string | number ], options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -72,7 +72,7 @@ const showForm = (args: { slug: string | number, path: string | number } | [slug
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:16
+* @see app/Http/Controllers/PublishedSiteController.php:17
 * @route '/s/{slug}/{path}'
 */
 showForm.get = (args: { slug: string | number, path: string | number } | [slug: string | number, path: string | number ], options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -82,7 +82,7 @@ showForm.get = (args: { slug: string | number, path: string | number } | [slug: 
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:16
+* @see app/Http/Controllers/PublishedSiteController.php:17
 * @route '/s/{slug}/{path}'
 */
 showForm.head = (args: { slug: string | number, path: string | number } | [slug: string | number, path: string | number ], options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({

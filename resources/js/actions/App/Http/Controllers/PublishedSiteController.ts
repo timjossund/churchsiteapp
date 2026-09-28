@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition, applyUrlDefaults } from './../../../../wayfinder'
 /**
 * @see \App\Http\Controllers\PublishedSiteController::media
-* @see app/Http/Controllers/PublishedSiteController.php:141
+* @see app/Http/Controllers/PublishedSiteController.php:151
 * @route '/s/{slug}/media/{mediaAsset}'
 */
 export const media = (args: { slug: string | number, mediaAsset: string | number } | [slug: string | number, mediaAsset: string | number ], options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -16,7 +16,7 @@ media.definition = {
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::media
-* @see app/Http/Controllers/PublishedSiteController.php:141
+* @see app/Http/Controllers/PublishedSiteController.php:151
 * @route '/s/{slug}/media/{mediaAsset}'
 */
 media.url = (args: { slug: string | number, mediaAsset: string | number } | [slug: string | number, mediaAsset: string | number ], options?: RouteQueryOptions) => {
@@ -42,7 +42,7 @@ media.url = (args: { slug: string | number, mediaAsset: string | number } | [slu
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::media
-* @see app/Http/Controllers/PublishedSiteController.php:141
+* @see app/Http/Controllers/PublishedSiteController.php:151
 * @route '/s/{slug}/media/{mediaAsset}'
 */
 media.get = (args: { slug: string | number, mediaAsset: string | number } | [slug: string | number, mediaAsset: string | number ], options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -52,7 +52,7 @@ media.get = (args: { slug: string | number, mediaAsset: string | number } | [slu
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::media
-* @see app/Http/Controllers/PublishedSiteController.php:141
+* @see app/Http/Controllers/PublishedSiteController.php:151
 * @route '/s/{slug}/media/{mediaAsset}'
 */
 media.head = (args: { slug: string | number, mediaAsset: string | number } | [slug: string | number, mediaAsset: string | number ], options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -62,7 +62,7 @@ media.head = (args: { slug: string | number, mediaAsset: string | number } | [sl
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::media
-* @see app/Http/Controllers/PublishedSiteController.php:141
+* @see app/Http/Controllers/PublishedSiteController.php:151
 * @route '/s/{slug}/media/{mediaAsset}'
 */
 const mediaForm = (args: { slug: string | number, mediaAsset: string | number } | [slug: string | number, mediaAsset: string | number ], options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -72,7 +72,7 @@ const mediaForm = (args: { slug: string | number, mediaAsset: string | number } 
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::media
-* @see app/Http/Controllers/PublishedSiteController.php:141
+* @see app/Http/Controllers/PublishedSiteController.php:151
 * @route '/s/{slug}/media/{mediaAsset}'
 */
 mediaForm.get = (args: { slug: string | number, mediaAsset: string | number } | [slug: string | number, mediaAsset: string | number ], options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -82,7 +82,7 @@ mediaForm.get = (args: { slug: string | number, mediaAsset: string | number } | 
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::media
-* @see app/Http/Controllers/PublishedSiteController.php:141
+* @see app/Http/Controllers/PublishedSiteController.php:151
 * @route '/s/{slug}/media/{mediaAsset}'
 */
 mediaForm.head = (args: { slug: string | number, mediaAsset: string | number } | [slug: string | number, mediaAsset: string | number ], options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -99,7 +99,7 @@ media.form = mediaForm
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:16
+* @see app/Http/Controllers/PublishedSiteController.php:17
 * @route '/s/{slug}'
 */
 const show38159059e6dacee9cbb1d4bfd9ea5ddd = (args: { slug: string | number } | [slug: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -114,7 +114,7 @@ show38159059e6dacee9cbb1d4bfd9ea5ddd.definition = {
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:16
+* @see app/Http/Controllers/PublishedSiteController.php:17
 * @route '/s/{slug}'
 */
 show38159059e6dacee9cbb1d4bfd9ea5ddd.url = (args: { slug: string | number } | [slug: string | number ] | string | number, options?: RouteQueryOptions) => {
@@ -141,7 +141,7 @@ show38159059e6dacee9cbb1d4bfd9ea5ddd.url = (args: { slug: string | number } | [s
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:16
+* @see app/Http/Controllers/PublishedSiteController.php:17
 * @route '/s/{slug}'
 */
 show38159059e6dacee9cbb1d4bfd9ea5ddd.get = (args: { slug: string | number } | [slug: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -151,7 +151,7 @@ show38159059e6dacee9cbb1d4bfd9ea5ddd.get = (args: { slug: string | number } | [s
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:16
+* @see app/Http/Controllers/PublishedSiteController.php:17
 * @route '/s/{slug}'
 */
 show38159059e6dacee9cbb1d4bfd9ea5ddd.head = (args: { slug: string | number } | [slug: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -161,7 +161,7 @@ show38159059e6dacee9cbb1d4bfd9ea5ddd.head = (args: { slug: string | number } | [
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:16
+* @see app/Http/Controllers/PublishedSiteController.php:17
 * @route '/s/{slug}'
 */
 const show38159059e6dacee9cbb1d4bfd9ea5dddForm = (args: { slug: string | number } | [slug: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -171,7 +171,7 @@ const show38159059e6dacee9cbb1d4bfd9ea5dddForm = (args: { slug: string | number 
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:16
+* @see app/Http/Controllers/PublishedSiteController.php:17
 * @route '/s/{slug}'
 */
 show38159059e6dacee9cbb1d4bfd9ea5dddForm.get = (args: { slug: string | number } | [slug: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -181,7 +181,7 @@ show38159059e6dacee9cbb1d4bfd9ea5dddForm.get = (args: { slug: string | number } 
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:16
+* @see app/Http/Controllers/PublishedSiteController.php:17
 * @route '/s/{slug}'
 */
 show38159059e6dacee9cbb1d4bfd9ea5dddForm.head = (args: { slug: string | number } | [slug: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -197,7 +197,7 @@ show38159059e6dacee9cbb1d4bfd9ea5dddForm.head = (args: { slug: string | number }
 show38159059e6dacee9cbb1d4bfd9ea5ddd.form = show38159059e6dacee9cbb1d4bfd9ea5dddForm
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:16
+* @see app/Http/Controllers/PublishedSiteController.php:17
 * @route '/s/{slug}/{path}'
 */
 const show2e523a8772178ac65aafc0437bb2ae0a = (args: { slug: string | number, path: string | number } | [slug: string | number, path: string | number ], options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -212,7 +212,7 @@ show2e523a8772178ac65aafc0437bb2ae0a.definition = {
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:16
+* @see app/Http/Controllers/PublishedSiteController.php:17
 * @route '/s/{slug}/{path}'
 */
 show2e523a8772178ac65aafc0437bb2ae0a.url = (args: { slug: string | number, path: string | number } | [slug: string | number, path: string | number ], options?: RouteQueryOptions) => {
@@ -238,7 +238,7 @@ show2e523a8772178ac65aafc0437bb2ae0a.url = (args: { slug: string | number, path:
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:16
+* @see app/Http/Controllers/PublishedSiteController.php:17
 * @route '/s/{slug}/{path}'
 */
 show2e523a8772178ac65aafc0437bb2ae0a.get = (args: { slug: string | number, path: string | number } | [slug: string | number, path: string | number ], options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -248,7 +248,7 @@ show2e523a8772178ac65aafc0437bb2ae0a.get = (args: { slug: string | number, path:
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:16
+* @see app/Http/Controllers/PublishedSiteController.php:17
 * @route '/s/{slug}/{path}'
 */
 show2e523a8772178ac65aafc0437bb2ae0a.head = (args: { slug: string | number, path: string | number } | [slug: string | number, path: string | number ], options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -258,7 +258,7 @@ show2e523a8772178ac65aafc0437bb2ae0a.head = (args: { slug: string | number, path
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:16
+* @see app/Http/Controllers/PublishedSiteController.php:17
 * @route '/s/{slug}/{path}'
 */
 const show2e523a8772178ac65aafc0437bb2ae0aForm = (args: { slug: string | number, path: string | number } | [slug: string | number, path: string | number ], options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -268,7 +268,7 @@ const show2e523a8772178ac65aafc0437bb2ae0aForm = (args: { slug: string | number,
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:16
+* @see app/Http/Controllers/PublishedSiteController.php:17
 * @route '/s/{slug}/{path}'
 */
 show2e523a8772178ac65aafc0437bb2ae0aForm.get = (args: { slug: string | number, path: string | number } | [slug: string | number, path: string | number ], options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -278,7 +278,7 @@ show2e523a8772178ac65aafc0437bb2ae0aForm.get = (args: { slug: string | number, p
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:16
+* @see app/Http/Controllers/PublishedSiteController.php:17
 * @route '/s/{slug}/{path}'
 */
 show2e523a8772178ac65aafc0437bb2ae0aForm.head = (args: { slug: string | number, path: string | number } | [slug: string | number, path: string | number ], options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({

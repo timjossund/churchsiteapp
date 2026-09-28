@@ -3,7 +3,7 @@ import media from './media'
 import pages from './pages'
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:16
+* @see app/Http/Controllers/PublishedSiteController.php:17
 * @route '/s/{slug}'
 */
 export const show = (args: { slug: string | number } | [slug: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -18,7 +18,7 @@ show.definition = {
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:16
+* @see app/Http/Controllers/PublishedSiteController.php:17
 * @route '/s/{slug}'
 */
 show.url = (args: { slug: string | number } | [slug: string | number ] | string | number, options?: RouteQueryOptions) => {
@@ -45,7 +45,7 @@ show.url = (args: { slug: string | number } | [slug: string | number ] | string 
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:16
+* @see app/Http/Controllers/PublishedSiteController.php:17
 * @route '/s/{slug}'
 */
 show.get = (args: { slug: string | number } | [slug: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -55,7 +55,7 @@ show.get = (args: { slug: string | number } | [slug: string | number ] | string 
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:16
+* @see app/Http/Controllers/PublishedSiteController.php:17
 * @route '/s/{slug}'
 */
 show.head = (args: { slug: string | number } | [slug: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -65,7 +65,7 @@ show.head = (args: { slug: string | number } | [slug: string | number ] | string
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:16
+* @see app/Http/Controllers/PublishedSiteController.php:17
 * @route '/s/{slug}'
 */
 const showForm = (args: { slug: string | number } | [slug: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -75,7 +75,7 @@ const showForm = (args: { slug: string | number } | [slug: string | number ] | s
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:16
+* @see app/Http/Controllers/PublishedSiteController.php:17
 * @route '/s/{slug}'
 */
 showForm.get = (args: { slug: string | number } | [slug: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -85,7 +85,7 @@ showForm.get = (args: { slug: string | number } | [slug: string | number ] | str
 
 /**
 * @see \App\Http\Controllers\PublishedSiteController::show
-* @see app/Http/Controllers/PublishedSiteController.php:16
+* @see app/Http/Controllers/PublishedSiteController.php:17
 * @route '/s/{slug}'
 */
 showForm.head = (args: { slug: string | number } | [slug: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({

@@ -18,7 +18,7 @@ class SitePageController extends Controller
     public function store(SitePageRequest $request, int $site): RedirectResponse
     {
         DB::transaction(function () use ($request, $site): void {
-            $ownedSite = $request->user()->sites()->whereKey($site)->lockForUpdate()->firstOrFail();
+            $ownedSite = $request->user()->sites()->whereNull('deletion_requested_at')->whereKey($site)->lockForUpdate()->firstOrFail();
 
             $ownedSite->pages()->create([
                 'name' => $request->validated('name'),
@@ -33,7 +33,7 @@ class SitePageController extends Controller
     public function update(SitePageRequest $request, int $site, int $page): RedirectResponse
     {
         DB::transaction(function () use ($request, $site, $page): void {
-            $ownedSite = $request->user()->sites()->whereKey($site)->lockForUpdate()->firstOrFail();
+            $ownedSite = $request->user()->sites()->whereNull('deletion_requested_at')->whereKey($site)->lockForUpdate()->firstOrFail();
             $ownedSite->editorPage($page)->update($request->validated());
         });
 
@@ -45,7 +45,7 @@ class SitePageController extends Controller
         $settings = $request->validated();
         try {
             DB::transaction(function () use ($request, $site, $page, $settings): void {
-                $ownedSite = $request->user()->sites()->whereKey($site)->lockForUpdate()->firstOrFail();
+                $ownedSite = $request->user()->sites()->whereNull('deletion_requested_at')->whereKey($site)->lockForUpdate()->firstOrFail();
                 $ownedPage = $ownedSite->editorPage($page);
                 // Home always retains its root, even when an empty path was submitted.
                 $ownedPage->update($ownedPage->is_home ? Arr::except($settings, ['path']) : $settings);
@@ -64,7 +64,7 @@ class SitePageController extends Controller
     public function order(OrderSitePagesRequest $request, int $site): RedirectResponse
     {
         DB::transaction(function () use ($request, $site): void {
-            $ownedSite = $request->user()->sites()->whereKey($site)->lockForUpdate()->firstOrFail();
+            $ownedSite = $request->user()->sites()->whereNull('deletion_requested_at')->whereKey($site)->lockForUpdate()->firstOrFail();
             $current = $ownedSite->pages()->orderBy('position')->orderBy('id')->pluck('id')->all();
             $expected = $request->validated('expected_order');
             $desired = $request->validated('order');
@@ -82,7 +82,7 @@ class SitePageController extends Controller
     public function destroy(Request $request, int $site, int $page): RedirectResponse
     {
         DB::transaction(function () use ($request, $site, $page): void {
-            $ownedSite = $request->user()->sites()->whereKey($site)->lockForUpdate()->firstOrFail();
+            $ownedSite = $request->user()->sites()->whereNull('deletion_requested_at')->whereKey($site)->lockForUpdate()->firstOrFail();
             $ownedPage = $ownedSite->editorPage($page);
             if ($ownedPage->is_home) {
                 throw ValidationException::withMessages(['page' => 'The Home page cannot be deleted.']);

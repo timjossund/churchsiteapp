@@ -34,6 +34,15 @@ A typical user:
 - Saved edits remain in draft until the user presses **Publish**.
 - The currently published version stays visible while the user edits a draft.
 
+### Site deletion
+
+- An owner can permanently delete one of their sites from site settings after confirming the site's name.
+- Take the site offline immediately on acceptance, including the published subdirectory pages, custom hostname, and public media. Block further editing and publishing.
+- Cancel subscription renewal and retain the records needed to finish billing reconciliation and external cleanup; do not delay taking the site offline until the paid period ends. Use the existing period-end cancellation policy rather than introducing refunds or immediate subscription termination.
+- Remove the site's pages, blocks, publication, and uploaded files, and disconnect its custom hostname. Keep the operation recoverable while Stripe, Cloudflare, or storage cleanup is pending or fails.
+- Preserve the owner's account and all other sites. This is permanent deletion, with no restore workflow in this feature.
+- Deliver this feature after shared block styling and before image and text block improvements.
+
 ### Multi-page sites
 
 - Preserve each existing site's content as its Home page. Home keeps the existing public URL and cannot be deleted.
@@ -96,6 +105,8 @@ Keep existing sites' appearance unchanged until owners select the new options. A
 ## 4. Data
 
 Persist users; sites and their owners; pages and their order within each site; theme choices; draft and published site content per page; block types, order, styling, and fields; uploaded image references; structured service times; site metadata; custom-hostname connection and SSL status; and each site's subscription state in MySQL.
+
+Persist a site deletion request until its billing, hostname, and uploaded-file cleanup is safely complete.
 
 A site's published content must remain stable while its draft is edited. Ownership checks must prevent one account from changing another account's sites or assets. Domain routing must resolve a hostname to only its assigned site.
 

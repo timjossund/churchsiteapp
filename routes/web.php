@@ -10,6 +10,7 @@ use App\Http\Controllers\SiteMediaController;
 use App\Http\Controllers\SitePageController;
 use App\Http\Controllers\SitePublishingController;
 use App\Http\Middleware\PreserveEditorPage;
+use App\Http\Middleware\RequireActiveSite;
 use Illuminate\Support\Facades\Route;
 
 Route::post('stripe/webhook', [SiteBillingWebhookController::class, 'handleWebhook'])->name('sites.billing.webhook');
@@ -27,7 +28,7 @@ Route::get('s/{slug}/{path}', [PublishedSiteController::class, 'show'])
     ->where(['slug' => '[a-z0-9]+(?:-[a-z0-9]+)*', 'path' => '[a-z0-9]+(?:-[a-z0-9]+)*'])
     ->name('sites.published.pages.show');
 
-Route::middleware(['auth', 'verified', PreserveEditorPage::class])->group(function () {
+Route::middleware(['auth', 'verified', RequireActiveSite::class, PreserveEditorPage::class])->group(function () {
     Route::post('sites/{site}/domain/check', [CustomHostnameController::class, 'check'])->whereNumber('site')->middleware('throttle:6,1')->name('sites.domain.check');
     Route::post('sites/{site}/domain', [CustomHostnameController::class, 'store'])->whereNumber('site')->name('sites.domain.store');
     Route::delete('sites/{site}/domain', [CustomHostnameController::class, 'destroy'])->whereNumber('site')->name('sites.domain.destroy');
@@ -38,6 +39,7 @@ Route::middleware(['auth', 'verified', PreserveEditorPage::class])->group(functi
     Route::post('sites', [SiteController::class, 'store'])->name('sites.store');
     Route::get('sites/{site}/go-live', [SiteController::class, 'goLive'])->whereNumber('site')->name('sites.go-live');
     Route::get('sites/{site}', [SiteController::class, 'show'])->whereNumber('site')->name('sites.show');
+    Route::delete('sites/{site}', [SiteController::class, 'destroy'])->whereNumber('site')->name('sites.destroy');
     Route::patch('sites/{site}', [SiteController::class, 'update'])->whereNumber('site')->name('sites.update');
     Route::prefix('sites/{site}/pages')->name('sites.pages.')->whereNumber('site')->group(function () {
         Route::post('/', [SitePageController::class, 'store'])->name('store');

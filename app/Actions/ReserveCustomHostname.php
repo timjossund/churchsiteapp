@@ -18,7 +18,7 @@ class ReserveCustomHostname
         try {
             return DB::transaction(function () use ($owner, $siteId, $hostname): CustomHostname {
                 $owner = User::query()->lockForUpdate()->findOrFail($owner->id);
-                $site = $owner->sites()->lockForUpdate()->findOrFail($siteId);
+                $site = $owner->sites()->whereNull('deletion_requested_at')->lockForUpdate()->findOrFail($siteId);
                 if ($owner->deletion_requested_at !== null) {
                     throw ValidationException::withMessages(['hostname' => 'Domain setup is unavailable while account deletion is pending.']);
                 }

@@ -10,9 +10,12 @@ import {
 import { nextTick, ref } from 'vue';
 import { dashboard } from '@/routes';
 
-type Site = { id: number; name: string };
+type Site = { id: number; name: string; deletion_requested_at: string | null };
 
-defineProps<{ sites: Site[] }>();
+defineProps<{
+    sites: Site[];
+    deletionStatus: 'completed' | 'pending' | null;
+}>();
 
 defineOptions({
     layout: {
@@ -170,6 +173,17 @@ function createSite() {
             </p>
         </header>
 
+        <p
+            v-if="deletionStatus"
+            role="status"
+            class="rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-4 text-sm"
+        >
+            {{
+                deletionStatus === 'completed'
+                    ? 'Site deleted. Your account and other sites are unchanged.'
+                    : 'Deletion requested. Your site is offline. Billing and cleanup are being reconciled automatically; renewal cancellation is not yet confirmed here.'
+            }}
+        </p>
         <section aria-label="My sites">
             <div class="space-y-5">
                 <div class="flex items-baseline justify-between gap-4">
@@ -211,13 +225,21 @@ function createSite() {
                         <div
                             class="grid h-40 place-items-center border-b border-[var(--workspace-line)] bg-[var(--workspace-soft)] px-6 text-center text-sm text-[var(--workspace-muted)]"
                         >
-                            Blank site, ready for your story
+                            {{
+                                site.deletion_requested_at
+                                    ? 'This site is offline'
+                                    : 'Blank site, ready for your story'
+                            }}
                         </div>
                         <div class="space-y-5 p-5">
                             <div>
                                 <span
                                     class="inline-flex rounded-full bg-[var(--workspace-green-soft)] px-3 py-1 text-xs font-semibold text-[var(--workspace-green-ink)]"
-                                    >Getting started</span
+                                    >{{
+                                        site.deletion_requested_at
+                                            ? 'Deletion pending'
+                                            : 'Getting started'
+                                    }}</span
                                 >
                                 <h3
                                     class="mt-3 truncate text-lg font-semibold tracking-tight"
@@ -228,10 +250,15 @@ function createSite() {
                                 <p
                                     class="mt-1 text-sm text-[var(--workspace-muted)]"
                                 >
-                                    Your workspace is ready
+                                    {{
+                                        site.deletion_requested_at
+                                            ? 'Cleanup retries automatically. The site will disappear when billing, domain, and file cleanup are complete.'
+                                            : 'Your workspace is ready'
+                                    }}
                                 </p>
                             </div>
                             <Link
+                                v-if="!site.deletion_requested_at"
                                 :href="`/sites/${site.id}`"
                                 class="inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-[var(--workspace-green)] hover:underline focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)]"
                             >

@@ -201,6 +201,7 @@ class PublishedSiteController extends Controller
     {
         $site = Site::query()
             ->where('slug', $slug)
+            ->whereNull('deletion_requested_at')
             ->whereNotNull('published_at')
             ->firstOrFail();
 
@@ -210,6 +211,7 @@ class PublishedSiteController extends Controller
     /** @return array{site: array<string, mixed>, pages: list<array{name: string, is_home: bool, path: string|null, blocks: array<array-key, array<string, mixed>>, ...}>, media: list<array<string, mixed>>} */
     private function snapshot(Site $site): array
     {
+        abort_if($site->deletion_requested_at !== null, 404);
         $snapshot = $site->published_snapshot;
         abort_unless(is_array($snapshot) && in_array($snapshot['version'] ?? null, [1, 2], true), 404);
         if ($snapshot['version'] === 1) {

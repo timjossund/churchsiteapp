@@ -49,9 +49,9 @@ class SiteBillingWebhookController extends WebhookController
 
         try {
             DB::transaction(function () use ($site, $subscriptionId, $type, $customer): void {
-                User::query()->lockForUpdate()->findOrFail($site->user_id);
-                $site = Site::query()->lockForUpdate()->findOrFail($site->id);
-                if ($site->stripe_id !== $customer) {
+                User::query()->lockForUpdate()->find($site->user_id);
+                $site = Site::query()->lockForUpdate()->find($site->id);
+                if ($site === null || $site->stripe_id !== $customer) {
                     return;
                 }
                 $hadPaidAccess = $site->hasPaidDomainAccess();

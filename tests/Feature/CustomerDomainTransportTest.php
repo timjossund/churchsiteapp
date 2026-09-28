@@ -47,6 +47,7 @@ it('denies each ineligible state without exposing the owner', function (string $
     match ($state) {
         'unknown' => $this->domain->delete(),
         'removed' => $this->domain->forceFill(['state' => 'removing'])->save(),
+        'deleting' => $this->site->forceFill(['deletion_requested_at' => now()])->save(),
         'unverified' => $this->domain->forceFill(['verified_at' => null])->save(),
         'unpaid' => $this->site->subscriptions()->update(['paid_until' => now()->subMinute()]),
         'ssl' => $this->domain->forceFill(['ssl_status' => 'pending'])->save(),
@@ -56,7 +57,7 @@ it('denies each ineligible state without exposing the owner', function (string $
     };
     customerRequest()->assertNotFound()->assertExactJson(['error' => 'not_found'])->assertHeaderMissing('Set-Cookie');
     customerRequest('/build/assets/fake.js')->assertNotFound();
-})->with(['unknown', 'removed', 'unverified', 'unpaid', 'ssl', 'unpublished', 'malformed', 'disabled']);
+})->with(['unknown', 'removed', 'deleting', 'unverified', 'unpaid', 'ssl', 'unpublished', 'malformed', 'disabled']);
 
 it('denies the shared protocol control paths', function () {
     $fixture = json_decode(file_get_contents(base_path('tests/Fixtures/domain-proxy-v2.json')), true, 512, JSON_THROW_ON_ERROR);

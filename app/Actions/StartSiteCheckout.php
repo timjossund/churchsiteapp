@@ -19,7 +19,7 @@ class StartSiteCheckout
         // Reserve the identity before any remote write, so a failed response can be retried safely.
         DB::transaction(function () use ($owner, $siteId, $interval): void {
             $owner = User::query()->lockForUpdate()->findOrFail($owner->id);
-            $site = $owner->sites()->lockForUpdate()->findOrFail($siteId);
+            $site = $owner->sites()->whereNull('deletion_requested_at')->lockForUpdate()->findOrFail($siteId);
             $this->guard($owner, $site);
             $price = app(ValidateSiteBillingPrice::class)->handle($interval);
 
@@ -57,7 +57,7 @@ class StartSiteCheckout
         // Commit the customer mapping separately so a later Checkout failure cannot orphan webhooks.
         DB::transaction(function () use ($owner, $siteId): void {
             $owner = User::query()->lockForUpdate()->findOrFail($owner->id);
-            $site = $owner->sites()->lockForUpdate()->findOrFail($siteId);
+            $site = $owner->sites()->whereNull('deletion_requested_at')->lockForUpdate()->findOrFail($siteId);
             $this->guard($owner, $site);
             if ($site->stripe_id === null) {
                 $this->guardAttemptAge($site);
@@ -67,7 +67,7 @@ class StartSiteCheckout
 
         return DB::transaction(function () use ($owner, $siteId): Session {
             $owner = User::query()->lockForUpdate()->findOrFail($owner->id);
-            $site = $owner->sites()->lockForUpdate()->findOrFail($siteId);
+            $site = $owner->sites()->whereNull('deletion_requested_at')->lockForUpdate()->findOrFail($siteId);
             $this->guard($owner, $site);
             $stripe = Cashier::stripe();
 

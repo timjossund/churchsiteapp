@@ -13,7 +13,7 @@ class OpenSiteBillingPortal
     {
         return DB::transaction(function () use ($owner, $siteId): string {
             $owner = User::query()->lockForUpdate()->findOrFail($owner->id);
-            $site = $owner->sites()->lockForUpdate()->findOrFail($siteId);
+            $site = $owner->sites()->whereNull('deletion_requested_at')->lockForUpdate()->findOrFail($siteId);
             abort_unless($site->stripe_id !== null && $site->subscriptions()->exists(), 404);
             $id = config('site-billing.portal_configuration');
             if (! is_string($id) || ! str_starts_with($id, 'bpc_')) {

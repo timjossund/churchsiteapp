@@ -2,6 +2,7 @@
 
 use App\Actions\DisconnectCustomHostname;
 use App\Actions\ReconcileCustomHostname;
+use App\Actions\RequestSiteDeletion;
 use App\Actions\ReserveCustomHostname;
 use App\Actions\SiteBillingSummary;
 use App\Actions\StartSiteCheckout;
@@ -471,4 +472,46 @@ test('failed payment revokes readiness while preserving the connection for recov
     signedBillingEvent($remote)->assertOk();
     expect($site->fresh()->hasPaidDomainAccess())->toBeFalse()->and($domain->fresh()->isReadyToServe())->toBeFalse()
         ->and($domain->fresh()->cloudflare_id)->toBe('managed')->and($domain->fresh()->state)->toBe('pending');
+});
+
+test('duplicate and reordered billing events cannot revive a site awaiting deletion', function () {
+    $site = Site::factory()->create(['slug' => 'deleting-church']);
+    $site->forceFill(['stripe_id' => 'cus_site'])->save();
+    $domain = app(ReserveCustomHostname::class)->handle($site->user, $site->id, 'www.example.org');
+    $domain->forceFill(['state' => 'ready', 'verified_at' => now(), 'cname_matches' => true])->save();
+    app(RequestSiteDeletion::class)->handle($site->user, $site->id, $site->name);
+    $remote = billingSubscriptionData();
+    $oldEvent = $remote;
+    fakeBillingStripe(function () use (&$remote) {
+        return $remote;
+    });
+    signedBillingEvent($oldEvent)->assertOk();
+    signedBillingEvent($oldEvent)->assertOk();
+    expect($site->subscriptions()->count())->toBe(1)
+        ->and($site->subscriptions()->first()->paid_until)->not->toBeNull()
+        ->and($site->fresh()->hasPaidDomainAccess())->toBeFalse()
+        ->and($site->fresh()->deletion_requested_at)->not->toBeNull()
+        ->and($domain->fresh()->state)->toBe('removing')->and($domain->fresh()->verified_at)->toBeNull();
+    $remote['status'] = 'canceled';
+    $remote['canceled_at'] = now()->timestamp;
+    signedBillingEvent($remote, 'customer.subscription.deleted')->assertOk();
+    signedBillingEvent($oldEvent)->assertOk();
+    expect($site->subscriptions()->first()->stripe_status)->toBe('canceled')
+        ->and($site->fresh()->hasPaidDomainAccess())->toBeFalse()
+        ->and($domain->fresh()->state)->toBe('removing');
+    $this->get(route('sites.published.show', $site->slug))->assertNotFound();
+    $this->actingAs($site->user)->get(route('sites.show', $site))->assertNotFound();
+});
+
+test('a signed webhook tolerates site removal after its initial customer lookup', function () {
+    $site = Site::factory()->create();
+    $site->forceFill(['stripe_id' => 'cus_site'])->save();
+    fakeBillingStripe(function () use ($site) {
+        app(RequestSiteDeletion::class)->handle($site->user, $site->id, $site->name);
+        $site->delete();
+
+        return billingSubscriptionData();
+    });
+    signedBillingEvent(['id' => 'sub_site', 'customer' => 'cus_site'])->assertOk();
+    expect($site->fresh())->toBeNull();
 });

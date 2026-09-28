@@ -2,6 +2,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import SiteMediaController from '@/actions/App/Http/Controllers/SiteMediaController';
+import DeleteSite from '@/components/sites/DeleteSite.vue';
 import PageManager from '@/components/sites/PageManager.vue';
 import { dashboard } from '@/routes';
 import { goLive } from '@/routes/sites';
@@ -44,6 +45,7 @@ const siteThemes: { key: SiteTheme; label: string; description: string }[] = [
 ];
 
 const pagePending = ref(false);
+const deletionPending = ref(false);
 const pageNamesDirty = ref(false);
 let ownVisit = false;
 function runOwnVisit(submit: () => void) {
@@ -131,6 +133,7 @@ const logoClearForm = useForm({});
 const uploadInProgress = computed(() => logoUploadForm.processing);
 const editorWriteInProgress = computed(
     () =>
+        deletionPending.value ||
         pagePending.value ||
         uploadInProgress.value ||
         nameForm.processing ||
@@ -987,5 +990,11 @@ defineOptions({
                 </div>
             </div>
         </section>
+        <DeleteSite
+            :site="site"
+            :disabled="editorWriteInProgress"
+            @submit="runOwnVisit"
+            @processing="deletionPending = $event"
+        />
     </main>
 </template>

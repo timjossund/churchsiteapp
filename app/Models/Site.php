@@ -16,6 +16,7 @@ use Laravel\Cashier\Billable;
 use Laravel\Cashier\Subscription;
 
 /**
+ * @property CarbonImmutable|null $deletion_requested_at
  * @property int $id
  * @property CarbonImmutable|null $checkout_started_at
  * @property int $user_id
@@ -63,6 +64,10 @@ class Site extends Model
 
     public function hasPaidDomainAccess(): bool
     {
+        if ($this->deletion_requested_at !== null) {
+            return false;
+        }
+
         return $this->subscriptions()
             ->where('type', 'default')
             ->where('stripe_status', 'active')
@@ -97,6 +102,8 @@ class Site extends Model
 
     public function editorPage(int|string|null $pageId): SitePage
     {
+        abort_if($this->deletion_requested_at !== null, 404);
+
         return $pageId === null
             ? $this->homePage()->firstOrFail()
             : $this->pages()->whereKey($pageId)->firstOrFail();
@@ -109,6 +116,7 @@ class Site extends Model
             'footer' => 'array',
             'published_snapshot' => 'array',
             'published_at' => 'immutable_datetime',
+            'deletion_requested_at' => 'immutable_datetime',
             'trial_ends_at' => 'immutable_datetime',
             'checkout_started_at' => 'immutable_datetime',
         ];

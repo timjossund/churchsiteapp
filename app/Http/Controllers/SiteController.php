@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Actions\BuildSitePublicationSnapshot;
+use App\Actions\FinalizeSiteDeletion;
+use App\Actions\RequestSiteDeletion;
 use App\Actions\SiteBillingSummary;
 use App\Actions\SiteDomainSummary;
+use App\Http\Requests\DeleteSiteRequest;
 use App\Http\Requests\SiteNameRequest;
 use App\Http\Requests\SiteSettingsRequest;
 use App\Models\Site;
@@ -23,10 +26,20 @@ class SiteController extends Controller
     public function index(Request $request): Response
     {
         return Inertia::render('Dashboard', [
+            'deletionStatus' => $request->session()->get('site_deletion_status'),
             'sites' => $request->user()->sites()
                 ->orderByDesc('id')
-                ->get(['id', 'name']),
+                ->get(['id', 'name', 'deletion_requested_at']),
         ]);
+    }
+
+    public function destroy(DeleteSiteRequest $request, int $site, RequestSiteDeletion $deletion, FinalizeSiteDeletion $finalizer): RedirectResponse
+    {
+        $deletion->handle($request->user(), $site, $request->validated('name'));
+        // The offline state commits before any external cleanup is attempted.
+        $completed = $finalizer->handle($site);
+
+        return to_route('dashboard')->with('site_deletion_status', $completed ? 'completed' : 'pending');
     }
 
     public function store(SiteNameRequest $request): RedirectResponse
@@ -38,7 +51,7 @@ class SiteController extends Controller
 
     public function show(Request $request, int $site, BuildSitePublicationSnapshot $buildSnapshot, ?int $page = null): Response
     {
-        $ownedSite = $request->user()->sites()->findOrFail($site);
+        $ownedSite = $request->user()->sites()->whereNull('deletion_requested_at')->findOrFail($site);
         $selectedPage = $page === null ? null : $ownedSite->editorPage($page);
         $blocks = $selectedPage?->blocks()
             ->orderBy('position')
@@ -139,7 +152,7 @@ class SiteController extends Controller
 
     public function goLive(Request $request, int $site): Response
     {
-        $ownedSite = $request->user()->sites()->findOrFail($site);
+        $ownedSite = $request->user()->sites()->whereNull('deletion_requested_at')->findOrFail($site);
 
         return Inertia::render('Sites/GoLive', [
             'site' => $ownedSite->only('id', 'name'),
@@ -154,7 +167,7 @@ class SiteController extends Controller
 
         try {
             DB::transaction(function () use ($request, $site, $settings): void {
-                $ownedSite = $request->user()->sites()->whereKey($site)->lockForUpdate()->firstOrFail();
+                $ownedSite = $request->user()->sites()->whereNull('deletion_requested_at')->whereKey($site)->lockForUpdate()->firstOrFail();
 
                 if (array_key_exists('slug', $settings)
                     && $ownedSite->published_at !== null

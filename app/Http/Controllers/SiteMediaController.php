@@ -66,7 +66,7 @@ class SiteMediaController extends Controller
     public function clearLogo(Request $request, int $site): RedirectResponse
     {
         DB::transaction(function () use ($request, $site): void {
-            $request->user()->sites()->whereKey($site)->lockForUpdate()->firstOrFail()
+            $request->user()->sites()->whereNull('deletion_requested_at')->whereKey($site)->lockForUpdate()->firstOrFail()
                 ->update(['logo_media_asset_id' => null]);
         });
 
@@ -76,7 +76,7 @@ class SiteMediaController extends Controller
     public function clearSocialImage(Request $request, int $site): RedirectResponse
     {
         DB::transaction(function () use ($request, $site): void {
-            $request->user()->sites()->whereKey($site)->lockForUpdate()->firstOrFail()
+            $request->user()->sites()->whereNull('deletion_requested_at')->whereKey($site)->lockForUpdate()->firstOrFail()
                 ->editorPage($request->route('page'))->update(['social_image_id' => null]);
         });
 
@@ -88,7 +88,7 @@ class SiteMediaController extends Controller
     public function updateAltText(UpdateMediaAssetRequest $request, int $site, int $mediaAsset): RedirectResponse
     {
         DB::transaction(function () use ($request, $site, $mediaAsset): void {
-            $ownedSite = $request->user()->sites()->whereKey($site)->lockForUpdate()->firstOrFail();
+            $ownedSite = $request->user()->sites()->whereNull('deletion_requested_at')->whereKey($site)->lockForUpdate()->firstOrFail();
             $ownedSite->mediaAssets()->whereKey($mediaAsset)->lockForUpdate()->firstOrFail()
                 ->update($request->validated());
         });
@@ -98,7 +98,7 @@ class SiteMediaController extends Controller
 
     public function show(Request $request, int $site, int $mediaAsset): StreamedResponse
     {
-        $asset = $request->user()->sites()->findOrFail($site)
+        $asset = $request->user()->sites()->whereNull('deletion_requested_at')->findOrFail($site)
             ->mediaAssets()->findOrFail($mediaAsset);
 
         return Storage::disk('s3')->response($asset->storage_key, null, [
@@ -133,29 +133,19 @@ class SiteMediaController extends Controller
     /** @param  callable(Site, MediaAsset): void  $assign */
     private function uploadAndAssign(StoreSiteImageRequest $request, int $siteId, UploadedFile $file, ?string $altText, callable $assign): MediaAsset
     {
-        $ownedSite = $request->user()->sites()->findOrFail($siteId);
-        $key = "sites/{$ownedSite->id}/".Str::uuid();
+        $key = "sites/{$siteId}/".Str::uuid();
         $disk = Storage::disk('s3');
+        $uploadStarted = false;
 
         try {
-            $storedPath = $disk->putFileAs("sites/{$ownedSite->id}", $file, basename($key), ['visibility' => 'private']);
-        } catch (FilesystemException) {
-            $this->deleteNewObject($disk, $key);
-            throw ValidationException::withMessages([
-                'image' => 'The image could not be saved. Try again.',
-            ]);
-        }
-
-        if ($storedPath === false) {
-            $this->deleteNewObject($disk, $key);
-            throw ValidationException::withMessages([
-                'image' => 'The image could not be saved. Try again.',
-            ]);
-        }
-
-        try {
-            return DB::transaction(function () use ($request, $siteId, $key, $file, $altText, $assign): MediaAsset {
-                $lockedSite = $request->user()->sites()->whereKey($siteId)->lockForUpdate()->firstOrFail();
+            return DB::transaction(function () use ($request, $siteId, $key, $file, $altText, $assign, $disk, &$uploadStarted): MediaAsset {
+                // Serialize deletion with the remote write as well as the local assignment.
+                $lockedSite = $request->user()->sites()->whereNull('deletion_requested_at')->whereKey($siteId)->lockForUpdate()->firstOrFail();
+                $uploadStarted = true;
+                $storedPath = $disk->putFileAs("sites/{$siteId}", $file, basename($key), ['visibility' => 'private']);
+                if ($storedPath === false) {
+                    throw ValidationException::withMessages(['image' => 'The image could not be saved. Try again.']);
+                }
                 $asset = $lockedSite->mediaAssets()->create([
                     'storage_key' => $key,
                     'mime_type' => $file->getMimeType(),
@@ -165,8 +155,15 @@ class SiteMediaController extends Controller
 
                 return $asset;
             });
+        } catch (FilesystemException) {
+            if ($uploadStarted) {
+                $this->deleteNewObject($disk, $key);
+            }
+            throw ValidationException::withMessages(['image' => 'The image could not be saved. Try again.']);
         } catch (Throwable $exception) {
-            $this->deleteNewObject($disk, $key);
+            if ($uploadStarted) {
+                $this->deleteNewObject($disk, $key);
+            }
             throw $exception;
         }
     }

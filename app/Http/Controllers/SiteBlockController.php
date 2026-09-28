@@ -16,7 +16,7 @@ class SiteBlockController extends Controller
     public function store(StoreSiteBlockRequest $request, int $site): RedirectResponse
     {
         DB::transaction(function () use ($request, $site): void {
-            $ownedSite = $request->user()->sites()->lockForUpdate()->findOrFail($site);
+            $ownedSite = $request->user()->sites()->whereNull('deletion_requested_at')->lockForUpdate()->findOrFail($site);
             $ownedPage = $ownedSite->editorPage($request->route('page'));
             $type = $request->validated('type');
 
@@ -49,7 +49,7 @@ class SiteBlockController extends Controller
     {
         $block = (int) $request->route('block');
         DB::transaction(function () use ($request, $site, $block): void {
-            $ownedSite = $request->user()->sites()->whereKey($site)->lockForUpdate()->firstOrFail();
+            $ownedSite = $request->user()->sites()->whereNull('deletion_requested_at')->whereKey($site)->lockForUpdate()->firstOrFail();
             $ownedPage = $ownedSite->editorPage($request->route('page'));
             $ownedBlock = $ownedPage->blocks()->whereKey($block)->firstOrFail();
             $content = $request->validated('content');
@@ -103,7 +103,7 @@ class SiteBlockController extends Controller
     {
         $block = (int) $request->route('block');
         DB::transaction(function () use ($request, $site, $block): void {
-            $ownedSite = $request->user()->sites()->whereKey($site)->lockForUpdate()->firstOrFail();
+            $ownedSite = $request->user()->sites()->whereNull('deletion_requested_at')->whereKey($site)->lockForUpdate()->firstOrFail();
             $ownedPage = $ownedSite->editorPage($request->route('page'));
             $ownedPage->blocks()->whereKey($block)->firstOrFail()->delete();
 
@@ -125,7 +125,7 @@ class SiteBlockController extends Controller
     public function order(OrderSiteBlocksRequest $request, int $site): RedirectResponse
     {
         DB::transaction(function () use ($request, $site): void {
-            $ownedSite = $request->user()->sites()->whereKey($site)->lockForUpdate()->firstOrFail();
+            $ownedSite = $request->user()->sites()->whereNull('deletion_requested_at')->whereKey($site)->lockForUpdate()->firstOrFail();
             $ownedPage = $ownedSite->editorPage($request->route('page'));
             $current = $ownedPage->blocks()->orderBy('position')->orderBy('id')->pluck('id')->all();
             $expected = $request->validated('expected_order');

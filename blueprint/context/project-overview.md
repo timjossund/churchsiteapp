@@ -1,6 +1,6 @@
 # Churchsite - Project Overview
 
-<!-- blueprint:source-hash cc78c966018c0e36fa19dc412a22bedc6af331a18f0ea3ae70cc0a1051e3789c -->
+<!-- blueprint:source-hash 91fd1b7030cebb822d8499dd583d8194133207df03627e0ef4d9470d85cbed2f -->
 
 > A block-based church website builder with shareable multi-page previews and later paid custom domains.
 
@@ -32,15 +32,19 @@ Churches need modern websites, while the people responsible for them may have li
     - **8b.** **Navigation and publishing** - Publish all pages together, add page navigation alongside section links, editable page paths, and page-specific metadata; keep Home at the existing URL and apply public page deletions only on Publish.
 - **6.** **Per-site subscriptions** - Integrate Cashier with Stripe so each site can have its own monthly or annual subscription and billing status.
 - **7.** **Custom domains and SSL** - Let a subscribed site connect a BYO `www` hostname through Cloudflare for SaaS, show DNS instructions and connection status, serve its published Blade page over HTTPS, and remove custom-domain access when the subscription becomes inactive.
-    - **7a.** **Worker connection** - Authenticated Worker forwarding to Laravel, isolated public routing, and an operator-owned test hostname.
-    - **7b.** **Customer domains** - Domain UI, Stripe handoff, automatic DNS/SSL checks, and published-site routing with paid-access enforcement.
-
+    - **7a.** **Worker connection** - Establish authenticated Cloudflare Worker forwarding to Laravel, isolate public requests from platform routes, and prove the connection using an operator-owned test hostname.
+    - **7b.** **Customer domains** - Add the connect-domain UI, Stripe handoff, automatic DNS/SSL status checks, and published-site routing with paid-access enforcement.
 - **10.** **Hero blocks** - Add background images with readable overlays, height options, an editable welcome label, and a second button; offer normal scrolling, fixed backgrounds, and half-speed (0.5) parallax with a static reduced-motion fallback.
 - **11.** **Shared block styling** - Add section spacing, content width, heading sizes, and additional theme-aware background choices while preserving existing block defaults.
+- **16.** **Site deletion** - Let an owner permanently delete a site after confirming its name, take it offline immediately, cancel subscription renewal, and safely finish domain, upload, and billing cleanup without affecting other sites.
 - **12.** **Image and text blocks** - Add image proportions, crop position, corner styles, captions, and optional buttons for text-bearing blocks.
 - **13.** **Church information blocks** - Add service-time layout choices and contact addresses with directions links.
 - **14.** **Site-wide styling** - Add font pairings, an editable accent color, and consistent button styles across the site.
 - **15.** **Rich text block** - Add a dedicated block for formatted text, bulleted and numbered lists, and nested outlines, with safe published rendering and matching editor previews.
+
+## Site deletion
+
+Owners can permanently delete a site from settings by confirming its name. Acceptance immediately revokes editing and all public page, domain, and media access. Cancel renewal using the existing period-end policy while retaining billing and external cleanup identities until safe finalization; do not delay taking the site offline until the paid period ends. Remove its pages, blocks, publication, uploads, and custom-hostname connection without affecting the account or other sites. Retry pending external cleanup safely. No restore, refund, or new immediate subscription-termination workflow is introduced.
 
 ## Data model
 
@@ -58,6 +62,8 @@ These are the initial logical shapes; later feature specs choose migrations and 
 - Draft site presentation: `header` and `footer` (structured data), `seo_title` and `seo_description` (strings), `social_image_id` (nullable media reference).
 - Published snapshot (structured data, nullable) and `published_at` (nullable timestamp) keep the visitor-facing version stable while draft fields and blocks change.
 - Has many blocks and media assets; has a customer hostname and site-specific billing state when configured.
+
+- Site deletion requires a persisted request timestamp and retention of site, billing, domain, and media identities until external cleanup and billing reconciliation finish; the feature spec defines the exact lifecycle.
 
 ### Page
 
@@ -111,7 +117,8 @@ Users can create and publish shareable subdirectory sites before paying. Each si
 
 - Dashboard opens site settings with shared styles, header/logo, footer, and page management. Opening a page shows publishing, preview, block list, free reordering, and the selected block’s side panel.
 - Users can configure expanded block-specific styling and options in addition to choosing a site theme.
-- An explicit Publish action distinguishes drafts from the version visitors see.
+- An explicit Publish action distinguishes drafts from the version visitors see. Whole-site deletion takes the site offline immediately and does not require Publish.
+- Site settings offer name-confirmed permanent deletion; the dashboard reports pending cleanup without permitting the site to reopen.
 - Initial themes span warm/traditional, clean/minimal, and bold/contemporary styles. Switching themes changes styling, not content or order.
 - Planned appearance controls include hero imagery and parallax, shared spacing/width/heading/background options, image crop/proportions/corners/captions, optional text-block buttons, service-time layouts, contact addresses/directions, and site font pairings/accent/button styles. Preview and published rendering must agree, including mobile and reduced-motion behavior.
 - Domain setup shows DNS values and explains connection and SSL progress in plain language.

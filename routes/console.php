@@ -1,8 +1,10 @@
 <?php
 
 use App\Actions\DeleteAccountWhenBillingEnds;
+use App\Actions\FinalizeSiteDeletion;
 use App\Actions\ReconcileCustomHostname;
 use App\Models\CustomHostname;
+use App\Models\Site;
 use App\Models\User;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -38,3 +40,11 @@ Artisan::command('domains:reconcile', function (ReconcileCustomHostname $reconci
 })->purpose('Reconcile customer hostname provisioning, DNS readiness, and removal');
 
 Schedule::command('domains:reconcile')->everyFiveMinutes()->withoutOverlapping(10);
+
+Artisan::command('sites:finalize-deletions', function (FinalizeSiteDeletion $deletion): void {
+    foreach (Site::query()->whereNotNull('deletion_requested_at')->lazyById() as $site) {
+        $deletion->handle($site->id);
+    }
+})->purpose('Finish billing, domain, and file cleanup for deleted sites');
+
+Schedule::command('sites:finalize-deletions')->everyFiveMinutes()->withoutOverlapping(10);

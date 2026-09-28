@@ -13,7 +13,7 @@ class SitePublishingController extends Controller
     public function publish(Request $request, int $site, BuildSitePublicationSnapshot $buildSnapshot): RedirectResponse
     {
         DB::transaction(function () use ($request, $site, $buildSnapshot): void {
-            $ownedSite = $request->user()->sites()->whereKey($site)->lockForUpdate()->firstOrFail();
+            $ownedSite = $request->user()->sites()->whereNull('deletion_requested_at')->whereKey($site)->lockForUpdate()->firstOrFail();
 
             if ($ownedSite->slug === null) {
                 throw ValidationException::withMessages([

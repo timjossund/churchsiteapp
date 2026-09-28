@@ -37,7 +37,7 @@ type BlockType =
 type HeroLinkType = HeroButton['link_type'];
 type SiteTheme = 'warm' | 'clean' | 'bold';
 type BlockStyle = HeroStyle & {
-    layout?: 'image_left' | 'image_right';
+    layout?: 'image_left' | 'image_right' | 'list' | 'grid';
     alignment?: 'left' | 'center';
     background?: 'theme' | 'soft' | 'accent' | 'contrast';
     spacing?: 'compact' | 'current' | 'spacious';
@@ -61,6 +61,7 @@ type BlockContent = {
     entries?: ServiceTimeEntry[];
     email?: string;
     phone?: string;
+    address?: string;
     media_asset_id?: number | null;
     caption?: string;
     url?: string;
@@ -150,7 +151,7 @@ const blockTypes: { type: BlockType; label: string; description: string }[] = [
     {
         type: 'contact',
         label: 'Contact',
-        description: 'Help visitors call or email you',
+        description: 'Share an address, phone number, or email',
     },
     {
         type: 'image',
@@ -244,8 +245,10 @@ const draftEntries = ref<ServiceTimeEntry[]>([]);
 const savedEntries = ref<ServiceTimeEntry[]>([]);
 const draftEmail = ref('');
 const draftPhone = ref('');
+const draftAddress = ref('');
 const savedEmail = ref('');
 const savedPhone = ref('');
+const savedAddress = ref('');
 const draftVideoUrl = ref('');
 const savedVideoUrl = ref('');
 const draftBlockStyle = ref<BlockStyle>({});
@@ -288,7 +291,8 @@ const isContentDirty = computed(
                     JSON.stringify(savedEntries.value)) ||
             (selectedBlock.value?.type === 'contact' &&
                 (draftEmail.value !== savedEmail.value ||
-                    draftPhone.value !== savedPhone.value)) ||
+                    draftPhone.value !== savedPhone.value ||
+                    draftAddress.value !== savedAddress.value)) ||
             (selectedBlock.value?.type === 'video' &&
                 draftVideoUrl.value !== savedVideoUrl.value) ||
             JSON.stringify(draftBlockStyle.value) !==
@@ -332,6 +336,7 @@ const blockAlignmentInput = ref<HTMLSelectElement | null>(null);
 const blockBackgroundInput = ref<HTMLSelectElement | null>(null);
 const emailInput = ref<HTMLInputElement | null>(null);
 const phoneInput = ref<HTMLInputElement | null>(null);
+const addressInput = ref<HTMLTextAreaElement | null>(null);
 const videoUrlInput = ref<HTMLInputElement | null>(null);
 let ownVisit = false;
 let stopBeforeListener: (() => void) | undefined;
@@ -357,6 +362,10 @@ watch(
         }));
         draftEmail.value = block?.content.email ?? '';
         draftPhone.value = block?.content.phone ?? '';
+        draftAddress.value =
+            typeof block?.content.address === 'string'
+                ? block.content.address
+                : '';
         draftVideoUrl.value = block?.content.url ?? '';
         draftBlockStyle.value = block ? styleForBlock(block) : {};
         savedBlockStyle.value = { ...draftBlockStyle.value };
@@ -382,6 +391,7 @@ watch(
         savedEntries.value = draftEntries.value.map((entry) => ({ ...entry }));
         savedEmail.value = draftEmail.value;
         savedPhone.value = draftPhone.value;
+        savedAddress.value = draftAddress.value;
         savedVideoUrl.value = draftVideoUrl.value;
         serviceTimeStatus.value = '';
         saveForm.clearErrors();
@@ -408,6 +418,7 @@ function resetDraft() {
     draftEntries.value = savedEntries.value.map((entry) => ({ ...entry }));
     draftEmail.value = savedEmail.value;
     draftPhone.value = savedPhone.value;
+    draftAddress.value = savedAddress.value;
     draftVideoUrl.value = savedVideoUrl.value;
     draftBlockStyle.value = { ...savedBlockStyle.value };
     draftAltText.value = savedAltText.value;
@@ -742,6 +753,9 @@ function styleForBlock(block: SiteBlock): BlockStyle {
                           : 'image_right',
               }
             : {}),
+        ...(block.type === 'service_times'
+            ? { layout: saved.layout === 'grid' ? 'grid' : 'list' }
+            : {}),
         ...(['image', 'text_image'].includes(block.type)
             ? {
                   image_ratio:
@@ -822,6 +836,7 @@ function contentFor(block: SiteBlock): BlockContent {
             heading: draftHeading.value,
             email: draftEmail.value,
             phone: draftPhone.value,
+            address: draftAddress.value,
         };
     } else if (block.type === 'image') {
         content = {
@@ -911,6 +926,18 @@ function phoneHref(block: SiteBlock): string | null {
     const phone = contentFor(block).phone ?? '';
     if (!/^\+?[0-9().\- ]+$/.test(phone) || !/[0-9]/.test(phone)) return null;
     return `tel:${phone.replace(/[().\- ]/g, '')}`;
+}
+
+function contactAddress(block: SiteBlock): string {
+    const address = contentFor(block).address;
+    return typeof address === 'string' ? address.trim() : '';
+}
+
+function directionsHref(block: SiteBlock): string | null {
+    const address = contactAddress(block);
+    return address
+        ? `https://www.google.com/maps/dir/?${new URLSearchParams({ api: '1', destination: address })}`
+        : null;
 }
 
 function entryError(index: number, field: keyof ServiceTimeEntry): string {
@@ -1109,6 +1136,7 @@ function saveBlock() {
                     heading: draftHeading.value,
                     email: draftEmail.value,
                     phone: draftPhone.value,
+                    address: draftAddress.value,
                 }
               : block.type === 'service_times'
                 ? {
@@ -1166,6 +1194,7 @@ function saveBlock() {
                 }));
                 savedEmail.value = draftEmail.value;
                 savedPhone.value = draftPhone.value;
+                savedAddress.value = draftAddress.value;
                 savedVideoUrl.value = draftVideoUrl.value;
                 savedBlockStyle.value = { ...draftBlockStyle.value };
                 if (clearImagePending.value) {
@@ -1192,6 +1221,7 @@ function saveBlock() {
                     !errors['content.external_url'] &&
                     !errors['content.email'] &&
                     !errors['content.phone'] &&
+                    !errors['content.address'] &&
                     !errors['content.url'] &&
                     !errors['content.style'] &&
                     !errors['content.style.layout'] &&
@@ -1241,6 +1271,8 @@ function saveBlock() {
                         externalUrlInput.value?.focus();
                     else if (errors['content.email']) emailInput.value?.focus();
                     else if (errors['content.phone']) phoneInput.value?.focus();
+                    else if (errors['content.address'])
+                        addressInput.value?.focus();
                     else if (errors['content.url'])
                         videoUrlInput.value?.focus();
                     else if (errors['content.style.layout'])
@@ -1250,7 +1282,8 @@ function saveBlock() {
                     else if (errors['content.style.background'])
                         blockBackgroundInput.value?.focus();
                     else if (errors['content.style'])
-                        (selectedBlock.value?.type === 'text_image'
+                        (selectedBlock.value?.type === 'text_image' ||
+                        selectedBlock.value?.type === 'service_times'
                             ? blockLayoutInput.value
                             : blockAlignmentInput.value
                         )?.focus();
@@ -2259,12 +2292,25 @@ defineOptions({
                                     </h3>
                                     <ul
                                         v-if="contentFor(block).entries?.length"
-                                        class="mt-6 divide-y divide-[var(--site-preview-border)]"
-                                        :class="
-                                            blockIsCentered(block)
-                                                ? 'mx-auto max-w-2xl'
-                                                : ''
+                                        :data-service-layout="
+                                            contentFor(block).style?.layout ===
+                                            'grid'
+                                                ? 'grid'
+                                                : 'list'
                                         "
+                                        class="mt-6"
+                                        :class="[
+                                            contentFor(block).style?.layout ===
+                                            'grid'
+                                                ? 'grid grid-cols-1 gap-3 sm:grid-cols-2'
+                                                : 'divide-y divide-[var(--site-preview-border)]',
+                                            blockIsCentered(block)
+                                                ? contentFor(block).style
+                                                      ?.layout === 'grid'
+                                                    ? 'mx-auto max-w-4xl'
+                                                    : 'mx-auto max-w-2xl'
+                                                : '',
+                                        ]"
                                     >
                                         <li
                                             v-for="(entry, index) in contentFor(
@@ -2272,6 +2318,12 @@ defineOptions({
                                             ).entries"
                                             :key="index"
                                             class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3"
+                                            :class="
+                                                contentFor(block).style
+                                                    ?.layout === 'grid'
+                                                    ? 'rounded-lg border border-[var(--site-preview-border)] px-3'
+                                                    : ''
+                                            "
                                         >
                                             <span class="font-semibold">{{
                                                 entry.day
@@ -2311,7 +2363,8 @@ defineOptions({
                                     <div
                                         v-if="
                                             contentFor(block).email ||
-                                            contentFor(block).phone
+                                            contentFor(block).phone ||
+                                            contactAddress(block)
                                         "
                                         class="mt-5 flex flex-col gap-3"
                                         :class="
@@ -2346,13 +2399,30 @@ defineOptions({
                                             class="text-[var(--site-preview-muted)]"
                                             >{{ contentFor(block).phone }}</span
                                         >
+                                        <address
+                                            v-if="contactAddress(block)"
+                                            class="break-words whitespace-pre-line text-[var(--site-preview-muted)] not-italic"
+                                        >
+                                            {{ contactAddress(block) }}
+                                        </address>
+                                        <a
+                                            v-if="directionsHref(block)"
+                                            :href="
+                                                directionsHref(block) ??
+                                                undefined
+                                            "
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="text-[var(--site-preview-accent)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]"
+                                            >Get directions</a
+                                        >
                                     </div>
                                     <p
                                         v-else
                                         class="mt-4 text-[var(--site-preview-muted)]"
                                     >
-                                        Add an email or phone number in the
-                                        editor.
+                                        Add an address, email, or phone number
+                                        in the editor.
                                     </p>
                                 </template>
                                 <template v-else-if="block.type === 'image'">
@@ -3543,6 +3613,67 @@ defineOptions({
                                             }}
                                         </p>
                                     </div>
+                                    <div>
+                                        <label
+                                            for="contact-address"
+                                            class="mb-2 block text-sm font-semibold"
+                                            >Street address</label
+                                        >
+                                        <textarea
+                                            id="contact-address"
+                                            ref="addressInput"
+                                            v-model="draftAddress"
+                                            rows="3"
+                                            autocomplete="street-address"
+                                            :disabled="
+                                                uploadInProgress ||
+                                                saveForm.processing ||
+                                                addForm.processing ||
+                                                deleteForm.processing ||
+                                                orderForm.processing
+                                            "
+                                            :aria-invalid="
+                                                Boolean(
+                                                    saveForm.errors[
+                                                        'content.address'
+                                                    ],
+                                                )
+                                            "
+                                            :aria-describedby="
+                                                saveForm.errors[
+                                                    'content.address'
+                                                ]
+                                                    ? 'contact-address-help contact-address-error'
+                                                    : 'contact-address-help'
+                                            "
+                                            class="min-h-24 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 py-2 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                            @input="clearContentError"
+                                        />
+                                        <p
+                                            id="contact-address-help"
+                                            class="mt-2 text-xs text-[var(--workspace-muted)]"
+                                        >
+                                            Optional. Visitors can open
+                                            directions to this address in Google
+                                            Maps.
+                                        </p>
+                                        <p
+                                            v-if="
+                                                saveForm.errors[
+                                                    'content.address'
+                                                ]
+                                            "
+                                            id="contact-address-error"
+                                            role="alert"
+                                            class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                        >
+                                            {{
+                                                saveForm.errors[
+                                                    'content.address'
+                                                ]
+                                            }}
+                                        </p>
+                                    </div>
                                 </template>
                             </div>
                         </details>
@@ -3619,6 +3750,67 @@ defineOptions({
                                                 ]
                                             "
                                             id="block-layout-error"
+                                            role="alert"
+                                            class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                        >
+                                            {{
+                                                saveForm.errors[
+                                                    'content.style.layout'
+                                                ]
+                                            }}
+                                        </p>
+                                    </div>
+                                    <div
+                                        v-if="
+                                            selectedBlock.type ===
+                                            'service_times'
+                                        "
+                                    >
+                                        <label
+                                            for="block-service-layout"
+                                            class="mb-2 block text-sm font-semibold"
+                                            >Service-time layout</label
+                                        >
+                                        <select
+                                            id="block-service-layout"
+                                            ref="blockLayoutInput"
+                                            v-model="draftBlockStyle.layout"
+                                            :disabled="
+                                                uploadInProgress ||
+                                                saveForm.processing ||
+                                                addForm.processing ||
+                                                deleteForm.processing ||
+                                                orderForm.processing
+                                            "
+                                            :aria-invalid="
+                                                Boolean(
+                                                    saveForm.errors[
+                                                        'content.style.layout'
+                                                    ],
+                                                )
+                                            "
+                                            :aria-describedby="
+                                                saveForm.errors[
+                                                    'content.style.layout'
+                                                ]
+                                                    ? 'block-service-layout-error'
+                                                    : undefined
+                                            "
+                                            class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                            @change="clearContentError"
+                                        >
+                                            <option value="list">List</option>
+                                            <option value="grid">
+                                                Two-column grid
+                                            </option>
+                                        </select>
+                                        <p
+                                            v-if="
+                                                saveForm.errors[
+                                                    'content.style.layout'
+                                                ]
+                                            "
+                                            id="block-service-layout-error"
                                             role="alert"
                                             class="mt-2 text-sm text-red-700 dark:text-red-300"
                                         >

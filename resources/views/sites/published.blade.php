@@ -139,9 +139,10 @@
                         @case('service_times')
                             <h2 class="font-serif text-2xl">{{ $block['heading'] }}</h2>
                             @if (! empty($content['entries']))
-                                <ul class="mt-6 divide-y divide-[var(--site-preview-border)] {{ $alignment === 'center' ? 'mx-auto max-w-2xl' : '' }}">
+                                @php($serviceLayout = ($style['layout'] ?? null) === 'grid' ? 'grid' : 'list')
+                                <ul data-service-layout="{{ $serviceLayout }}" class="mt-6 {{ $serviceLayout === 'grid' ? 'grid grid-cols-1 gap-3 sm:grid-cols-2' : 'divide-y divide-[var(--site-preview-border)]' }} {{ $alignment === 'center' ? ($serviceLayout === 'grid' ? 'mx-auto max-w-4xl' : 'mx-auto max-w-2xl') : '' }}">
                                     @foreach ($content['entries'] as $entry)
-                                        <li class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3">
+                                        <li class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3 {{ $serviceLayout === 'grid' ? 'rounded-lg border border-[var(--site-preview-border)] px-3' : '' }}">
                                             <span class="font-semibold">{{ ucfirst($entry['day']) }}</span>
                                             <span class="text-[var(--site-preview-muted)]">
                                                 @php($time = $entry['time'])
@@ -163,7 +164,7 @@
 
                         @case('contact')
                             <h2 class="font-serif text-2xl">{{ $block['heading'] }}</h2>
-                            @if (! empty($content['email']) || ! empty($content['phone']))
+                            @if (! empty($content['email']) || ! empty($content['phone']) || $block['address_text'] !== '')
                                 <div class="mt-5 flex flex-col gap-3 {{ $alignment === 'center' ? 'items-center' : 'items-start' }}">
                                     @if (! empty($content['email']))
                                         @if ($block['email_href'])
@@ -178,6 +179,10 @@
                                         @else
                                             <span class="text-[var(--site-preview-muted)]">{{ $content['phone'] }}</span>
                                         @endif
+                                    @endif
+                                    @if ($block['address_text'] !== '')
+                                        <address class="text-[var(--site-preview-muted)] break-words whitespace-pre-line not-italic">{{ $block['address_text'] }}</address>
+                                        <a href="{{ $block['directions_href'] }}" target="_blank" rel="noopener noreferrer" class="text-[var(--site-preview-accent)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]">Get directions</a>
                                     @endif
                                    </div>
                             @endif

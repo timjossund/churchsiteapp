@@ -42,7 +42,7 @@ class UpdateSiteBlockRequest extends FormRequest
             'about', 'heading_text' => ['heading', 'body'],
             'hero' => ['heading', 'body', 'button_label', 'link_type', 'target_block_id', 'external_url', 'welcome_label', 'media_asset_id', 'target_page_id', 'secondary_button'],
             'service_times' => ['heading', 'entries'],
-            'contact' => ['heading', 'email', 'phone'],
+            'contact' => ['heading', 'email', 'phone', 'address'],
             'image' => ['media_asset_id', 'caption'],
             'text_image' => ['heading', 'body', 'media_asset_id', 'caption'],
             'video' => ['url'],
@@ -67,9 +67,11 @@ class UpdateSiteBlockRequest extends FormRequest
             'content.style.heading_size' => in_array('heading', $fields, true)
                 ? ['sometimes', 'string', Rule::in(['small', 'current', 'large'])]
                 : ['missing'],
-            'content.style.layout' => $type === 'text_image'
-                ? ['sometimes', 'string', Rule::in(['image_left', 'image_right'])]
-                : ['prohibited'],
+            'content.style.layout' => match ($type) {
+                'text_image' => ['sometimes', 'string', Rule::in(['image_left', 'image_right'])],
+                'service_times' => ['sometimes', 'string', Rule::in(['list', 'grid'])],
+                default => ['prohibited'],
+            },
             'content.style.image_ratio' => $hasImagePresentation
                 ? ['sometimes', 'string', Rule::in(['original', 'landscape', 'square', 'portrait'])]
                 : ['prohibited'],
@@ -82,10 +84,13 @@ class UpdateSiteBlockRequest extends FormRequest
             'content.caption' => $hasImagePresentation
                 ? ['sometimes', 'string']
                 : ['prohibited'],
+            'content.address' => $type === 'contact'
+                ? ['sometimes', 'string']
+                : ['prohibited'],
         ];
 
         foreach ($fields as $field) {
-            if (in_array($field, ['entries', 'target_block_id', 'media_asset_id', 'caption', 'welcome_label', 'target_page_id', 'secondary_button'], true)
+            if (in_array($field, ['entries', 'target_block_id', 'media_asset_id', 'caption', 'address', 'welcome_label', 'target_page_id', 'secondary_button'], true)
                 || ($hasTextButton && in_array($field, ['button_label', 'link_type', 'external_url'], true))) {
                 continue;
             }

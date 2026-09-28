@@ -84,6 +84,10 @@ class PublishedSiteController extends Controller
             $phoneHref = preg_match('/\A\+?[0-9().\- ]+\z/', $phone) === 1 && preg_match('/[0-9]/', $phone) === 1
                 ? 'tel:'.preg_replace('/[().\- ]/', '', $phone)
                 : null;
+            $address = is_string($content['address'] ?? null) ? trim($content['address']) : '';
+            $directionsHref = $address !== ''
+                ? 'https://www.google.com/maps/dir/?api=1&destination='.urlencode($address)
+                : null;
             $videoUrl = is_string($content['url'] ?? null) ? VideoEmbedUrl::from($content['url']) : null;
 
             return [
@@ -100,6 +104,8 @@ class PublishedSiteController extends Controller
                     ? 'mailto:'.$email
                     : null,
                 'phone_href' => $phoneHref,
+                'address_text' => $address,
+                'directions_href' => $directionsHref,
                 'image_url' => $asset === null ? null : $mediaUrls->get((string) $asset['id']),
                 'image_alt' => $asset['alt_text'] ?? '',
                 'video_embed_url' => $videoUrl,

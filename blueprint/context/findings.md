@@ -17,6 +17,10 @@
 
 Independent review by codex / gpt-6-astra at `069973b71542ed6898039622076fb7b7b9ee70cb` on 2026-09-28 re-examined the unchanged muted token and new editor help-text uses. Fresh offline luminance calculations reproduce 4.16:1, 3.86:1, and 3.97:1. F-02 remains open P2; no browser measurement or user acceptance is claimed.
 
+Independent review by codex / gpt-6-astra at `2da4c6e360eccd31b2de31610bfdc6b4c085bf6a` on 2026-09-28 re-examined the unchanged token and new appearance-control help text. Fresh offline luminance calculations again produce 4.16:1, 3.86:1, and 3.97:1. F-02 remains open P2; no browser measurement, repair, or user acceptance is claimed.
+
+Independent review by codex / gpt-6-astra at `11d3b762ef496ce6227e46b6ea9c2751bde1b0c6` on 2026-09-28 re-examined the unchanged muted workspace token and appearance-control help text. Fresh offline calculations reproduce 4.16:1, 3.86:1, and 3.97:1 against the three recorded backgrounds. F-02 remains open P2; no browser measurement, repair, or acceptance is claimed. No new finding was raised in the complete feature review.
+
 ### F-06 [P2] open - Validate the ownership record length before checkout
 
 **File:** app/Rules/CustomerHostname.php:12

@@ -501,3 +501,39 @@
     color: var(--block-foreground);
     background-color: var(--block-surface);
 }
+
+/* Shared site typography stays scoped away from the application workspace. */
+.site-preview[data-font-pairing='traditional'] {
+    --site-heading-font: 'Lora', Georgia, serif;
+    --site-body-font: 'Source Sans 3', Arial, sans-serif;
+}
+.site-preview[data-font-pairing='modern'] {
+    --site-heading-font: 'Montserrat', Arial, sans-serif;
+    --site-body-font: 'Inter', Arial, sans-serif;
+}
+.site-preview[data-font-pairing='editorial'] {
+    --site-heading-font: 'Playfair Display', Georgia, serif;
+    --site-body-font: 'Source Sans 3', Arial, sans-serif;
+}
+.site-preview[data-font-pairing='classy'] {
+    --site-heading-font: 'Cinzel', Georgia, serif;
+    --site-body-font: Georgia, 'Times New Roman', serif;
+}
+.site-preview[data-font-pairing]:not([data-font-pairing='theme']) {
+    font-family: var(--site-body-font);
+    font-weight: 400;
+}
+.site-preview[data-font-pairing]:not([data-font-pairing='theme'])
+    :is(h1, h2, h3, h4, h5, h6) {
+    font-family: var(--site-heading-font);
+    font-weight: 700;
+}
+.site-preview[data-button-shape='rounded'] .site-hero-button {
+    border-radius: var(--radius-lg);
+}
+.site-preview[data-button-shape='pill'] .site-hero-button {
+    border-radius: 9999px;
+}
+.site-preview[data-button-shape='square'] .site-hero-button {
+    border-radius: 0;
+}

@@ -3,7 +3,7 @@ import { wayfinder } from '@laravel/vite-plugin-wayfinder';
 import tailwindcss from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
 import laravel from 'laravel-vite-plugin';
-import { bunny } from 'laravel-vite-plugin/fonts';
+import { bunny, google } from 'laravel-vite-plugin/fonts';
 import { defineConfig, lazyPlugins } from 'vite-plus';
 
 export default defineConfig({
@@ -16,6 +16,21 @@ export default defineConfig({
             ],
             refresh: true,
             fonts: [
+                ...['Lora', 'Montserrat', 'Playfair Display', 'Cinzel'].map(
+                    (family) =>
+                        google(family, {
+                            weights: [700],
+                            display: 'swap',
+                            preload: false,
+                        }),
+                ),
+                ...['Source Sans 3', 'Inter'].map((family) =>
+                    google(family, {
+                        weights: [400, 600, 700],
+                        display: 'swap',
+                        preload: false,
+                    }),
+                ),
                 bunny('Instrument Sans', {
                     weights: [400, 500, 600],
                 }),

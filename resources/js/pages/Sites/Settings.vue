@@ -6,12 +6,28 @@ import DeleteSite from '@/components/sites/DeleteSite.vue';
 import PageManager from '@/components/sites/PageManager.vue';
 import { dashboard } from '@/routes';
 import { goLive } from '@/routes/sites';
+type SiteAppearance = {
+    font_pairing: 'theme' | 'traditional' | 'modern' | 'editorial' | 'classy';
+    accent_color: string | null;
+    button_shape: 'theme' | 'rounded' | 'pill' | 'square';
+};
+function appearanceDefaults(
+    value: Partial<SiteAppearance> | null,
+): SiteAppearance {
+    return {
+        font_pairing: 'theme',
+        accent_color: null,
+        button_shape: 'theme',
+        ...value,
+    };
+}
 type SiteTheme = 'warm' | 'clean' | 'bold';
 const props = defineProps<{
     site: {
         id: number;
         name: string;
         theme_key: SiteTheme;
+        appearance: Partial<SiteAppearance> | null;
         footer: { text: string };
         slug: string | null;
         published_at: string | null;
@@ -100,15 +116,20 @@ onUnmounted(() => {
 });
 const nameForm = useForm({ name: props.site.name });
 const appearanceForm = useForm<{
+    appearance: SiteAppearance;
     theme_key: SiteTheme;
     footer: { text: string };
     slug: string;
 }>({
+    appearance: appearanceDefaults(props.site.appearance),
     theme_key: props.site.theme_key,
     footer: { text: props.site.footer.text },
     slug: props.site.slug ?? '',
 });
 const nameInput = ref<HTMLInputElement | null>(null);
+const fontInput = ref<HTMLSelectElement | null>(null);
+const accentInput = ref<HTMLInputElement | null>(null);
+const shapeInput = ref<HTMLSelectElement | null>(null);
 const themeInput = ref<HTMLSelectElement | null>(null);
 const footerTextInput = ref<HTMLInputElement | null>(null);
 const siteSlugInput = ref<HTMLInputElement | null>(null);
@@ -178,6 +199,7 @@ watch(
 watch(
     () => props.site.id,
     () => {
+        appearanceForm.appearance = appearanceDefaults(props.site.appearance);
         appearanceForm.theme_key = props.site.theme_key;
         appearanceForm.footer.text = props.site.footer.text;
         appearanceForm.slug = props.site.slug ?? '';
@@ -248,12 +270,19 @@ function saveAppearance() {
             onSuccess: () => {
                 appearanceForm.footer.text = appearanceForm.footer.text.trim();
                 appearanceForm.slug = appearanceForm.slug.trim().toLowerCase();
+                appearanceForm.appearance = appearanceDefaults(
+                    props.site.appearance,
+                );
                 appearanceForm.defaults();
                 appearanceSaved.value = true;
             },
             onError: (errors) => {
                 const fieldErrors = errors as Record<string, string>;
                 if (
+                    !fieldErrors.appearance &&
+                    !fieldErrors['appearance.font_pairing'] &&
+                    !fieldErrors['appearance.accent_color'] &&
+                    !fieldErrors['appearance.button_shape'] &&
                     !fieldErrors.theme_key &&
                     !fieldErrors['footer.text'] &&
                     !fieldErrors.slug
@@ -262,7 +291,17 @@ function saveAppearance() {
                         'We could not save appearance settings. Please try again.';
                 }
                 nextTick(() => {
-                    if (fieldErrors.theme_key) queueFocus(themeInput.value);
+                    if (
+                        fieldErrors['appearance.font_pairing'] ||
+                        fieldErrors.appearance
+                    )
+                        queueFocus(fontInput.value);
+                    else if (fieldErrors['appearance.accent_color'])
+                        queueFocus(accentInput.value);
+                    else if (fieldErrors['appearance.button_shape'])
+                        queueFocus(shapeInput.value);
+                    else if (fieldErrors.theme_key)
+                        queueFocus(themeInput.value);
                     else if (fieldErrors['footer.text'])
                         queueFocus(footerTextInput.value);
                     else if (fieldErrors.slug) queueFocus(siteSlugInput.value);
@@ -867,6 +906,225 @@ defineOptions({
                             >
                                 {{ appearanceForm.errors.theme_key }}
                             </p>
+                        </div>
+                        <div>
+                            <label
+                                for="site-font_pairing"
+                                class="mb-2 block text-sm font-semibold"
+                                >Font pairing</label
+                            >
+                            <select
+                                id="site-font_pairing"
+                                ref="fontInput"
+                                v-model="appearanceForm.appearance.font_pairing"
+                                :disabled="editorWriteInProgress"
+                                :aria-invalid="
+                                    Boolean(
+                                        appearanceForm.errors[
+                                            'appearance.font_pairing'
+                                        ],
+                                    )
+                                "
+                                :aria-describedby="
+                                    appearanceForm.errors[
+                                        'appearance.font_pairing'
+                                    ]
+                                        ? 'site-font_pairing-help site-font_pairing-error'
+                                        : 'site-font_pairing-help'
+                                "
+                                class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                @change="clearAppearanceError"
+                            >
+                                <option value="theme">Theme default</option>
+                                <option value="traditional">
+                                    Traditional: Lora + Source Sans 3
+                                </option>
+                                <option value="modern">
+                                    Modern: Montserrat + Inter
+                                </option>
+                                <option value="editorial">
+                                    Editorial: Playfair Display + Source Sans 3
+                                </option>
+                                <option value="classy">
+                                    Classy: Cinzel + Georgia
+                                </option>
+                            </select>
+                            <div
+                                class="site-preview rounded-lg p-4"
+                                :data-theme="appearanceForm.theme_key"
+                                :data-font-pairing="
+                                    appearanceForm.appearance.font_pairing
+                                "
+                            >
+                                <h4 class="font-serif text-xl">
+                                    Welcome to our church
+                                </h4>
+                                <p class="mt-2 text-sm">
+                                    A place to worship, connect, and grow
+                                    together.
+                                </p>
+                            </div>
+                            <p
+                                id="site-font_pairing-help"
+                                class="mt-2 text-xs text-[var(--workspace-muted)]"
+                            >
+                                Heading and body fonts for every page.
+                            </p>
+                            <p
+                                v-if="
+                                    appearanceForm.errors[
+                                        'appearance.font_pairing'
+                                    ]
+                                "
+                                id="site-font_pairing-error"
+                                role="alert"
+                                class="mt-2 text-sm text-red-700 dark:text-red-300"
+                            >
+                                {{
+                                    appearanceForm.errors[
+                                        'appearance.font_pairing'
+                                    ]
+                                }}
+                            </p>
+                        </div>
+                        <div>
+                            <label
+                                for="site-button_shape"
+                                class="mb-2 block text-sm font-semibold"
+                                >Button corners</label
+                            >
+                            <select
+                                id="site-button_shape"
+                                ref="shapeInput"
+                                v-model="appearanceForm.appearance.button_shape"
+                                :disabled="editorWriteInProgress"
+                                :aria-invalid="
+                                    Boolean(
+                                        appearanceForm.errors[
+                                            'appearance.button_shape'
+                                        ],
+                                    )
+                                "
+                                :aria-describedby="
+                                    appearanceForm.errors[
+                                        'appearance.button_shape'
+                                    ]
+                                        ? 'site-button_shape-help site-button_shape-error'
+                                        : 'site-button_shape-help'
+                                "
+                                class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                @change="clearAppearanceError"
+                            >
+                                <option value="theme">Theme default</option>
+                                <option value="rounded">Rounded</option>
+                                <option value="pill">Pill</option>
+                                <option value="square">Square</option>
+                            </select>
+                            <p
+                                id="site-button_shape-help"
+                                class="mt-2 text-xs text-[var(--workspace-muted)]"
+                            >
+                                Applies to content buttons across your site.
+                            </p>
+                            <p
+                                v-if="
+                                    appearanceForm.errors[
+                                        'appearance.button_shape'
+                                    ]
+                                "
+                                id="site-button_shape-error"
+                                role="alert"
+                                class="mt-2 text-sm text-red-700 dark:text-red-300"
+                            >
+                                {{
+                                    appearanceForm.errors[
+                                        'appearance.button_shape'
+                                    ]
+                                }}
+                            </p>
+                        </div>
+                        <div>
+                            <label
+                                for="site-accent_color"
+                                class="mb-2 block text-sm font-semibold"
+                                >Accent color</label
+                            >
+                            <input
+                                id="site-accent_color"
+                                ref="accentInput"
+                                v-model="appearanceForm.appearance.accent_color"
+                                :disabled="editorWriteInProgress"
+                                :aria-invalid="
+                                    Boolean(
+                                        appearanceForm.errors[
+                                            'appearance.accent_color'
+                                        ],
+                                    )
+                                "
+                                :aria-describedby="
+                                    appearanceForm.errors[
+                                        'appearance.accent_color'
+                                    ]
+                                        ? 'site-accent_color-help site-accent_color-error'
+                                        : 'site-accent_color-help'
+                                "
+                                class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                type="text"
+                                placeholder="Theme default"
+                                @input="clearAppearanceError"
+                            />
+                            <p
+                                id="site-accent_color-help"
+                                class="mt-2 text-xs text-[var(--workspace-muted)]"
+                            >
+                                Optional hex color, such as #2563eb. Clear to
+                                use the theme default. Shades adjust for
+                                readable text and buttons.
+                            </p>
+                            <p
+                                v-if="
+                                    appearanceForm.errors[
+                                        'appearance.accent_color'
+                                    ]
+                                "
+                                id="site-accent_color-error"
+                                role="alert"
+                                class="mt-2 text-sm text-red-700 dark:text-red-300"
+                            >
+                                {{
+                                    appearanceForm.errors[
+                                        'appearance.accent_color'
+                                    ]
+                                }}
+                            </p>
+                        </div>
+                        <div class="flex flex-wrap gap-3 sm:col-span-2">
+                            <button
+                                type="button"
+                                :disabled="editorWriteInProgress"
+                                class="min-h-11 rounded-lg border border-[var(--workspace-line)] px-3 text-sm font-semibold disabled:opacity-50"
+                                @click="
+                                    appearanceForm.appearance =
+                                        appearanceDefaults(null);
+                                    clearAppearanceError();
+                                "
+                            >
+                                Use theme defaults
+                            </button>
+                            <button
+                                type="button"
+                                :disabled="
+                                    editorWriteInProgress ||
+                                    !appearanceForm.isDirty
+                                "
+                                class="min-h-11 rounded-lg border border-[var(--workspace-line)] px-3 text-sm font-semibold disabled:opacity-50"
+                                @click="
+                                    appearanceForm.reset();
+                                    clearAppearanceError();
+                                "
+                            >
+                                Discard unsaved settings
+                            </button>
                         </div>
                         <div>
                             <label

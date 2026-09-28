@@ -16,6 +16,7 @@
 /storage/logs/*.log
 /public/storage
 /public/hot
+/public/fonts-manifest.dev.json
 /public/build/
 /bootstrap/ssr/
 /resources/js/actions/

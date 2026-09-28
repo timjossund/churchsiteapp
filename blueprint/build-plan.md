@@ -28,7 +28,7 @@ Features 1-5 establish the editor and single-page publishing baseline. The next 
 - [x] 16. **Site deletion** - Let an owner permanently delete a site after confirming its name, take it offline immediately, cancel subscription renewal, and safely finish domain, upload, and billing cleanup without affecting other sites.
 - [x] 12. **Image and text blocks** - Add image proportions, crop position, corner styles, captions, and optional buttons for text-bearing blocks.
 - [x] 13. **Church information blocks** - Add service-time layout choices and contact addresses with directions links.
-- [ ] 14. **Site-wide styling** - Add font pairings, an editable accent color, and consistent button styles across the site.
+- [x] 14. **Site-wide styling** - Add font pairings, an editable accent color, and consistent button styles across the site.
 - [ ] 15. **Rich text block** - Add a dedicated block for formatted text, bulleted and numbered lists, and nested outlines, with safe published rendering and matching editor previews.
 
 ## Planning TODOs

@@ -40,6 +40,13 @@ class SiteSettingsRequest extends FormRequest
             $data['seo_description'] = trim($description) === '' ? null : trim($description);
         }
 
+        $appearance = $this->input('appearance');
+        if (is_array($appearance) && is_string($appearance['accent_color'] ?? null)) {
+            $color = strtolower(trim($appearance['accent_color']));
+            $appearance['accent_color'] = $color === '' ? null : $color;
+            $data['appearance'] = $appearance;
+        }
+
         $this->merge($data);
     }
 
@@ -50,6 +57,10 @@ class SiteSettingsRequest extends FormRequest
 
         return [
             'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'appearance' => ['sometimes', 'nullable', 'array:font_pairing,accent_color,button_shape'],
+            'appearance.font_pairing' => ['sometimes', 'required', 'string', 'in:theme,traditional,modern,editorial,classy'],
+            'appearance.accent_color' => ['sometimes', 'nullable', 'string', 'regex:/\A#[0-9a-f]{6}\z/'],
+            'appearance.button_shape' => ['sometimes', 'required', 'string', 'in:theme,rounded,pill,square'],
             'theme_key' => ['sometimes', 'required', 'string', 'in:warm,clean,bold'],
             'footer' => ['sometimes', 'required', 'array:text', 'required_array_keys:text'],
             'footer.text' => ['string', 'not_regex:/[\r\n\x{0085}\x{2028}\x{2029}]/u'],

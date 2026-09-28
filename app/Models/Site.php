@@ -21,6 +21,7 @@ use Laravel\Cashier\Subscription;
  * @property CarbonImmutable|null $checkout_started_at
  * @property int $user_id
  * @property string $name
+ * @property array{font_pairing?: string, accent_color?: string|null, button_shape?: string}|null $appearance
  * @property string $theme_key
  * @property string|null $slug
  * @property array{text: string} $footer
@@ -30,7 +31,7 @@ use Laravel\Cashier\Subscription;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'theme_key', 'footer', 'logo_media_asset_id', 'slug', 'published_snapshot', 'published_at'])]
+#[Fillable(['name', 'theme_key', 'appearance', 'footer', 'logo_media_asset_id', 'slug', 'published_snapshot', 'published_at'])]
 #[Hidden(['stripe_id', 'pm_type', 'pm_last_four', 'trial_ends_at', 'checkout_attempt', 'checkout_started_at', 'checkout_price_id', 'checkout_session_id'])]
 class Site extends Model
 {
@@ -114,6 +115,7 @@ class Site extends Model
     {
         return [
             'footer' => 'array',
+            'appearance' => 'array',
             'published_snapshot' => 'array',
             'published_at' => 'immutable_datetime',
             'deletion_requested_at' => 'immutable_datetime',

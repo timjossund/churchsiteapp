@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Site;
 use App\Support\CustomerPagePath;
 use App\Support\PublishedAssets;
+use App\Support\SiteAppearance;
 use App\Support\VideoEmbedUrl;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
@@ -112,6 +113,7 @@ class PublishedSiteController extends Controller
             ];
         })->all();
         $siteData = $snapshot['site'];
+        $siteData['appearance'] = SiteAppearance::normalize($siteData['appearance'] ?? null);
         $logoId = $siteData['logo_media_asset_id'] ?? null;
         $logo = is_int($logoId) ? $media->get($logoId) : null;
         $socialImageId = $page['social_image_id'] ?? null;
@@ -123,6 +125,7 @@ class PublishedSiteController extends Controller
             'customDomain' => $hostname !== null,
             'publishedAssets' => $hostname !== null ? app(PublishedAssets::class)->manifest() : null,
             'site' => $siteData,
+            'appearanceColors' => SiteAppearance::colors($siteData['appearance'], $siteData['theme_key']),
             'blocks' => $blocks,
             'pages' => array_map(fn (array $candidate): array => [
                 'name' => $candidate['name'],

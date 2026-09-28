@@ -23,6 +23,7 @@
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    @fonts
     @vite(['resources/css/app.css', 'resources/js/published.ts'])
     @else
         @foreach ($publishedAssets['styles'] as $href)
@@ -34,7 +35,7 @@
     @endunless
 </head>
 <body class="font-sans antialiased">
-    <main class="site-preview min-h-screen" data-theme="{{ $site['theme_key'] }}">
+    <main class="site-preview min-h-screen" style="{{ collect($appearanceColors)->map(fn ($value, $key) => $key.':'.$value)->implode(';') }}" data-theme="{{ $site['theme_key'] }}" data-font-pairing="{{ $site['appearance']['font_pairing'] }}" data-button-shape="{{ $site['appearance']['button_shape'] }}">
         <header data-site-header class="border-b border-[var(--site-preview-border)] px-6 py-7 sm:px-10">
             <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-8 gap-y-4">
                 <div class="flex max-w-[calc(100%-5rem)] min-w-0 flex-wrap items-center gap-3 sm:max-w-full">

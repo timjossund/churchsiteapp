@@ -47,7 +47,8 @@ class BuildSitePublicationSnapshot
 
         return [
             'version' => 2,
-            'site' => $site->only('name', 'slug', 'theme_key', 'footer', 'logo_media_asset_id'),
+            'site' => array_merge($site->only('name', 'slug', 'theme_key', 'footer', 'logo_media_asset_id'),
+                $site->appearance === null ? [] : ['appearance' => $site->appearance]),
             'pages' => $pages->map(fn (SitePage $page): array => array_merge(
                 $page->only('id', 'name', 'position', 'is_home', 'path', 'seo_title', 'seo_description', 'social_image_id'),
                 ['blocks' => $page->blocks->map(fn (SiteBlock $block): array => $block->only('id', 'type', 'position', 'content'))->all()],

@@ -12,6 +12,7 @@ use App\Http\Requests\SiteNameRequest;
 use App\Http\Requests\SiteSettingsRequest;
 use App\Models\Site;
 use App\Models\SiteBlock;
+use App\Support\SiteAppearance;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -117,7 +118,9 @@ class SiteController extends Controller
                     ],
                 ])],
             [
-                'site' => array_merge($ownedSite->only('id', 'name', 'theme_key', 'footer', 'slug', 'published_at'), [
+                'site' => array_merge($ownedSite->only('id', 'name', 'theme_key', 'appearance', 'footer', 'slug', 'published_at'), [
+                    'appearance' => SiteAppearance::normalize($ownedSite->appearance),
+                    'appearance_colors' => SiteAppearance::colors($ownedSite->appearance, $ownedSite->theme_key),
                     'has_unpublished_changes' => $hasUnpublishedChanges,
                     'published_url' => $ownedSite->published_at === null || $ownedSite->slug === null
                         ? null

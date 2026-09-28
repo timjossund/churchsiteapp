@@ -81,6 +81,8 @@ const props = defineProps<{
         id: number;
         name: string;
         theme_key: SiteTheme;
+        appearance: { font_pairing: string; button_shape: string };
+        appearance_colors: Record<string, string>;
         footer: { text: string };
         slug: string | null;
         published_at: string | null;
@@ -1930,6 +1932,9 @@ defineOptions({
                     ref="previewRoot"
                     class="site-preview"
                     :data-theme="props.site.theme_key"
+                    :style="props.site.appearance_colors"
+                    :data-font-pairing="props.site.appearance.font_pairing"
+                    :data-button-shape="props.site.appearance.button_shape"
                 >
                     <header
                         ref="previewHeader"

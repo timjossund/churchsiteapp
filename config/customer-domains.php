@@ -7,7 +7,8 @@ return [
         && str_starts_with((string) env('STRIPE_SECRET', ''), 'sk_test_'))
         || (env('APP_ENV') === 'production'
             && env('CUSTOMER_DOMAINS_PRODUCTION_ENABLED', false) === true
-            && str_starts_with((string) env('STRIPE_SECRET', ''), 'sk_live_')),
+            && (str_starts_with((string) env('STRIPE_SECRET', ''), 'sk_live_')
+                || str_starts_with((string) env('STRIPE_SECRET', ''), 'rk_live_'))),
     'zone_id' => env('CLOUDFLARE_SAAS_ZONE_ID'),
     'api_token' => env('CLOUDFLARE_SAAS_API_TOKEN'),
     'cname_target' => 'customers.churchsite.app',

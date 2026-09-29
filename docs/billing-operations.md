@@ -12,7 +12,7 @@ CUSTOMER_DOMAINS_PRODUCTION_ENABLED=true
 CUSTOMER_DOMAINS_LOCAL_TESTING=false
 ```
 
-Production also requires `STRIPE_SECRET` starting with `sk_live_`. The production switch defaults false and cannot enable local/staging live payments or production test payments. Key prefixes identify the intended mode; they do not verify credentials or account configuration.
+Production also requires `STRIPE_SECRET` starting with `sk_live_` or `rk_live_`. A restricted live key must have the permissions required for the application's customer, Checkout, subscription, invoice, price, and billing-portal API operations. Verify those permissions in Stripe; a matching prefix alone does not prove access. The production switch defaults false and cannot enable local/staging live payments or production test payments. Key prefixes identify the intended mode; they do not verify credentials or account configuration.
 
 Before enabling the switch, verify the live publishable/secret keys, live monthly and annual price IDs, the restricted live portal configuration, and the production webhook's own signing secret and signed delivery. Complete the outstanding sandbox expiry, resubscription, and provider-failure checks. Confirm the domain-provider configuration, scheduler, current Worker source, matching production ingress secret, and intended customer routes in [Worker operations](worker-domain-proxy.md). Keep the Worker's customer flag false while preparing the deployment.
 

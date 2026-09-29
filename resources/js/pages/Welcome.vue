@@ -106,7 +106,7 @@ const steps = [
                     <h1
                         class="mt-6 max-w-xl font-serif text-5xl leading-[1.06] tracking-tight sm:text-6xl lg:text-7xl"
                     >
-                        Your church <br><span
+                        Your church <br /><span
                             class="text-[var(--workspace-green)]"
                             >open Online.</span
                         >
@@ -450,8 +450,11 @@ const steps = [
                     class="flex w-fit items-center gap-2 rounded-lg"
                     ><AppLogo
                 /></Link>
-                <p class="text-sm text-center">
-                    Many people's church is found first online, help them find yours. <br> Copyright © {{ new Date().getFullYear() }} Church Site App. All rights reserved.
+                <p class="text-center text-sm">
+                    Many people's church is found first online, help them find
+                    yours. <br />
+                    Copyright © {{ new Date().getFullYear() }} Church Site App.
+                    All rights reserved.
                 </p>
                 <a href="#main" class="w-fit text-sm font-semibold"
                     >Back to top ↑</a

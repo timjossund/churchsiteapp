@@ -370,12 +370,20 @@ test('checkout requires valid retained domain intent before any Stripe request',
     $site = Site::factory()->create();
     if ($intent !== 'missing') {
         $domain = app(ReserveCustomHostname::class)->handle($site->user, $site->id, 'www.example.org');
-        $domain->forceFill($intent === 'removing' ? ['state' => 'removing'] : ['hostname' => 'invalid'])->save();
+        $domain->forceFill(match ($intent) {
+            'removing' => ['state' => 'removing'],
+            'overlong' => ['hostname' => 'www.'.str_repeat('a', 63).'.'.str_repeat('b', 63).'.'.str_repeat('c', 63).'.'.str_repeat('d', 57)],
+            default => ['hostname' => 'invalid'],
+        })->save();
     }
     fakeBillingStripe(fn () => throw new RuntimeException('No Stripe request allowed'));
     $this->actingAs($site->user)->postJson(route('sites.billing.checkout', $site), ['interval' => 'monthly'])
         ->assertUnprocessable()->assertJsonValidationErrors('hostname');
-})->with(['missing', 'removing', 'invalid']);
+    expect($site->fresh()->checkout_attempt)->toBeNull()->and($site->fresh()->stripe_id)->toBeNull();
+    if ($intent === 'overlong') {
+        expect($domain->fresh()->hostname)->toBe($domain->hostname);
+    }
+})->with(['missing', 'removing', 'invalid', 'overlong']);
 
 test('domain connection starts immediate checkout and repeated submissions resume the same session', function () {
     config(['site-billing.checkout_enabled' => true, 'customer-domains.enabled' => true]);
@@ -515,3 +523,25 @@ test('a signed webhook tolerates site removal after its initial customer lookup'
     signedBillingEvent(['id' => 'sub_site', 'customer' => 'cus_site'])->assertOk();
     expect($site->fresh())->toBeNull();
 });
+
+test('overlong ownership names fail before reservation or Stripe checkout', function (int $length) {
+    config(['site-billing.checkout_enabled' => true, 'customer-domains.enabled' => true]);
+    $site = Site::factory()->create();
+    $hostname = 'www.'.str_repeat('a', 63).'.'.str_repeat('b', 63).'.'.str_repeat('c', 63).'.'.str_repeat('d', $length - 196);
+    $requests = 0;
+    fakeBillingStripe(function () use (&$requests) {
+        $requests++;
+        throw new RuntimeException('No Stripe request allowed');
+    });
+    $this->actingAs($site->user)->from(route('sites.go-live', $site))
+        ->post(route('sites.domain.store', $site), ['hostname' => $hostname, 'interval' => 'monthly'])
+        ->assertRedirect(route('sites.go-live', $site))->assertSessionHasErrors([
+            'hostname' => 'This hostname is too long for domain ownership verification. Use a hostname of 241 characters or fewer.',
+        ]);
+    $site->refresh();
+    expect($site->customHostname()->exists())->toBeFalse()
+        ->and($site->checkout_attempt)->toBeNull()->and($site->checkout_started_at)->toBeNull()
+        ->and($site->checkout_price_id)->toBeNull()->and($site->checkout_session_id)->toBeNull()
+        ->and($site->stripe_id)->toBeNull()->and($site->subscriptions()->exists())->toBeFalse()
+        ->and($requests)->toBe(0);
+})->with([242, 253]);

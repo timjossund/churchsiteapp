@@ -2,6 +2,7 @@
 
 namespace App\Rules;
 
+use App\Models\CustomHostname;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 
@@ -12,6 +13,14 @@ class CustomerHostname implements ValidationRule
         if (! is_string($value) || strlen($value) > 253
             || preg_match('/\Awww\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?\z/', $value) !== 1) {
             $fail('Enter a full www hostname, such as www.example.org.');
+
+            return;
+        }
+
+        $domain = new CustomHostname;
+        $domain->hostname = $value;
+        if (filter_var($domain->ownershipRecordName(), FILTER_VALIDATE_DOMAIN) === false) {
+            $fail('This hostname is too long for domain ownership verification. Use a hostname of 241 characters or fewer.');
 
             return;
         }

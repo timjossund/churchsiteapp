@@ -58,6 +58,8 @@ test('invalid hero options do not change saved content', function (array $overri
 
     expect($block->fresh()->content)->toBe($original);
 })->with([
+    [['style' => ['text_background' => 'false']], 'content.style.text_background'],
+    [['style' => ['text_background' => 0]], 'content.style.text_background'],
     [['style' => ['height' => '200px']], 'content.style.height'],
     [['style' => ['overlay' => 0.5]], 'content.style.overlay'],
     [['style' => ['motion' => 'fast']], 'content.style.motion'],
@@ -278,4 +280,36 @@ test('published heroes render escaped labels image presets and both buttons from
     $site->update(['published_snapshot' => app(BuildSitePublicationSnapshot::class)($site)]);
     $this->get(route('sites.published.show', $site->slug))->assertOk()
         ->assertDontSee('data-has-image="true"', false)->assertDontSee('>Welcome</p>', false);
+});
+
+test('hero text background choice is saved and frozen until republished', function () {
+    $site = Site::factory()->create(['slug' => 'hero-text-background']);
+    $asset = $site->mediaAssets()->create(['storage_key' => "sites/{$site->id}/hero", 'mime_type' => 'image/png']);
+    $content = heroContentForTest(['media_asset_id' => $asset->id]);
+    $block = $site->blocks()->create(['type' => 'hero', 'position' => 0, 'content' => $content]);
+    $site->update(['published_snapshot' => app(BuildSitePublicationSnapshot::class)($site), 'published_at' => now()]);
+    $this->get(route('sites.published.show', $site->slug))->assertOk()
+        ->assertSee('data-text-background="true"', false);
+
+    foreach ([false, true] as $enabled) {
+        $content['style'] = ['text_background' => $enabled, 'overlay' => 'dark'];
+        $this->actingAs($site->user)->patch(route('sites.blocks.update', [$site, $block]), ['content' => $content])
+            ->assertRedirect()->assertSessionHasNoErrors();
+        expect($block->fresh()->content['style']['text_background'])->toBe($enabled);
+        $this->get(route('sites.published.show', $site->slug))->assertOk()
+            ->assertSee('data-text-background="'.($enabled ? 'false' : 'true').'"', false);
+        $site->update(['published_snapshot' => app(BuildSitePublicationSnapshot::class)($site)]);
+        $this->get(route('sites.published.show', $site->slug))->assertOk()
+            ->assertSee('data-text-background="'.($enabled ? 'true' : 'false').'"', false)
+            ->assertSee('data-overlay="dark"', false)->assertSee('data-has-image="true"', false);
+    }
+});
+
+test('non-hero blocks cannot save the text background setting', function () {
+    $site = Site::factory()->create();
+    $block = $site->blocks()->create(['type' => 'plain_text', 'position' => 0, 'content' => ['body' => 'Original']]);
+    $this->actingAs($site->user)->patchJson(route('sites.blocks.update', [$site, $block]), [
+        'content' => ['body' => 'Changed', 'style' => ['text_background' => false]],
+    ])->assertUnprocessable()->assertJsonValidationErrors('content.style');
+    expect($block->fresh()->content)->toBe(['body' => 'Original']);
 });

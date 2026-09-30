@@ -12,6 +12,7 @@ export type HeroExtras = {
     secondary_button: HeroButton;
 };
 export type HeroStyle = {
+    text_background?: boolean;
     height?: 'current' | 'medium' | 'full';
     overlay?: 'light' | 'medium' | 'dark';
     motion?: 'normal' | 'fixed' | 'half';

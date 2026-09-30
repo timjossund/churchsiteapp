@@ -65,7 +65,7 @@ class UpdateSiteBlockRequest extends FormRequest
             'position' => ['prohibited'],
             'content' => ['required', 'array:'.implode(',', [...$fields, 'style'])],
             'content.style' => ['sometimes', $type === 'hero'
-                ? 'array:alignment,background,layout,spacing,content_width,heading_size,height,overlay,motion'
+                ? 'array:alignment,background,layout,spacing,content_width,heading_size,height,overlay,motion,text_background'
                 : 'array:alignment,background,layout,spacing,content_width,heading_size'.($hasImagePresentation ? ',image_ratio,crop_position,corner_style' : '')],
             'content.style.alignment' => ['sometimes', 'string', Rule::in(['left', 'center'])],
             'content.style.background' => ['sometimes', 'string', Rule::in(['theme', 'soft', 'accent', 'contrast'])],
@@ -112,6 +112,7 @@ class UpdateSiteBlockRequest extends FormRequest
             $rules['content.welcome_label'] = ['sometimes', 'string'];
             $rules['content.style.height'] = ['sometimes', 'string', Rule::in(['current', 'medium', 'full'])];
             $rules['content.style.overlay'] = ['sometimes', 'string', Rule::in(['light', 'medium', 'dark'])];
+            $rules['content.style.text_background'] = ['sometimes', 'boolean:strict'];
             $rules['content.style.motion'] = ['sometimes', 'string', Rule::in(['normal', 'fixed', 'half'])];
             $rules = array_merge($rules, $this->buttonRules('content', false));
             $rules['content.secondary_button'] = ['sometimes', 'array:button_label,link_type,target_block_id,target_page_id,external_url'];

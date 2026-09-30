@@ -83,7 +83,11 @@ const props = defineProps<{
         id: number;
         name: string;
         theme_key: SiteTheme;
-        appearance: { font_pairing: string; button_shape: string };
+        appearance: {
+            font_pairing: string;
+            button_shape: string;
+            show_site_title: boolean;
+        };
         appearance_colors: Record<string, string>;
         footer: { text: string };
         slug: string | null;
@@ -769,6 +773,7 @@ function styleForBlock(block: SiteBlock): BlockStyle {
     return {
         ...(block.type === 'hero'
             ? {
+                  text_background: saved.text_background !== false,
                   height: saved.height ?? 'current',
                   overlay: saved.overlay ?? 'medium',
                   motion: saved.motion ?? 'normal',
@@ -1292,7 +1297,7 @@ function saveBlock() {
                     if (revealEditorErrors()) return;
                     if (
                         Object.keys(errors).some((key) =>
-                            /content\.(welcome_label|target_page_id|secondary_button|style\.(height|overlay|motion))/.test(
+                            /content\.(welcome_label|target_page_id|secondary_button|style\.(height|overlay|motion|text_background))/.test(
                                 key,
                             ),
                         )
@@ -2002,7 +2007,13 @@ defineOptions({
                                     class="h-[75px] w-auto max-w-full shrink-0 object-contain object-left"
                                 />
                                 <h3
-                                    class="min-w-0 font-serif text-2xl font-semibold tracking-tight break-words"
+                                    :class="
+                                        props.site.appearance
+                                            .show_site_title !== false ||
+                                        !logoPreviewUrl()
+                                            ? 'min-w-0 font-serif text-2xl font-semibold tracking-tight break-words'
+                                            : 'sr-only'
+                                    "
                                 >
                                     {{ props.site.name }}
                                 </h3>
@@ -2163,6 +2174,14 @@ defineOptions({
                                 block.type === 'hero'
                                     ? (contentFor(block).style?.overlay ??
                                       'medium')
+                                    : undefined
+                            "
+                            :data-text-background="
+                                block.type === 'hero'
+                                    ? String(
+                                          contentFor(block).style
+                                              ?.text_background !== false,
+                                      )
                                     : undefined
                             "
                             :data-motion="
@@ -2556,7 +2575,7 @@ defineOptions({
                                         "
                                     >
                                         <div
-                                            class="site-image-frame overflow-hidden rounded-xl border border-[var(--site-preview-border)] bg-[var(--site-preview-soft)]"
+                                            class="site-image-frame overflow-hidden rounded-xl border-0 bg-[var(--site-preview-soft)]"
                                             :data-image-ratio="
                                                 imageRatio(block)
                                             "
@@ -2672,7 +2691,7 @@ defineOptions({
                                             "
                                         >
                                             <div
-                                                class="site-image-frame overflow-hidden rounded-xl border border-[var(--site-preview-border)] bg-[var(--site-preview-soft)]"
+                                                class="site-image-frame overflow-hidden rounded-xl border-0 bg-[var(--site-preview-soft)]"
                                                 :data-image-ratio="
                                                     imageRatio(block)
                                                 "
@@ -4877,6 +4896,52 @@ defineOptions({
                                     <legend class="mb-3 font-semibold">
                                         Hero background settings
                                     </legend>
+                                    <div>
+                                        <label
+                                            for="hero-text-background"
+                                            class="flex items-center gap-2"
+                                        >
+                                            <input
+                                                id="hero-text-background"
+                                                v-model="
+                                                    draftBlockStyle.text_background
+                                                "
+                                                type="checkbox"
+                                                :aria-invalid="
+                                                    Boolean(
+                                                        saveForm.errors[
+                                                            'content.style.text_background'
+                                                        ],
+                                                    )
+                                                "
+                                                aria-describedby="hero-text-background-help hero-text-background-error"
+                                                @change="clearContentError"
+                                            />
+                                            Show text background
+                                        </label>
+                                        <p
+                                            id="hero-text-background-help"
+                                            class="text-sm"
+                                        >
+                                            Turn off to show text directly over
+                                            the image overlay.
+                                        </p>
+                                        <p
+                                            v-if="
+                                                saveForm.errors[
+                                                    'content.style.text_background'
+                                                ]
+                                            "
+                                            id="hero-text-background-error"
+                                            role="alert"
+                                        >
+                                            {{
+                                                saveForm.errors[
+                                                    'content.style.text_background'
+                                                ]
+                                            }}
+                                        </p>
+                                    </div>
                                     <div>
                                         <label for="hero-height"
                                             >Hero height</label

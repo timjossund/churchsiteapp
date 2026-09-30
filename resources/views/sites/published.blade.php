@@ -46,7 +46,7 @@
                             class="h-[75px] w-auto max-w-full shrink-0 object-contain object-left"
                         >
                     @endif
-                    <h1 class="min-w-0 font-serif text-2xl font-semibold tracking-tight break-words">
+                    <h1 class="{{ $site['appearance']['show_site_title'] || empty($site['logo_media_asset_id']) || ! isset($mediaUrls[(string) $site['logo_media_asset_id']]) ? 'min-w-0 font-serif text-2xl font-semibold tracking-tight break-words' : 'sr-only' }}">
                         {{ $site['name'] }}
                     </h1>
                 </div>
@@ -97,7 +97,7 @@
             @php($imageRatio = in_array($style['image_ratio'] ?? null, ['landscape', 'square', 'portrait'], true) ? $style['image_ratio'] : 'original')
             @php($cropPosition = in_array($style['crop_position'] ?? null, ['top', 'bottom'], true) ? $style['crop_position'] : 'center')
             @php($cornerStyle = in_array($style['corner_style'] ?? null, ['square', 'rounded'], true) ? $style['corner_style'] : 'current')
-            <section id="block-{{ $block['id'] }}" data-block-type="{{ $block['type'] }}" data-spacing="{{ $spacing }}" data-content-width="{{ $contentWidth }}" data-heading-size="{{ $headingSize }}" data-background="{{ $background }}" @if ($block['type'] === 'hero') data-height="{{ $style['height'] ?? 'current' }}" data-overlay="{{ $style['overlay'] ?? 'medium' }}" data-motion="{{ $style['motion'] ?? 'normal' }}" @if ($block['image_url']) data-has-image="true" @endif @endif class="site-block {{ $block['type'] === 'hero' ? 'site-hero' : '' }} border-b border-[var(--site-preview-border)] px-6 py-12 last:border-b-0 sm:px-10 {{ $alignment === 'center' ? 'text-center' : '' }}">
+            <section id="block-{{ $block['id'] }}" data-block-type="{{ $block['type'] }}" data-spacing="{{ $spacing }}" data-content-width="{{ $contentWidth }}" data-heading-size="{{ $headingSize }}" data-background="{{ $background }}" @if ($block['type'] === 'hero') data-height="{{ $style['height'] ?? 'current' }}" data-overlay="{{ $style['overlay'] ?? 'medium' }}" data-motion="{{ $style['motion'] ?? 'normal' }}" data-text-background="{{ ($style['text_background'] ?? true) !== false ? 'true' : 'false' }}" @if ($block['image_url']) data-has-image="true" @endif @endif class="site-block {{ $block['type'] === 'hero' ? 'site-hero' : '' }} border-b border-[var(--site-preview-border)] px-6 py-12 last:border-b-0 sm:px-10 {{ $alignment === 'center' ? 'text-center' : '' }}">
                 @if ($block['type'] === 'hero' && $block['image_url'])
                     <img src="{{ $block['image_url'] }}" alt="" class="site-hero-image">
                 @endif
@@ -205,7 +205,7 @@
                         @case('image')
                             @if ($block['image_url'])
                                 <figure class="{{ $alignment === 'center' ? 'mx-auto max-w-3xl' : '' }}">
-                                    <div data-image-ratio="{{ $imageRatio }}" data-crop-position="{{ $cropPosition }}" data-corner-style="{{ $cornerStyle }}" class="site-image-frame overflow-hidden rounded-xl border border-[var(--site-preview-border)] bg-[var(--site-preview-soft)]">
+                                    <div data-image-ratio="{{ $imageRatio }}" data-crop-position="{{ $cropPosition }}" data-corner-style="{{ $cornerStyle }}" class="site-image-frame overflow-hidden rounded-xl border-0 bg-[var(--site-preview-soft)]">
                                         <img src="{{ $block['image_url'] }}" alt="{{ $block['image_alt'] }}" class="max-h-[32rem] w-full object-contain">
                                     </div>
                                     @if (is_string($content['caption'] ?? null) && $content['caption'] !== '')
@@ -228,7 +228,7 @@
                                    </div>
                                 @if ($block['image_url'])
                                     <figure class="{{ $imageOnLeft ? 'md:order-1' : 'md:order-2' }}">
-                                        <div data-image-ratio="{{ $imageRatio }}" data-crop-position="{{ $cropPosition }}" data-corner-style="{{ $cornerStyle }}" class="site-image-frame overflow-hidden rounded-xl border border-[var(--site-preview-border)] bg-[var(--site-preview-soft)]">
+                                        <div data-image-ratio="{{ $imageRatio }}" data-crop-position="{{ $cropPosition }}" data-corner-style="{{ $cornerStyle }}" class="site-image-frame overflow-hidden rounded-xl border-0 bg-[var(--site-preview-soft)]">
                                             <img src="{{ $block['image_url'] }}" alt="{{ $block['image_alt'] }}" class="max-h-[32rem] min-h-56 w-full object-contain">
                                         </div>
                                         @if (is_string($content['caption'] ?? null) && $content['caption'] !== '')

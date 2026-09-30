@@ -4,12 +4,13 @@ namespace App\Support;
 
 final class SiteAppearance
 {
-    /** @return array{font_pairing: string, button_shape: string, accent_color: string|null} */
+    /** @return array{font_pairing: string, button_shape: string, accent_color: string|null, show_site_title: bool} */
     public static function normalize(mixed $value): array
     {
         $value = is_array($value) ? $value : [];
 
         return [
+            'show_site_title' => ($value['show_site_title'] ?? true) !== false,
             'font_pairing' => in_array($value['font_pairing'] ?? null, ['theme', 'traditional', 'modern', 'editorial', 'classy'], true) ? $value['font_pairing'] : 'theme',
             'button_shape' => in_array($value['button_shape'] ?? null, ['theme', 'rounded', 'pill', 'square'], true) ? $value['button_shape'] : 'theme',
             'accent_color' => is_string($value['accent_color'] ?? null) && preg_match('/\A#[0-9a-fA-F]{6}\z/', $value['accent_color']) === 1 ? strtolower($value['accent_color']) : null,

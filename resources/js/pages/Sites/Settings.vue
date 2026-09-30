@@ -7,6 +7,7 @@ import PageManager from '@/components/sites/PageManager.vue';
 import { dashboard } from '@/routes';
 import { goLive } from '@/routes/sites';
 type SiteAppearance = {
+    show_site_title: boolean;
     font_pairing: 'theme' | 'traditional' | 'modern' | 'editorial' | 'classy';
     accent_color: string | null;
     button_shape: 'theme' | 'rounded' | 'pill' | 'square';
@@ -15,6 +16,7 @@ function appearanceDefaults(
     value: Partial<SiteAppearance> | null,
 ): SiteAppearance {
     return {
+        show_site_title: true,
         font_pairing: 'theme',
         accent_color: null,
         button_shape: 'theme',
@@ -135,6 +137,7 @@ const footerTextInput = ref<HTMLInputElement | null>(null);
 const siteSlugInput = ref<HTMLInputElement | null>(null);
 const nameSaved = ref(false);
 const nameError = ref('');
+const siteTitleInput = ref<HTMLInputElement | null>(null);
 const appearanceSaved = ref(false);
 const appearanceError = ref('');
 const logoDraftAltText = ref(props.site.logo?.alt_text ?? '');
@@ -283,6 +286,7 @@ function saveAppearance() {
                     !fieldErrors['appearance.font_pairing'] &&
                     !fieldErrors['appearance.accent_color'] &&
                     !fieldErrors['appearance.button_shape'] &&
+                    !fieldErrors['appearance.show_site_title'] &&
                     !fieldErrors.theme_key &&
                     !fieldErrors['footer.text'] &&
                     !fieldErrors.slug
@@ -300,6 +304,8 @@ function saveAppearance() {
                         queueFocus(accentInput.value);
                     else if (fieldErrors['appearance.button_shape'])
                         queueFocus(shapeInput.value);
+                    else if (fieldErrors['appearance.show_site_title'])
+                        queueFocus(siteTitleInput.value);
                     else if (fieldErrors.theme_key)
                         queueFocus(themeInput.value);
                     else if (fieldErrors['footer.text'])
@@ -856,6 +862,56 @@ defineOptions({
                             These settings apply to every page. Edit search and
                             sharing details inside each page.
                         </p>
+                        <div class="sm:col-span-2">
+                            <label
+                                for="site-show-title"
+                                class="flex items-center gap-2 text-sm font-semibold"
+                            >
+                                <input
+                                    id="site-show-title"
+                                    ref="siteTitleInput"
+                                    v-model="
+                                        appearanceForm.appearance
+                                            .show_site_title
+                                    "
+                                    type="checkbox"
+                                    :disabled="editorWriteInProgress"
+                                    :aria-invalid="
+                                        Boolean(
+                                            appearanceForm.errors[
+                                                'appearance.show_site_title'
+                                            ],
+                                        )
+                                    "
+                                    aria-describedby="site-show-title-help site-show-title-error"
+                                    @change="clearAppearanceError"
+                                />
+                                Show site title
+                            </label>
+                            <p
+                                id="site-show-title-help"
+                                class="mt-2 text-sm text-[var(--workspace-muted)]"
+                            >
+                                Turn off for a logo-only header. Without a logo,
+                                your site title stays visible.
+                            </p>
+                            <p
+                                v-if="
+                                    appearanceForm.errors[
+                                        'appearance.show_site_title'
+                                    ]
+                                "
+                                id="site-show-title-error"
+                                role="alert"
+                                class="mt-2 text-sm text-red-600"
+                            >
+                                {{
+                                    appearanceForm.errors[
+                                        'appearance.show_site_title'
+                                    ]
+                                }}
+                            </p>
+                        </div>
                         <div>
                             <label
                                 for="site-theme"

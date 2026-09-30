@@ -335,6 +335,10 @@
     padding: 1.5rem;
     border-radius: 0.75rem;
 }
+.site-hero[data-has-image='true'][data-text-background='false']
+    .site-hero-content {
+    background: transparent;
+}
 .site-hero-button {
     max-width: 100%;
     overflow-wrap: anywhere;
@@ -344,7 +348,7 @@
     margin-bottom: 0.5rem;
     font-weight: 600;
 }
-.hero-options input,
+.hero-options input:not([type='checkbox']),
 .hero-options select {
     min-height: 2.75rem;
     width: 100%;
@@ -353,6 +357,9 @@
     border-radius: 0.5rem;
     background: var(--workspace-surface);
     color: var(--workspace-ink);
+}
+.hero-options label:has(input[type='checkbox']) {
+    display: flex;
 }
 .hero-options input:focus-visible,
 .hero-options select:focus-visible {

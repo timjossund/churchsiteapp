@@ -1,6 +1,24 @@
 # Billing operations
 
-Billing is in development. Checkout is disabled in `config/site-billing.php` until the integrated domain flow passes its review and controlled rollout. The entry and deletion safeguards are implemented locally; live checkout remains disabled.
+Checkout and customer-domain onboarding default to disabled. Local/staging sandbox testing and production activation use separate explicit switches. Adding Stripe keys alone does not enable checkout; the entry, payment, and deletion safeguards remain enforced.
+
+## Production activation
+
+After the reviewed application change is deployed and production readiness is approved, both application gates require:
+
+```dotenv
+APP_ENV=production
+CUSTOMER_DOMAINS_PRODUCTION_ENABLED=true
+CUSTOMER_DOMAINS_LOCAL_TESTING=false
+```
+
+Production also requires `STRIPE_SECRET` starting with `sk_live_` or `rk_live_`. A restricted live key must have the permissions required for the application's customer, Checkout, subscription, invoice, price, and billing-portal API operations. Verify those permissions in Stripe; a matching prefix alone does not prove access. The production switch defaults false and cannot enable local/staging live payments or production test payments. Key prefixes identify the intended mode; they do not verify credentials or account configuration.
+
+Before enabling the switch, verify the live publishable/secret keys, live monthly and annual price IDs, the restricted live portal configuration, and the production webhook's own signing secret and signed delivery. Complete the outstanding sandbox expiry, resubscription, and provider-failure checks. Confirm the domain-provider configuration, scheduler, current Worker source, matching production ingress secret, and intended customer routes in [Worker operations](worker-domain-proxy.md). Keep the Worker's customer flag false while preparing the deployment.
+
+Run `php artisan config:cache` with the production application's PHP binary after changing its environment. Check the effective `customer-domains.enabled` and `site-billing.checkout_enabled` booleans without printing credentials. The Worker's separate string variable `CUSTOMER_DOMAINS_ENABLED` must then be enabled with the reviewed routes before customer content can be served. This local change does not establish production acceptance or perform activation.
+
+To close onboarding and new checkout, set `CUSTOMER_DOMAINS_PRODUCTION_ENABLED=false` and refresh the configuration cache. This also closes customer content serving and provisioning; coordinate Worker routing rollback. Existing platform billing management, period-end cancellation, subscription records, and cleanup remain available. Closing the switch does not cancel or refund subscriptions or delete Cloudflare hostnames.
 
 ## Deferred account deletion
 

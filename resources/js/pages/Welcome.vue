@@ -101,23 +101,20 @@ const steps = [
             >
                 <div>
                     <p class="marketing-eyebrow">
-                        <span
-                            class="inline-block size-2 rounded-full bg-current"
-                        />
-                        A little simpler. A lot more welcoming.
+                        A lot simpler. A lot more welcoming.
                     </p>
                     <h1
                         class="mt-6 max-w-xl font-serif text-5xl leading-[1.06] tracking-tight sm:text-6xl lg:text-7xl"
                     >
-                        Your church.<br />An open door.<br /><span
+                        Your church <br /><span
                             class="text-[var(--workspace-green)]"
-                            >Online.</span
+                            >open Online.</span
                         >
                     </h1>
                     <p class="mt-7 max-w-md text-lg leading-relaxed">
                         A beautiful church website shouldn’t take you away from
                         the people you serve. Build, update, and share yours
-                        with simple tools that feel right at home.
+                        with very simple tools that feel right at home.
                     </p>
                     <div class="mt-8 flex flex-wrap items-center gap-5">
                         <Link
@@ -143,7 +140,7 @@ const steps = [
                             class="size-4 text-[var(--workspace-green)]"
                             aria-hidden="true"
                         />
-                        Start building before you pay.
+                        Start building for free - no credit card required.
                     </p>
                 </div>
 
@@ -162,7 +159,7 @@ const steps = [
                                     ><AppLogoIcon
                                         class="size-5 text-[var(--workspace-green)]"
                                     />
-                                    Grace Community</span
+                                    Grace Church</span
                                 >
                                 <span
                                     class="rounded-md bg-[var(--workspace-green)] px-3 py-1.5 text-white dark:text-[var(--workspace-surface)]"
@@ -210,7 +207,7 @@ const steps = [
                                         class="flex items-center justify-between px-4 py-3 text-[9px]"
                                     >
                                         <span class="font-serif font-bold"
-                                            >Grace Community</span
+                                            >Grace Church</span
                                         ><span>Welcome home</span>
                                     </div>
                                     <div
@@ -219,7 +216,7 @@ const steps = [
                                         <div
                                             class="absolute top-5 -right-5 h-48 w-28 rounded-t-full border-[18px] border-[#d0ddc6] sm:right-3 sm:w-36"
                                         />
-                                        <div class="relative max-w-[190px]">
+                                        <div class="relative max-w-[220px]">
                                             <p
                                                 class="text-[8px] font-bold tracking-[0.18em] uppercase"
                                             >
@@ -453,8 +450,11 @@ const steps = [
                     class="flex w-fit items-center gap-2 rounded-lg"
                     ><AppLogo
                 /></Link>
-                <p class="text-sm">
-                    A welcoming place starts with an open door.
+                <p class="text-center text-sm">
+                    Many people's church is found first online, help them find
+                    yours. <br />
+                    Copyright © {{ new Date().getFullYear() }} Church Site App.
+                    All rights reserved.
                 </p>
                 <a href="#main" class="w-fit text-sm font-semibold"
                     >Back to top ↑</a

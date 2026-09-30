@@ -34,6 +34,7 @@ const props = defineProps<{
         slug: string | null;
         published_at: string | null;
         published_url: string | null;
+        live_url: string | null;
         has_unpublished_changes: boolean;
         favicon: { media_asset_id: number; url: string } | null;
         logo: {
@@ -673,11 +674,25 @@ defineOptions({
                 >
                     {{ props.site.name }}
                 </h1>
-                <Link
-                    :href="goLive(props.site.id)"
-                    class="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg bg-[var(--workspace-green)] px-5 py-2 text-sm font-semibold text-white hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)]"
-                    >Go Live</Link
-                >
+                <div class="flex flex-wrap items-center gap-3">
+                    <Link
+                        :href="goLive(props.site.id)"
+                        class="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg bg-[var(--workspace-green)] px-5 py-2 text-sm font-semibold text-white hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)]"
+                    >
+                        {{ props.site.live_url ? 'Live settings' : 'Go Live' }}
+                    </Link>
+                    <a
+                        v-if="props.site.live_url"
+                        :href="props.site.live_url"
+                        target="_blank"
+                        rel="noreferrer"
+                        class="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--workspace-line)] px-5 py-2 text-sm font-semibold text-[var(--workspace-green)] hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)]"
+                    >
+                        See live site
+                        <span aria-hidden="true" class="ms-2">→</span>
+                        <span class="sr-only">(opens in a new tab)</span>
+                    </a>
+                </div>
             </div>
             <p class="mt-3 text-[var(--workspace-muted)]">
                 Manage your pages and the settings they share. Open a page to

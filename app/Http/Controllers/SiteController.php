@@ -75,6 +75,8 @@ class SiteController extends Controller
             ? null
             : $mediaAssets->get($ownedSite->favicon_media_asset_id);
         $snapshot = $ownedSite->published_snapshot;
+        $domainSummary = app(SiteDomainSummary::class)->handle($ownedSite);
+        $liveUrl = $domainSummary['status'] === 'live' ? 'https://'.$domainSummary['hostname'].'/' : null;
         $hasUnpublishedChanges = false;
         if ($ownedSite->published_at !== null) {
             // Legacy publications await a whole-site publish; v1 and v2 hashes are not comparable.
@@ -93,16 +95,18 @@ class SiteController extends Controller
         $pagePublishedUrl = null;
         if ($selectedPage !== null && $ownedSite->published_at !== null && $ownedSite->slug !== null) {
             if (($snapshot['version'] ?? null) === 1 && $selectedPage->is_home) {
-                $pagePublishedUrl = route('sites.published.show', $ownedSite->slug);
+                $pagePublishedUrl = $liveUrl ?? route('sites.published.show', $ownedSite->slug);
             } elseif (($snapshot['version'] ?? null) === 2 && is_array($snapshot['pages'] ?? null)) {
                 foreach ($snapshot['pages'] as $publishedPage) {
                     if (! is_array($publishedPage) || ($publishedPage['id'] ?? null) !== $selectedPage->id) {
                         continue;
                     }
                     if (($publishedPage['is_home'] ?? null) === true) {
-                        $pagePublishedUrl = route('sites.published.show', $ownedSite->slug);
+                        $pagePublishedUrl = $liveUrl ?? route('sites.published.show', $ownedSite->slug);
                     } elseif (is_string($publishedPage['path'] ?? null) && preg_match('/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/', $publishedPage['path']) === 1) {
-                        $pagePublishedUrl = route('sites.published.pages.show', [$ownedSite->slug, $publishedPage['path']]);
+                        $pagePublishedUrl = $liveUrl === null
+                            ? route('sites.published.pages.show', [$ownedSite->slug, $publishedPage['path']])
+                            : $liveUrl.$publishedPage['path'];
                     }
                     break;
                 }
@@ -126,6 +130,7 @@ class SiteController extends Controller
                     'appearance' => SiteAppearance::normalize($ownedSite->appearance),
                     'appearance_colors' => SiteAppearance::colors($ownedSite->appearance, $ownedSite->theme_key),
                     'has_unpublished_changes' => $hasUnpublishedChanges,
+                    'live_url' => $liveUrl,
                     'published_url' => $ownedSite->published_at === null || $ownedSite->slug === null
                         ? null
                         : route('sites.published.show', ['slug' => $ownedSite->slug]),

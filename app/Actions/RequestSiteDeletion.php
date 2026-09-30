@@ -26,6 +26,7 @@ class RequestSiteDeletion
                 'published_at' => null,
                 'published_snapshot' => null,
                 'logo_media_asset_id' => null,
+                'favicon_media_asset_id' => null,
             ])->save();
             // Keep remote identities and media inventory until cleanup is confirmed.
             $site->customHostname()->update([

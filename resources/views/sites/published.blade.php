@@ -19,9 +19,13 @@
         <meta property="og:image" content="{{ $socialImageUrl }}">
     @endif
     <meta property="og:url" content="{{ $pageUrl }}">
+    @if ($faviconUrl)
+        <link rel="icon" type="image/png" href="{{ $faviconUrl }}">
+    @else
+        <link rel="icon" href="{{ $defaultIconBase }}/favicon.ico" sizes="any">
+        <link rel="icon" href="{{ $defaultIconBase }}/favicon.svg" type="image/svg+xml">
+    @endif
     @unless ($customDomain)
-    <link rel="icon" href="/favicon.ico" sizes="any">
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     @fonts
     @vite(['resources/css/app.css', 'resources/js/published.ts'])

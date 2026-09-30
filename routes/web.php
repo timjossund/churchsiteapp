@@ -62,6 +62,8 @@ Route::middleware(['auth', 'verified', RequireActiveSite::class, PreserveEditorP
     Route::post('sites/{site}/blocks/{block}/image', [SiteMediaController::class, 'uploadBlockImage'])->whereNumber(['site', 'block'])->name('sites.blocks.image.store');
     Route::post('sites/{site}/logo', [SiteMediaController::class, 'uploadLogo'])->whereNumber('site')->name('sites.logo.store');
     Route::delete('sites/{site}/logo', [SiteMediaController::class, 'clearLogo'])->whereNumber('site')->name('sites.logo.destroy');
+    Route::post('sites/{site}/favicon', [SiteMediaController::class, 'uploadFavicon'])->whereNumber('site')->name('sites.favicon.store');
+    Route::delete('sites/{site}/favicon', [SiteMediaController::class, 'clearFavicon'])->whereNumber('site')->name('sites.favicon.destroy');
     Route::post('sites/{site}/social-image', [SiteMediaController::class, 'uploadSocialImage'])->whereNumber('site')->name('sites.social-image.store');
     Route::delete('sites/{site}/social-image', [SiteMediaController::class, 'clearSocialImage'])->whereNumber('site')->name('sites.social-image.destroy');
     Route::patch('sites/{site}/media/{mediaAsset}', [SiteMediaController::class, 'updateAltText'])->whereNumber(['site', 'mediaAsset'])->name('sites.media.update');

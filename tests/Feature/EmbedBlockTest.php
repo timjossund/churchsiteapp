@@ -1,8 +1,11 @@
 <?php
 
+use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Site;
 use App\Models\User;
 use App\Support\EmbedFramePolicy;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Vite;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -54,15 +57,19 @@ test('embed creation and updates remain scoped to owner site and page', function
     expect($block->fresh()->content)->toBe(['heading' => '', 'url' => '']);
 });
 
-test('builder document and Inertia responses restrict frame navigation to approved providers', function () {
+test('builder document and Inertia responses restrict frame navigation to approved providers', function (bool $runningHot) {
+    Vite::partialMock()->shouldReceive('isRunningHot')->andReturn($runningHot);
     $policy = EmbedFramePolicy::POLICY;
     foreach ([route('dashboard'), route('sites.show', $this->site), route('sites.pages.show', [$this->site, $this->page])] as $url) {
         $this->get($url)->assertOk()->assertHeader('Content-Security-Policy', $policy);
     }
-    $this->get(route('sites.pages.show', [$this->site, $this->page]), ['X-Inertia' => 'true'])
+    $this->get(route('sites.pages.show', [$this->site, $this->page]), [
+        'X-Inertia' => 'true',
+        'X-Inertia-Version' => app(HandleInertiaRequests::class)->version(Request::create(route('sites.pages.show', [$this->site, $this->page]))) ?? '',
+    ])
         ->assertOk()->assertHeader('Content-Security-Policy', $policy);
     $this->get('/')->assertOk()->assertHeader('Content-Security-Policy', $policy);
-});
+})->with(['development assets' => true, 'built assets' => false]);
 
 test('frame policy retains an existing stricter policy', function () {
     $response = response('Existing response')->header('Content-Security-Policy', "default-src 'none'");

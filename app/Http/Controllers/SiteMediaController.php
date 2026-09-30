@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreSiteFaviconRequest;
 use App\Http\Requests\StoreSiteImageRequest;
 use App\Http\Requests\UpdateMediaAssetRequest;
 use App\Models\MediaAsset;
@@ -46,6 +47,26 @@ class SiteMediaController extends Controller
         $file = $this->validatedImage($request);
         $this->uploadAndAssign($request, $site, $file, $this->validatedAltText($request), function (Site $ownedSite, MediaAsset $asset): void {
             $ownedSite->update(['logo_media_asset_id' => $asset->id]);
+        });
+
+        return to_route('sites.show', $site);
+    }
+
+    public function uploadFavicon(StoreSiteFaviconRequest $request, int $site): RedirectResponse
+    {
+        $file = $this->validatedImage($request);
+        $this->uploadAndAssign($request, $site, $file, '', function (Site $ownedSite, MediaAsset $asset): void {
+            $ownedSite->update(['favicon_media_asset_id' => $asset->id]);
+        });
+
+        return to_route('sites.show', $site);
+    }
+
+    public function clearFavicon(Request $request, int $site): RedirectResponse
+    {
+        DB::transaction(function () use ($request, $site): void {
+            $request->user()->sites()->whereNull('deletion_requested_at')->whereKey($site)->lockForUpdate()->firstOrFail()
+                ->update(['favicon_media_asset_id' => null]);
         });
 
         return to_route('sites.show', $site);

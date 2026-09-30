@@ -86,6 +86,7 @@ The site also has an editable header and footer, including a church name or logo
 - Switching themes changes colors, fonts, and styling. It preserves content and block order.
 - Add block-specific styling and configurable block options beyond the initial theme choices.
 - Users upload images from their devices. Store uploads in the owner's IONOS buckets.
+- Owners can upload, preview, replace, or remove a square PNG favicon beside the logo in Site Settings. Use the existing default icon when unset; Publish applies the chosen favicon to every public page, including custom domains. Reuse existing owned upload storage.
 - Public pages should work on mobile and desktop and provide accessible text, links, and image descriptions.
 
 ### Publishing and search

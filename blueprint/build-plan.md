@@ -35,6 +35,8 @@ Features 1-5 establish the editor and single-page publishing baseline. The next 
 
 - [x] 19. **Embed block** - Securely embed Google Calendar from a validated URL, with restricted iframe permissions and matching editor previews and published pages.
 
+- [x] 20. **Custom site favicons** - Let owners upload, preview, replace, and remove a square PNG favicon in Site Settings; publish it across all pages and custom domains, retaining the default icon when unset.
+
 ## Planning TODOs
 
 - Prove the Worker forwarding path in Feature 7a before rolling out self-service customer domains in Feature 7b.

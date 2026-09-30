@@ -166,3 +166,32 @@ it('serves frozen calendars with frame restrictions through the customer transpo
         ->assertSee('sandbox="allow-scripts allow-same-origin"', false)
         ->assertHeader('Content-Security-Policy', EmbedFramePolicy::POLICY);
 });
+
+it('serves a frozen favicon on every customer page and through PNG GET HEAD transport', function () {
+    $icon = $this->site->mediaAssets()->create(['storage_key' => "sites/{$this->site->id}/favicon", 'mime_type' => 'image/png', 'alt_text' => '']);
+    $bytes = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6Z9kAAAAASUVORK5CYII=');
+    Storage::disk('s3')->put($icon->storage_key, $bytes);
+    $this->site->update(['favicon_media_asset_id' => $icon->id]);
+    $this->site->update(['published_snapshot' => app(BuildSitePublicationSnapshot::class)($this->site->fresh())]);
+    $this->site->update(['favicon_media_asset_id' => null]);
+    foreach (['/', '/about'] as $path) {
+        $html = customerRequest($path)->assertOk()->assertSee('type="image/png" href="https://www.example.org/_media/'.$icon->id.'"', false)
+            ->assertDontSee('/favicon.ico', false)->assertDontSee('/favicon.svg', false)->getContent();
+        expect(substr_count($html, 'rel="icon"'))->toBe(1);
+    }
+    customerRequest('/_media/'.$icon->id)->assertOk()->assertStreamedContent($bytes)->assertHeader('Content-Type', 'image/png')
+        ->assertHeader('X-Churchsite-Content', 'media')->assertHeaderMissing('Set-Cookie');
+    customerRequest('/_media/'.$icon->id, 'HEAD')->assertOk()->assertContent('')->assertHeader('Content-Type', 'image/png');
+    $this->site->update(['published_snapshot' => app(BuildSitePublicationSnapshot::class)($this->site->fresh())]);
+    customerRequest()->assertOk()->assertSee('href="https://churchsite.app/favicon.ico"', false)
+        ->assertSee('href="https://churchsite.app/favicon.svg"', false);
+    customerRequest('/_media/'.$icon->id)->assertNotFound();
+});
+
+it('keeps default customer favicon links on the trusted platform origin without adding worker root paths', function () {
+    customerRequest()->assertOk()->assertSee('href="https://churchsite.app/favicon.ico"', false)
+        ->assertSee('href="https://churchsite.app/favicon.svg"', false)->assertDontSee('href="/favicon.ico"', false);
+    expect(is_file(public_path('favicon.ico')))->toBeTrue()->and(is_file(public_path('favicon.svg')))->toBeTrue();
+    customerRequest('/favicon.ico')->assertNotFound();
+    customerRequest('/favicon.svg')->assertNotFound();
+});

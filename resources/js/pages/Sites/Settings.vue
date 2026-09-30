@@ -35,6 +35,7 @@ const props = defineProps<{
         published_at: string | null;
         published_url: string | null;
         has_unpublished_changes: boolean;
+        favicon: { media_asset_id: number; url: string } | null;
         logo: {
             media_asset_id: number;
             url: string;
@@ -154,7 +155,18 @@ const logoUploadForm = useForm<{ image: File | null; alt_text: string }>({
 });
 const logoAltTextForm = useForm<{ alt_text: string }>({ alt_text: '' });
 const logoClearForm = useForm({});
-const uploadInProgress = computed(() => logoUploadForm.processing);
+const faviconFileInput = ref<HTMLInputElement | null>(null);
+const faviconUploadPreviewUrl = ref<string | null>(null);
+const faviconStatus = ref('');
+const faviconError = ref('');
+const faviconUploadForm = useForm<{ image: File | null }>({ image: null });
+const faviconClearForm = useForm({});
+const uploadInProgress = computed(
+    () =>
+        logoUploadForm.processing ||
+        faviconUploadForm.processing ||
+        faviconClearForm.processing,
+);
 const editorWriteInProgress = computed(
     () =>
         deletionPending.value ||
@@ -517,7 +529,123 @@ function clearLogo() {
     );
 }
 
-onUnmounted(() => releaseLogoUploadPreview());
+function resetFaviconUpload() {
+    if (faviconUploadPreviewUrl.value)
+        URL.revokeObjectURL(faviconUploadPreviewUrl.value);
+    faviconUploadPreviewUrl.value = null;
+    faviconUploadForm.image = null;
+    faviconUploadForm.progress = null;
+    if (faviconFileInput.value) faviconFileInput.value.value = '';
+}
+
+function clearFaviconFeedback() {
+    faviconUploadForm.clearErrors();
+    faviconClearForm.clearErrors();
+    faviconError.value = '';
+    faviconStatus.value = '';
+}
+
+function selectFaviconFile(event: Event) {
+    if (editorWriteInProgress.value) return;
+    const input = event.currentTarget;
+    const file =
+        input instanceof HTMLInputElement ? input.files?.[0] : undefined;
+    if (!file) return;
+    resetFaviconUpload();
+    clearFaviconFeedback();
+    if (file.size > 5 * 1024 * 1024) {
+        faviconError.value = 'Choose a square PNG that is 5 MB or smaller.';
+        nextTick(() => queueFocus(faviconFileInput.value));
+        return;
+    }
+    faviconUploadForm.image = file;
+    faviconUploadPreviewUrl.value = URL.createObjectURL(file);
+    faviconStatus.value = 'Uploading favicon...';
+    runOwnVisit(() =>
+        faviconUploadForm.post(
+            SiteMediaController.uploadFavicon({ site: props.site.id }).url,
+            {
+                forceFormData: true,
+                preserveState: true,
+                preserveScroll: true,
+                only: ['site'],
+                onSuccess: () => {
+                    faviconStatus.value =
+                        'Favicon uploaded. Publish to update your site.';
+                },
+                onError: (errors) => {
+                    faviconStatus.value = '';
+                    faviconError.value =
+                        errors.image ??
+                        'We could not upload this favicon. Please try again.';
+                    nextTick(() => queueFocus(faviconFileInput.value));
+                },
+                onCancel: () => {
+                    faviconStatus.value = '';
+                },
+                onHttpException: () => {
+                    faviconStatus.value = '';
+                    faviconError.value =
+                        'We could not upload this favicon. Please try again.';
+                    return false;
+                },
+                onNetworkError: () => {
+                    faviconStatus.value = '';
+                    faviconError.value =
+                        'We could not upload this favicon. Please try again.';
+                    return false;
+                },
+                onFinish: resetFaviconUpload,
+            },
+        ),
+    );
+}
+
+function clearFavicon() {
+    if (editorWriteInProgress.value || !props.site.favicon) return;
+    clearFaviconFeedback();
+    runOwnVisit(() =>
+        faviconClearForm.delete(
+            SiteMediaController.clearFavicon({ site: props.site.id }).url,
+            {
+                preserveState: true,
+                preserveScroll: true,
+                only: ['site'],
+                onSuccess: () => {
+                    faviconStatus.value =
+                        'Favicon removed. Publish to restore the default icon.';
+                },
+                onError: () => {
+                    faviconError.value =
+                        'We could not remove this favicon. Please try again.';
+                    nextTick(() => queueFocus(faviconFileInput.value));
+                },
+                onHttpException: () => {
+                    faviconError.value =
+                        'We could not remove this favicon. Please try again.';
+                    return false;
+                },
+                onNetworkError: () => {
+                    faviconError.value =
+                        'We could not remove this favicon. Please try again.';
+                    return false;
+                },
+            },
+        ),
+    );
+}
+
+watch(
+    () => props.site.id,
+    () => {
+        resetFaviconUpload();
+        clearFaviconFeedback();
+    },
+);
+onUnmounted(() => {
+    releaseLogoUploadPreview();
+    resetFaviconUpload();
+});
 
 defineOptions({
     layout: { breadcrumbs: [{ title: 'My sites', href: dashboard() }] },
@@ -671,6 +799,7 @@ defineOptions({
                                     accept=".jpg,.jpeg,.png,image/jpeg,image/png"
                                     :disabled="
                                         editorWriteInProgress ||
+                                        uploadInProgress ||
                                         logoUploadForm.processing ||
                                         logoAltTextForm.processing ||
                                         logoClearForm.processing
@@ -842,6 +971,115 @@ defineOptions({
                                 {{ logoAltTextStatus }}
                             </p>
                         </div>
+                    </div>
+                </div>
+                <div
+                    class="rounded-[1.25rem] border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-5 shadow-[var(--workspace-shadow)]"
+                >
+                    <h3 class="text-base font-semibold">Favicon</h3>
+                    <div
+                        class="mt-4 space-y-4 border-t border-[var(--workspace-line)] pt-4"
+                    >
+                        <div>
+                            <label
+                                for="site-favicon-file"
+                                class="mb-2 block text-sm font-semibold"
+                            >
+                                {{
+                                    props.site.favicon
+                                        ? 'Replace favicon'
+                                        : 'Choose favicon'
+                                }}
+                            </label>
+                            <input
+                                id="site-favicon-file"
+                                ref="faviconFileInput"
+                                type="file"
+                                accept="image/png,.png"
+                                :disabled="editorWriteInProgress"
+                                :aria-invalid="
+                                    Boolean(
+                                        faviconError ||
+                                        faviconUploadForm.errors.image,
+                                    )
+                                "
+                                :aria-describedby="
+                                    faviconError ||
+                                    faviconUploadForm.errors.image
+                                        ? 'site-favicon-help site-favicon-error'
+                                        : 'site-favicon-help'
+                                "
+                                class="block min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-2 text-sm text-[var(--workspace-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-60"
+                                @change="selectFaviconFile"
+                            />
+                            <p
+                                id="site-favicon-help"
+                                class="mt-2 text-xs text-[var(--workspace-muted)]"
+                            >
+                                Square PNG, up to 5 MB. Recommended: 512 x 512
+                                pixels. Uploads save immediately as a draft.
+                                Publish from a page to update the icon on every
+                                public page.
+                            </p>
+                        </div>
+                        <img
+                            v-if="faviconUploadPreviewUrl || props.site.favicon"
+                            :src="
+                                faviconUploadPreviewUrl ??
+                                props.site.favicon?.url
+                            "
+                            alt=""
+                            width="48"
+                            height="48"
+                            class="h-12 w-12 rounded-lg object-contain"
+                        />
+                        <p v-else class="text-sm text-[var(--workspace-muted)]">
+                            No favicon selected. Publish to use the default
+                            icon.
+                        </p>
+                        <p
+                            v-if="
+                                faviconUploadForm.processing &&
+                                faviconUploadForm.progress
+                            "
+                            role="status"
+                            aria-live="polite"
+                            class="text-sm text-[var(--workspace-muted)]"
+                        >
+                            Uploading favicon:
+                            {{ faviconUploadForm.progress.percentage }}%
+                        </p>
+                        <p
+                            v-else-if="faviconStatus"
+                            role="status"
+                            aria-live="polite"
+                            class="text-sm text-[var(--workspace-muted)]"
+                        >
+                            {{ faviconStatus }}
+                        </p>
+                        <p
+                            v-if="
+                                faviconError || faviconUploadForm.errors.image
+                            "
+                            id="site-favicon-error"
+                            role="alert"
+                            class="text-sm text-red-700 dark:text-red-300"
+                        >
+                            {{ faviconError || faviconUploadForm.errors.image }}
+                        </p>
+                        <button
+                            v-if="props.site.favicon"
+                            type="button"
+                            :disabled="editorWriteInProgress"
+                            class="min-h-10 rounded-lg border border-red-300 px-3 text-sm font-semibold text-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:opacity-50 dark:text-red-300"
+                            @click="clearFavicon"
+                        >
+                            {{
+                                faviconClearForm.processing
+                                    ? 'Removing...'
+                                    : 'Remove favicon'
+                            }}
+                        </button>
                     </div>
                 </div>
             </div>

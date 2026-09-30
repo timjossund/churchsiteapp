@@ -126,6 +126,7 @@ class PublishedSiteController extends Controller
         $siteData['appearance'] = SiteAppearance::normalize($siteData['appearance'] ?? null);
         $logoId = $siteData['logo_media_asset_id'] ?? null;
         $logo = is_int($logoId) ? $media->get($logoId) : null;
+        $faviconId = $siteData['favicon_media_asset_id'] ?? null;
         $socialImageId = $page['social_image_id'] ?? null;
         $socialImage = is_int($socialImageId) ? $media->get($socialImageId) : null;
         $seoTitle = $page['seo_title'] ?? null;
@@ -143,6 +144,8 @@ class PublishedSiteController extends Controller
                 'current' => $candidate['is_home'] ? $path === null : $candidate['path'] === $path,
             ], $snapshot['pages']),
             'mediaUrls' => $mediaUrls,
+            'faviconUrl' => $faviconId === null ? null : $mediaUrls->get((string) $faviconId),
+            'defaultIconBase' => $hostname === null ? '' : rtrim(config('app.url'), '/'),
             'logoAltText' => $logo['alt_text'] ?? '',
             'pageTitle' => is_string($seoTitle) && $seoTitle !== '' ? $seoTitle : ($page['is_home'] ? $siteData['name'] : $page['name'].' | '.$siteData['name']),
             'pageDescription' => is_string($seoDescription) && $seoDescription !== '' ? $seoDescription : null,
@@ -168,7 +171,7 @@ class PublishedSiteController extends Controller
     public function siteMedia(Site $site, int $mediaAsset): StreamedResponse
     {
         $snapshot = $this->snapshot($site);
-        $references = [$snapshot['site']['logo_media_asset_id'] ?? null];
+        $references = [$snapshot['site']['logo_media_asset_id'] ?? null, $snapshot['site']['favicon_media_asset_id'] ?? null];
         foreach ($snapshot['pages'] as $page) {
             $references[] = $page['social_image_id'] ?? null;
             foreach ($page['blocks'] as $block) {
@@ -253,6 +256,7 @@ class PublishedSiteController extends Controller
             'site.footer' => ['required', 'array'],
             'site.footer.text' => ['present', 'string'],
             'site.logo_media_asset_id' => ['nullable', 'integer'],
+            'site.favicon_media_asset_id' => ['sometimes', 'nullable', 'integer', 'min:1'],
             'pages' => ['required', 'array', 'min:1'],
             'pages.*' => ['required', 'array'],
             'pages.*.id' => ['required', 'integer', 'distinct'],
@@ -283,6 +287,21 @@ class PublishedSiteController extends Controller
             $rules['pages.*.blocks.*.content.entries.*.'.$field] = ['present', 'string'];
         }
         abort_if(Validator::make($snapshot, $rules)->fails(), 404);
+        $faviconId = $snapshot['site']['favicon_media_asset_id'] ?? null;
+        if ($faviconId !== null) {
+            abort_unless(is_int($faviconId), 404);
+            $favicon = null;
+            foreach ($snapshot['media'] as $asset) {
+                if ($asset['id'] === $faviconId) {
+                    $favicon = $asset;
+                    break;
+                }
+            }
+            abort_unless(is_array($favicon)
+                && $favicon['mime_type'] === 'image/png'
+                && str_starts_with($favicon['storage_key'], "sites/{$site->id}/")
+                && preg_match('#(?:^|/)\.\.?(?:/|$)|[\\\\\x00-\x1f]#', $favicon['storage_key']) !== 1, 404);
+        }
         $pages = array_values($snapshot['pages']);
         abort_unless(count(array_filter($pages, fn (array $page): bool => $page['is_home'] === true)) === 1, 404);
         $paths = [];

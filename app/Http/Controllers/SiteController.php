@@ -62,6 +62,7 @@ class SiteController extends Controller
             ->map(fn (SiteBlock $block) => $block->content['media_asset_id'] ?? null)
             ->filter(fn ($id) => is_int($id) || (is_string($id) && ctype_digit($id)))
             ->push($ownedSite->logo_media_asset_id)
+            ->push($ownedSite->favicon_media_asset_id)
             ->push($selectedPage?->social_image_id)
             ->filter()
             ->unique()
@@ -70,6 +71,9 @@ class SiteController extends Controller
         $logo = $ownedSite->logo_media_asset_id === null
             ? null
             : $mediaAssets->get($ownedSite->logo_media_asset_id);
+        $favicon = $ownedSite->favicon_media_asset_id === null
+            ? null
+            : $mediaAssets->get($ownedSite->favicon_media_asset_id);
         $snapshot = $ownedSite->published_snapshot;
         $hasUnpublishedChanges = false;
         if ($ownedSite->published_at !== null) {
@@ -125,6 +129,10 @@ class SiteController extends Controller
                     'published_url' => $ownedSite->published_at === null || $ownedSite->slug === null
                         ? null
                         : route('sites.published.show', ['slug' => $ownedSite->slug]),
+                    'favicon' => $favicon === null ? null : [
+                        'media_asset_id' => $favicon->id,
+                        'url' => route('sites.media.show', [$ownedSite, $favicon]),
+                    ],
                     'logo' => $logo === null ? null : [
                         'media_asset_id' => $logo->id,
                         'url' => route('sites.media.show', [$ownedSite, $logo]),

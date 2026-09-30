@@ -26,12 +26,13 @@ use Laravel\Cashier\Subscription;
  * @property string|null $slug
  * @property array{text: string} $footer
  * @property int|null $logo_media_asset_id
+ * @property int|null $favicon_media_asset_id
  * @property array<string, mixed>|null $published_snapshot
  * @property Carbon|null $published_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'theme_key', 'appearance', 'footer', 'logo_media_asset_id', 'slug', 'published_snapshot', 'published_at'])]
+#[Fillable(['name', 'theme_key', 'appearance', 'footer', 'logo_media_asset_id', 'favicon_media_asset_id', 'slug', 'published_snapshot', 'published_at'])]
 #[Hidden(['stripe_id', 'pm_type', 'pm_last_four', 'trial_ends_at', 'checkout_attempt', 'checkout_started_at', 'checkout_price_id', 'checkout_session_id'])]
 class Site extends Model
 {
@@ -146,5 +147,11 @@ class Site extends Model
     public function logoMediaAsset(): BelongsTo
     {
         return $this->belongsTo(MediaAsset::class, 'logo_media_asset_id');
+    }
+
+    /** @return BelongsTo<MediaAsset, $this> */
+    public function faviconMediaAsset(): BelongsTo
+    {
+        return $this->belongsTo(MediaAsset::class, 'favicon_media_asset_id');
     }
 }

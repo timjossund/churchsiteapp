@@ -1,6 +1,6 @@
 # Church Site App - Project Overview
 
-<!-- blueprint:source-hash 59787bc05526edb8e5d9ae71262075c63e7e4a12aba0d41d120548f18f7607d1 -->
+<!-- blueprint:source-hash 279c6d79289938fd38bd3c95ef6362ed11f82705369cb96f50a96cf3c69a60a2 -->
 
 > A block-based church website builder with shareable multi-page previews and later paid custom domains.
 
@@ -46,6 +46,8 @@ Churches need modern websites, while the people responsible for them may have li
 
 - **19.** **Embed block** - A provider-restricted Google Calendar block using a validated HTTPS embed URL, with matching draft preview and publication. Raw HTML, scripts, and user-controlled iframe permissions are excluded.
 
+- **20.** **Custom site favicons** - Site Settings upload/preview/replacement/removal of a square PNG icon, applied to all public pages and custom domains on Publish, with the default icon when unset.
+
 ## Site deletion
 
 Owners can permanently delete a site from settings by confirming its name. Acceptance immediately revokes editing and all public page, domain, and media access. Cancel renewal using the existing period-end policy while retaining billing and external cleanup identities until safe finalization; do not delay taking the site offline until the paid period ends. Remove its pages, blocks, publication, uploads, and custom-hostname connection without affecting the account or other sites. Retry pending external cleanup safely. No restore, refund, or new immediate subscription-termination workflow is introduced.
@@ -63,6 +65,7 @@ These are the initial logical shapes; later feature specs choose migrations and 
 
 - `id` (integer), `user_id` (foreign key), `name` (string), `slug` (unique string for the platform subdirectory), `theme_key` (string).
 - Has many ordered pages. Published page content remains stable while its draft changes.
+- Optional site favicon: an owned media reference included in the frozen publication; upload and removal are draft changes until Publish.
 - Draft site presentation: `header` and `footer` (structured data), `seo_title` and `seo_description` (strings), `social_image_id` (nullable media reference).
 - Published snapshot (structured data, nullable) and `published_at` (nullable timestamp) keep the visitor-facing version stable while draft fields and blocks change.
 - Has many blocks and media assets; has a customer hostname and site-specific billing state when configured.
@@ -91,7 +94,7 @@ These are the initial logical shapes; later feature specs choose migrations and 
 ### MediaAsset
 
 - `id` (integer), `site_id` (foreign key), `storage_key` (string for an object in an IONOS bucket), `mime_type` (string), and `alt_text` (nullable string).
-- Referenced by block content, logo, or social preview image; access must stay within the owning site.
+- Referenced by block content, logo, social preview image, or site favicon; access must stay within the owning site.
 
 ### CustomHostname
 
@@ -122,7 +125,7 @@ Users can create and publish shareable subdirectory sites before paying. Each si
 - Brand the product as **Church Site App**. Replace the starter welcome screen at `/` with one public homepage, using the builder's forest-green/warm-off-white palette, typography, rounded cards, and generous spacing.
 - The homepage includes a hero and illustrative builder preview, signup/login actions, features, how it works, and existing pricing. Use a reusable doorway/arch SVG mark and wordmark across homepage, dashboard, and auth pages. Keep authentication behavior and customer church logos unchanged.
 
-- Dashboard opens site settings with shared styles, header/logo, footer, and page management. Opening a page shows publishing, preview, block list, free reordering, and the selected block’s side panel.
+- Dashboard opens site settings with shared styles, header/logo and favicon, footer, and page management. Opening a page shows publishing, preview, block list, free reordering, and the selected block’s side panel.
 - Users can configure expanded block-specific styling and options in addition to choosing a site theme.
 - An explicit Publish action distinguishes drafts from the version visitors see. Whole-site deletion takes the site offline immediately and does not require Publish.
 - Site settings offer name-confirmed permanent deletion; the dashboard reports pending cleanup without permitting the site to reopen.

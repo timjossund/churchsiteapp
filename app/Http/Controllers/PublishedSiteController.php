@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Site;
 use App\Support\CustomerPagePath;
+use App\Support\OpenStreetMapUrl;
 use App\Support\PublishedAssets;
 use App\Support\SiteAppearance;
 use App\Support\VideoEmbedUrl;
@@ -90,6 +91,10 @@ class PublishedSiteController extends Controller
                 ? 'https://www.google.com/maps/dir/?api=1&destination='.urlencode($address)
                 : null;
             $videoUrl = is_string($content['url'] ?? null) ? VideoEmbedUrl::from($content['url']) : null;
+            $map = $content['map'] ?? null;
+            $mapLinks = $type === 'contact' && is_array($map)
+                && ($map['enabled'] ?? false) === true && is_string($map['url'] ?? null)
+                ? OpenStreetMapUrl::from($map['url']) : null;
 
             return [
                 'id' => $id,
@@ -107,6 +112,7 @@ class PublishedSiteController extends Controller
                 'phone_href' => $phoneHref,
                 'address_text' => $address,
                 'directions_href' => $directionsHref,
+                'map_links' => $mapLinks,
                 'image_url' => $asset === null ? null : $mediaUrls->get((string) $asset['id']),
                 'image_alt' => $asset['alt_text'] ?? '',
                 'video_embed_url' => $videoUrl,

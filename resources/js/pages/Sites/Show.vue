@@ -12,6 +12,7 @@ import PageSettings from '@/components/sites/PageSettings.vue';
 import { dashboard } from '@/routes';
 import { mountSiteMenu } from '@/lib/site-menu';
 import { mountHeroMotion } from '@/lib/hero-motion';
+import { openStreetMapLinks } from '@/lib/open-street-map';
 const previewRoot = ref<HTMLElement | null>(null);
 let disposeHeroMotion: (() => void) | undefined;
 function refreshHeroMotion() {
@@ -62,6 +63,7 @@ type BlockContent = {
     email?: string;
     phone?: string;
     address?: string;
+    map?: { enabled: boolean; url: string };
     media_asset_id?: number | null;
     caption?: string;
     url?: string;
@@ -251,6 +253,18 @@ const draftAddress = ref('');
 const savedEmail = ref('');
 const savedPhone = ref('');
 const savedAddress = ref('');
+const draftMapEnabled = ref(false);
+const draftMapUrl = ref('');
+const savedMapEnabled = ref(false);
+const savedMapUrl = ref('');
+const mapInputError = computed(() => {
+    if (draftMapUrl.value.trim() === '' && !draftMapEnabled.value) return '';
+    return openStreetMapLinks(draftMapUrl.value)
+        ? ''
+        : draftMapUrl.value.trim() === ''
+          ? 'Add an OpenStreetMap marker link to show the map.'
+          : 'This link is not a valid OpenStreetMap marker link. Check Include marker in Share, then copy the full Link URL.';
+});
 const draftVideoUrl = ref('');
 const savedVideoUrl = ref('');
 const draftBlockStyle = ref<BlockStyle>({});
@@ -294,7 +308,9 @@ const isContentDirty = computed(
             (selectedBlock.value?.type === 'contact' &&
                 (draftEmail.value !== savedEmail.value ||
                     draftPhone.value !== savedPhone.value ||
-                    draftAddress.value !== savedAddress.value)) ||
+                    draftAddress.value !== savedAddress.value ||
+                    draftMapEnabled.value !== savedMapEnabled.value ||
+                    draftMapUrl.value !== savedMapUrl.value)) ||
             (selectedBlock.value?.type === 'video' &&
                 draftVideoUrl.value !== savedVideoUrl.value) ||
             JSON.stringify(draftBlockStyle.value) !==
@@ -339,6 +355,8 @@ const blockBackgroundInput = ref<HTMLSelectElement | null>(null);
 const emailInput = ref<HTMLInputElement | null>(null);
 const phoneInput = ref<HTMLInputElement | null>(null);
 const addressInput = ref<HTMLTextAreaElement | null>(null);
+const mapEnabledInput = ref<HTMLInputElement | null>(null);
+const mapUrlInput = ref<HTMLInputElement | null>(null);
 const videoUrlInput = ref<HTMLInputElement | null>(null);
 let ownVisit = false;
 let stopBeforeListener: (() => void) | undefined;
@@ -369,6 +387,11 @@ watch(
                 ? block.content.address
                 : '';
         draftVideoUrl.value = block?.content.url ?? '';
+        draftMapEnabled.value = block?.content.map?.enabled === true;
+        draftMapUrl.value =
+            typeof block?.content.map?.url === 'string'
+                ? block.content.map.url
+                : '';
         draftBlockStyle.value = block ? styleForBlock(block) : {};
         savedBlockStyle.value = { ...draftBlockStyle.value };
         draftAltText.value = block?.alt_text ?? '';
@@ -394,6 +417,8 @@ watch(
         savedEmail.value = draftEmail.value;
         savedPhone.value = draftPhone.value;
         savedAddress.value = draftAddress.value;
+        savedMapEnabled.value = draftMapEnabled.value;
+        savedMapUrl.value = draftMapUrl.value;
         savedVideoUrl.value = draftVideoUrl.value;
         serviceTimeStatus.value = '';
         saveForm.clearErrors();
@@ -421,6 +446,8 @@ function resetDraft() {
     draftEmail.value = savedEmail.value;
     draftPhone.value = savedPhone.value;
     draftAddress.value = savedAddress.value;
+    draftMapEnabled.value = savedMapEnabled.value;
+    draftMapUrl.value = savedMapUrl.value;
     draftVideoUrl.value = savedVideoUrl.value;
     draftBlockStyle.value = { ...savedBlockStyle.value };
     draftAltText.value = savedAltText.value;
@@ -839,6 +866,7 @@ function contentFor(block: SiteBlock): BlockContent {
             email: draftEmail.value,
             phone: draftPhone.value,
             address: draftAddress.value,
+            map: { enabled: draftMapEnabled.value, url: draftMapUrl.value },
         };
     } else if (block.type === 'image') {
         content = {
@@ -939,6 +967,13 @@ function directionsHref(block: SiteBlock): string | null {
     const address = contactAddress(block);
     return address
         ? `https://www.google.com/maps/dir/?${new URLSearchParams({ api: '1', destination: address })}`
+        : null;
+}
+
+function contactMapLinks(block: SiteBlock) {
+    const map = contentFor(block).map;
+    return map?.enabled === true && typeof map.url === 'string'
+        ? openStreetMapLinks(map.url)
         : null;
 }
 
@@ -1139,6 +1174,10 @@ function saveBlock() {
                     email: draftEmail.value,
                     phone: draftPhone.value,
                     address: draftAddress.value,
+                    map: {
+                        enabled: draftMapEnabled.value,
+                        url: draftMapUrl.value,
+                    },
                 }
               : block.type === 'service_times'
                 ? {
@@ -1197,6 +1236,9 @@ function saveBlock() {
                 savedEmail.value = draftEmail.value;
                 savedPhone.value = draftPhone.value;
                 savedAddress.value = draftAddress.value;
+                draftMapUrl.value = draftMapUrl.value.trim();
+                savedMapEnabled.value = draftMapEnabled.value;
+                savedMapUrl.value = draftMapUrl.value;
                 savedVideoUrl.value = draftVideoUrl.value;
                 savedBlockStyle.value = { ...draftBlockStyle.value };
                 if (clearImagePending.value) {
@@ -1224,6 +1266,9 @@ function saveBlock() {
                     !errors['content.email'] &&
                     !errors['content.phone'] &&
                     !errors['content.address'] &&
+                    !errors['content.map'] &&
+                    !errors['content.map.enabled'] &&
+                    !errors['content.map.url'] &&
                     !errors['content.url'] &&
                     !errors['content.style'] &&
                     !errors['content.style.layout'] &&
@@ -1275,6 +1320,10 @@ function saveBlock() {
                     else if (errors['content.phone']) phoneInput.value?.focus();
                     else if (errors['content.address'])
                         addressInput.value?.focus();
+                    else if (errors['content.map.enabled'])
+                        mapEnabledInput.value?.focus();
+                    else if (errors['content.map'] || errors['content.map.url'])
+                        mapUrlInput.value?.focus();
                     else if (errors['content.url'])
                         videoUrlInput.value?.focus();
                     else if (errors['content.style.layout'])
@@ -2360,75 +2409,143 @@ defineOptions({
                                     </p>
                                 </template>
                                 <template v-else-if="block.type === 'contact'">
-                                    <h3 class="font-serif text-2xl">
-                                        {{
-                                            previewHeading(block, 'Contact us')
-                                        }}
-                                    </h3>
                                     <div
-                                        v-if="
-                                            contentFor(block).email ||
-                                            contentFor(block).phone ||
-                                            contactAddress(block)
-                                        "
-                                        class="mt-5 flex flex-col gap-3"
                                         :class="
-                                            blockIsCentered(block)
-                                                ? 'items-center'
-                                                : 'items-start'
+                                            contactMapLinks(block)
+                                                ? 'grid items-start gap-6 md:grid-cols-2'
+                                                : ''
                                         "
                                     >
-                                        <a
-                                            v-if="emailHref(block)"
-                                            :href="
-                                                emailHref(block) ?? undefined
-                                            "
-                                            class="text-[var(--site-preview-accent)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]"
-                                            >{{ contentFor(block).email }}</a
+                                        <div class="min-w-0">
+                                            <h3 class="font-serif text-2xl">
+                                                {{
+                                                    previewHeading(
+                                                        block,
+                                                        'Contact us',
+                                                    )
+                                                }}
+                                            </h3>
+                                            <div
+                                                v-if="
+                                                    contentFor(block).email ||
+                                                    contentFor(block).phone ||
+                                                    contactAddress(block)
+                                                "
+                                                class="mt-5 flex flex-col gap-3"
+                                                :class="
+                                                    blockIsCentered(block)
+                                                        ? 'items-center'
+                                                        : 'items-start'
+                                                "
+                                            >
+                                                <a
+                                                    v-if="emailHref(block)"
+                                                    :href="
+                                                        emailHref(block) ??
+                                                        undefined
+                                                    "
+                                                    class="text-[var(--site-preview-accent)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]"
+                                                    >{{
+                                                        contentFor(block).email
+                                                    }}</a
+                                                >
+                                                <span
+                                                    v-else-if="
+                                                        contentFor(block).email
+                                                    "
+                                                    class="text-[var(--site-preview-muted)]"
+                                                    >{{
+                                                        contentFor(block).email
+                                                    }}</span
+                                                >
+                                                <a
+                                                    v-if="phoneHref(block)"
+                                                    :href="
+                                                        phoneHref(block) ??
+                                                        undefined
+                                                    "
+                                                    class="text-[var(--site-preview-accent)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]"
+                                                    >{{
+                                                        contentFor(block).phone
+                                                    }}</a
+                                                >
+                                                <span
+                                                    v-else-if="
+                                                        contentFor(block).phone
+                                                    "
+                                                    class="text-[var(--site-preview-muted)]"
+                                                    >{{
+                                                        contentFor(block).phone
+                                                    }}</span
+                                                >
+                                                <address
+                                                    v-if="contactAddress(block)"
+                                                    class="break-words whitespace-pre-line text-[var(--site-preview-muted)] not-italic"
+                                                >
+                                                    {{ contactAddress(block) }}
+                                                </address>
+                                                <a
+                                                    v-if="directionsHref(block)"
+                                                    :href="
+                                                        directionsHref(block) ??
+                                                        undefined
+                                                    "
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    class="text-[var(--site-preview-accent)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]"
+                                                    >Get directions</a
+                                                >
+                                            </div>
+                                            <p
+                                                v-else-if="
+                                                    !contactMapLinks(block)
+                                                "
+                                                class="mt-4 text-[var(--site-preview-muted)]"
+                                            >
+                                                Add an address, email, or phone
+                                                number in the editor.
+                                            </p>
+                                        </div>
+                                        <div
+                                            v-if="contactMapLinks(block)"
+                                            class="w-full min-w-0 space-y-2"
                                         >
-                                        <span
-                                            v-else-if="contentFor(block).email"
-                                            class="text-[var(--site-preview-muted)]"
-                                            >{{ contentFor(block).email }}</span
-                                        >
-                                        <a
-                                            v-if="phoneHref(block)"
-                                            :href="
-                                                phoneHref(block) ?? undefined
-                                            "
-                                            class="text-[var(--site-preview-accent)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]"
-                                            >{{ contentFor(block).phone }}</a
-                                        >
-                                        <span
-                                            v-else-if="contentFor(block).phone"
-                                            class="text-[var(--site-preview-muted)]"
-                                            >{{ contentFor(block).phone }}</span
-                                        >
-                                        <address
-                                            v-if="contactAddress(block)"
-                                            class="break-words whitespace-pre-line text-[var(--site-preview-muted)] not-italic"
-                                        >
-                                            {{ contactAddress(block) }}
-                                        </address>
-                                        <a
-                                            v-if="directionsHref(block)"
-                                            :href="
-                                                directionsHref(block) ??
-                                                undefined
-                                            "
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            class="text-[var(--site-preview-accent)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]"
-                                            >Get directions</a
-                                        >
+                                            <iframe
+                                                :src="
+                                                    contactMapLinks(block)
+                                                        ?.embed_url
+                                                "
+                                                :title="`Location map: ${previewHeading(block, 'Contact us')}`"
+                                                loading="lazy"
+                                                class="aspect-video min-h-64 w-full rounded-xl border border-[var(--site-preview-border)]"
+                                            ></iframe>
+                                            <p
+                                                class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-[var(--site-preview-muted)]"
+                                            >
+                                                <a
+                                                    :href="
+                                                        contactMapLinks(block)
+                                                            ?.location_url
+                                                    "
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    class="text-[var(--site-preview-accent)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]"
+                                                    >View on OpenStreetMap</a
+                                                >
+                                                <span>
+                                                    Map data ©
+                                                    <a
+                                                        href="https://www.openstreetmap.org/copyright"
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        class="underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]"
+                                                        >OpenStreetMap
+                                                        contributors</a
+                                                    >
+                                                </span>
+                                            </p>
+                                        </div>
                                     </div>
-                                    <p
-                                        v-else
-                                        class="mt-4 text-[var(--site-preview-muted)]"
-                                    >
-                                        Add an address, email, or phone number
-                                        in the editor.
-                                    </p>
                                 </template>
                                 <template v-else-if="block.type === 'image'">
                                     <figure
@@ -3679,6 +3796,177 @@ defineOptions({
                                             }}
                                         </p>
                                     </div>
+                                    <fieldset
+                                        class="space-y-3 rounded-xl bg-[var(--workspace-soft)] p-4"
+                                    >
+                                        <legend
+                                            class="px-1 text-sm font-semibold"
+                                        >
+                                            Location map
+                                        </legend>
+                                        <label
+                                            class="flex min-h-11 items-center gap-3 text-sm font-semibold"
+                                        >
+                                            <input
+                                                ref="mapEnabledInput"
+                                                v-model="draftMapEnabled"
+                                                type="checkbox"
+                                                :disabled="
+                                                    uploadInProgress ||
+                                                    saveForm.processing ||
+                                                    addForm.processing ||
+                                                    deleteForm.processing ||
+                                                    orderForm.processing
+                                                "
+                                                :aria-invalid="
+                                                    Boolean(
+                                                        saveForm.errors[
+                                                            'content.map.enabled'
+                                                        ],
+                                                    )
+                                                "
+                                                :aria-describedby="
+                                                    saveForm.errors[
+                                                        'content.map.enabled'
+                                                    ]
+                                                        ? 'contact-map-help contact-map-error'
+                                                        : 'contact-map-help'
+                                                "
+                                                class="size-4 accent-[var(--workspace-green)] focus-visible:outline-2 focus-visible:outline-offset-4"
+                                                @change="clearContentError"
+                                            />
+                                            Show map
+                                        </label>
+                                        <div>
+                                            <label
+                                                for="contact-map-url"
+                                                class="mb-2 block text-sm font-semibold"
+                                                >OpenStreetMap sharing
+                                                link</label
+                                            >
+                                            <input
+                                                id="contact-map-url"
+                                                ref="mapUrlInput"
+                                                v-model="draftMapUrl"
+                                                type="text"
+                                                inputmode="url"
+                                                autocomplete="off"
+                                                placeholder="https://www.openstreetmap.org/?mlat=...&amp;mlon=..."
+                                                :disabled="
+                                                    uploadInProgress ||
+                                                    saveForm.processing ||
+                                                    addForm.processing ||
+                                                    deleteForm.processing ||
+                                                    orderForm.processing
+                                                "
+                                                :aria-invalid="
+                                                    Boolean(
+                                                        saveForm.errors[
+                                                            'content.map'
+                                                        ] ||
+                                                        saveForm.errors[
+                                                            'content.map.url'
+                                                        ] ||
+                                                        mapInputError,
+                                                    )
+                                                "
+                                                :aria-describedby="
+                                                    saveForm.errors[
+                                                        'content.map'
+                                                    ] ||
+                                                    saveForm.errors[
+                                                        'content.map.url'
+                                                    ] ||
+                                                    saveForm.errors[
+                                                        'content.map.enabled'
+                                                    ] ||
+                                                    mapInputError
+                                                        ? 'contact-map-help contact-map-error'
+                                                        : 'contact-map-help'
+                                                "
+                                                class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)] outline-none focus:border-[var(--workspace-green)] focus:ring-2 focus:ring-[var(--workspace-green)]/20 disabled:opacity-60"
+                                                @input="clearContentError"
+                                            />
+                                        </div>
+                                        <div
+                                            id="contact-map-help"
+                                            class="space-y-2 text-xs text-[var(--workspace-muted)]"
+                                        >
+                                            <ol
+                                                class="list-decimal space-y-1 pl-4"
+                                            >
+                                                <li>
+                                                    Find your church on
+                                                    <a
+                                                        href="https://www.openstreetmap.org/"
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        class="font-semibold underline underline-offset-4"
+                                                        >OpenStreetMap (opens in
+                                                        a new tab)</a
+                                                    >.
+                                                </li>
+                                                <li>
+                                                    Choose Share, check Include
+                                                    marker, and place the pin on
+                                                    your church.
+                                                </li>
+                                                <li>
+                                                    Copy the full Link URL,
+                                                    paste it here, and turn on
+                                                    Show map.
+                                                </li>
+                                            </ol>
+                                            <p>
+                                                Confirm the pin in the preview.
+                                                Use the full link, not the short
+                                                link or HTML embed code.
+                                            </p>
+                                            <p>
+                                                Save your block, then Publish to
+                                                update the live site. If your
+                                                street address changes, update
+                                                this map link too.
+                                            </p>
+                                            <p>
+                                                Turning off Show map keeps your
+                                                link for later. The map loads
+                                                from OpenStreetMap; your contact
+                                                details and directions remain
+                                                available separately.
+                                            </p>
+                                        </div>
+                                        <p
+                                            v-if="
+                                                saveForm.errors[
+                                                    'content.map'
+                                                ] ||
+                                                saveForm.errors[
+                                                    'content.map.url'
+                                                ] ||
+                                                saveForm.errors[
+                                                    'content.map.enabled'
+                                                ] ||
+                                                mapInputError
+                                            "
+                                            id="contact-map-error"
+                                            role="alert"
+                                            class="text-sm text-red-700 dark:text-red-300"
+                                        >
+                                            {{
+                                                saveForm.errors[
+                                                    'content.map'
+                                                ] ||
+                                                saveForm.errors[
+                                                    'content.map.url'
+                                                ] ||
+                                                saveForm.errors[
+                                                    'content.map.enabled'
+                                                ] ||
+                                                mapInputError
+                                            }}
+                                        </p>
+                                    </fieldset>
                                 </template>
                             </div>
                         </details>

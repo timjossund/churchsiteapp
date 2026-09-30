@@ -28,6 +28,21 @@ function customerRequest(string $path = '/', string $method = 'GET')
         ->{strtolower($method)}('https://churchsite.app/_domain/request');
 }
 
+it('serves frozen contact maps through the customer domain transport', function () {
+    $block = $this->site->homePage()->firstOrFail()->blocks()->create([
+        'type' => 'contact', 'position' => 0,
+        'content' => ['heading' => 'Visit us', 'email' => '', 'phone' => '', 'address' => '123 Main St',
+            'map' => ['enabled' => true, 'url' => 'https://www.openstreetmap.org/?mlat=35.084491&mlon=-92.518695']],
+    ]);
+    $this->site->update(['published_snapshot' => app(BuildSitePublicationSnapshot::class)($this->site)]);
+    $block->update(['content' => ['heading' => 'Private draft', 'email' => '', 'phone' => '']]);
+    customerRequest()->assertOk()->assertSee('marker=35.084491%2C-92.518695', false)
+        ->assertSee('OpenStreetMap contributors')->assertSee('Get directions')->assertDontSee('Private draft')
+        ->assertHeader('X-Churchsite-Content', 'html')->assertHeaderMissing('Set-Cookie');
+    $this->domain->forceFill(['ssl_status' => 'pending'])->save();
+    customerRequest()->assertNotFound()->assertDontSee('export/embed.html', false);
+});
+
 it('renders frozen pages with same-host links and no session or preview noindex', function () {
     $this->site->update(['name' => 'Private draft']);
     $this->about->update(['name' => 'Draft page', 'path' => 'changed']);

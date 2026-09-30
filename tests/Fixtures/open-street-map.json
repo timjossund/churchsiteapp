@@ -1,0 +1,251 @@
+{
+    "neighborhood": [
+        {
+            "source": "https://www.openstreetmap.org/?mlat=39.8&mlon=-89.65#map=17/40/-90",
+            "expected": {
+                "embed_url": "https://www.openstreetmap.org/export/embed.html?bbox=-89.66%2C39.795%2C-89.64%2C39.805&layer=mapnik&marker=39.8%2C-89.65",
+                "location_url": "https://www.openstreetmap.org/?mlat=39.8&mlon=-89.65#map=16/39.8/-89.65"
+            }
+        }
+    ],
+    "no www with metadata": [
+        {
+            "source": "https://openstreetmap.org/?mlat=-33.86&mlon=151.21&layers=N#map=12/-33.86/151.21",
+            "expected": {
+                "embed_url": "https://www.openstreetmap.org/export/embed.html?bbox=151.2%2C-33.865%2C151.22%2C-33.855&layer=mapnik&marker=-33.86%2C151.21",
+                "location_url": "https://www.openstreetmap.org/?mlat=-33.86&mlon=151.21#map=16/-33.86/151.21"
+            }
+        }
+    ],
+    "zero": [
+        {
+            "source": "https://www.openstreetmap.org/?mlat=-0&mlon=0",
+            "expected": {
+                "embed_url": "https://www.openstreetmap.org/export/embed.html?bbox=-0.01%2C-0.005%2C0.01%2C0.005&layer=mapnik&marker=0%2C0",
+                "location_url": "https://www.openstreetmap.org/?mlat=0&mlon=0#map=16/0/0"
+            }
+        }
+    ],
+    "north east boundary": [
+        {
+            "source": "https://www.openstreetmap.org/?mlat=90&mlon=180",
+            "expected": {
+                "embed_url": "https://www.openstreetmap.org/export/embed.html?bbox=179.98%2C89.99%2C180%2C90&layer=mapnik&marker=90%2C180",
+                "location_url": "https://www.openstreetmap.org/?mlat=90&mlon=180#map=16/90/180"
+            }
+        }
+    ],
+    "south west boundary": [
+        {
+            "source": "https://www.openstreetmap.org/?mlat=-90&mlon=-180",
+            "expected": {
+                "embed_url": "https://www.openstreetmap.org/export/embed.html?bbox=-180%2C-90%2C-179.98%2C-89.99&layer=mapnik&marker=-90%2C-180",
+                "location_url": "https://www.openstreetmap.org/?mlat=-90&mlon=-180#map=16/-90/-180"
+            }
+        }
+    ],
+    "encoded coordinates": [
+        {
+            "source": "https://www.openstreetmap.org:443/?%6Dlat=%2B39.8&mlon=-89.65",
+            "expected": {
+                "embed_url": "https://www.openstreetmap.org/export/embed.html?bbox=-89.66%2C39.795%2C-89.64%2C39.805&layer=mapnik&marker=39.8%2C-89.65",
+                "location_url": "https://www.openstreetmap.org/?mlat=39.8&mlon=-89.65#map=16/39.8/-89.65"
+            }
+        }
+    ],
+    "empty": [
+        {
+            "source": "",
+            "expected": null
+        }
+    ],
+    "http": [
+        {
+            "source": "http://www.openstreetmap.org/?mlat=1&mlon=2",
+            "expected": null
+        }
+    ],
+    "javascript": [
+        {
+            "source": "javascript:alert(1)",
+            "expected": null
+        }
+    ],
+    "foreign host": [
+        {
+            "source": "https://evil.example/?mlat=1&mlon=2",
+            "expected": null
+        }
+    ],
+    "deceptive host": [
+        {
+            "source": "https://www.openstreetmap.org.evil.example/?mlat=1&mlon=2",
+            "expected": null
+        }
+    ],
+    "credentials": [
+        {
+            "source": "https://user@www.openstreetmap.org/?mlat=1&mlon=2",
+            "expected": null
+        }
+    ],
+    "password": [
+        {
+            "source": "https://user:pass@www.openstreetmap.org/?mlat=1&mlon=2",
+            "expected": null
+        }
+    ],
+    "port": [
+        {
+            "source": "https://www.openstreetmap.org:444/?mlat=1&mlon=2",
+            "expected": null
+        }
+    ],
+    "short link": [
+        {
+            "source": "https://osm.org/go/abc?m=",
+            "expected": null
+        }
+    ],
+    "embed URL": [
+        {
+            "source": "https://www.openstreetmap.org/export/embed.html?marker=1,2",
+            "expected": null
+        }
+    ],
+    "missing latitude": [
+        {
+            "source": "https://www.openstreetmap.org/?mlon=2",
+            "expected": null
+        }
+    ],
+    "missing longitude": [
+        {
+            "source": "https://www.openstreetmap.org/?mlat=1",
+            "expected": null
+        }
+    ],
+    "view without pin": [
+        {
+            "source": "https://www.openstreetmap.org/#map=16/1/2",
+            "expected": null
+        }
+    ],
+    "duplicate latitude": [
+        {
+            "source": "https://www.openstreetmap.org/?mlat=1&mlat=2&mlon=3",
+            "expected": null
+        }
+    ],
+    "encoded duplicate": [
+        {
+            "source": "https://www.openstreetmap.org/?mlat=1&%6Dlat=2&mlon=3",
+            "expected": null
+        }
+    ],
+    "array marker": [
+        {
+            "source": "https://www.openstreetmap.org/?mlat[]=1&mlon=2",
+            "expected": null
+        }
+    ],
+    "encoded array": [
+        {
+            "source": "https://www.openstreetmap.org/?mlat%5B%5D=1&mlon=2",
+            "expected": null
+        }
+    ],
+    "out of latitude range": [
+        {
+            "source": "https://www.openstreetmap.org/?mlat=90.0001&mlon=2",
+            "expected": null
+        }
+    ],
+    "out of longitude range": [
+        {
+            "source": "https://www.openstreetmap.org/?mlat=1&mlon=-180.1",
+            "expected": null
+        }
+    ],
+    "nonfinite": [
+        {
+            "source": "https://www.openstreetmap.org/?mlat=NaN&mlon=2",
+            "expected": null
+        }
+    ],
+    "exponent": [
+        {
+            "source": "https://www.openstreetmap.org/?mlat=1e2&mlon=2",
+            "expected": null
+        }
+    ],
+    "malformed percent": [
+        {
+            "source": "https://www.openstreetmap.org/?mlat=1%ZZ&mlon=2",
+            "expected": null
+        }
+    ],
+    "control character": [
+        {
+            "source": "https://www.openstreetmap.org/?mlat=1\n&mlon=2",
+            "expected": null
+        }
+    ],
+    "encoded control": [
+        {
+            "source": "https://www.openstreetmap.org/?mlat=1%00&mlon=2",
+            "expected": null
+        }
+    ],
+    "backslash": [
+        {
+            "source": "https://www.openstreetmap.org\\@evil.example/?mlat=1&mlon=2",
+            "expected": null
+        }
+    ],
+    "html": [
+        {
+            "source": "<iframe src=\"https://www.openstreetmap.org/?mlat=1&mlon=2\"></iframe>",
+            "expected": null
+        }
+    ],
+    "leading decimal whitespace": [
+        {
+            "source": "https://www.openstreetmap.org/?mlat=+1&mlon=2",
+            "expected": null
+        }
+    ],
+    "encoded whitespace": [
+        {
+            "source": "https://www.openstreetmap.org/?mlat=%201&mlon=2",
+            "expected": null
+        }
+    ],
+    "dot traversal": [
+        {
+            "source": "https://www.openstreetmap.org/other/../?mlat=1&mlon=2",
+            "expected": null
+        }
+    ],
+    "encoded fragment control": [
+        {
+            "source": "https://www.openstreetmap.org/?mlat=1&mlon=2#map=%0A",
+            "expected": null
+        }
+    ],
+    "overflow decimal": [
+        {
+            "source": "https://www.openstreetmap.org/?mlat=9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999&mlon=2",
+            "expected": null
+        }
+    ],
+    "half microdegree rounding": [
+        {
+            "source": "https://www.openstreetmap.org/?mlat=0.0000005&mlon=-0.0000005",
+            "expected": {
+                "embed_url": "https://www.openstreetmap.org/export/embed.html?bbox=-0.010001%2C-0.005%2C0.01%2C0.005001&layer=mapnik&marker=0.000001%2C-0.000001",
+                "location_url": "https://www.openstreetmap.org/?mlat=0.000001&mlon=-0.000001#map=16/0.000001/-0.000001"
+            }
+        }
+    ]
+}

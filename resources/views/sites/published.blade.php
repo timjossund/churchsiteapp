@@ -164,29 +164,42 @@
                             @break
 
                         @case('contact')
-                            <h2 class="font-serif text-2xl">{{ $block['heading'] }}</h2>
-                            @if (! empty($content['email']) || ! empty($content['phone']) || $block['address_text'] !== '')
-                                <div class="mt-5 flex flex-col gap-3 {{ $alignment === 'center' ? 'items-center' : 'items-start' }}">
-                                    @if (! empty($content['email']))
-                                        @if ($block['email_href'])
-                                            <a href="{{ $block['email_href'] }}" class="text-[var(--site-preview-accent)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]">{{ $content['email'] }}</a>
-                                        @else
-                                            <span class="text-[var(--site-preview-muted)]">{{ $content['email'] }}</span>
-                                        @endif
+                            <div class="{{ $block['map_links'] !== null ? 'grid items-start gap-6 md:grid-cols-2' : '' }}">
+                                <div class="min-w-0">
+                                    <h2 class="font-serif text-2xl">{{ $block['heading'] }}</h2>
+                                    @if (! empty($content['email']) || ! empty($content['phone']) || $block['address_text'] !== '')
+                                        <div class="mt-5 flex flex-col gap-3 {{ $alignment === 'center' ? 'items-center' : 'items-start' }}">
+                                            @if (! empty($content['email']))
+                                                @if ($block['email_href'])
+                                                    <a href="{{ $block['email_href'] }}" class="text-[var(--site-preview-accent)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]">{{ $content['email'] }}</a>
+                                                @else
+                                                    <span class="text-[var(--site-preview-muted)]">{{ $content['email'] }}</span>
+                                                @endif
+                                            @endif
+                                            @if (! empty($content['phone']))
+                                                @if ($block['phone_href'])
+                                                    <a href="{{ $block['phone_href'] }}" class="text-[var(--site-preview-accent)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]">{{ $content['phone'] }}</a>
+                                                @else
+                                                    <span class="text-[var(--site-preview-muted)]">{{ $content['phone'] }}</span>
+                                                @endif
+                                            @endif
+                                            @if ($block['address_text'] !== '')
+                                                <address class="text-[var(--site-preview-muted)] break-words whitespace-pre-line not-italic">{{ $block['address_text'] }}</address>
+                                                <a href="{{ $block['directions_href'] }}" target="_blank" rel="noopener noreferrer" class="text-[var(--site-preview-accent)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]">Get directions</a>
+                                            @endif
+                                           </div>
                                     @endif
-                                    @if (! empty($content['phone']))
-                                        @if ($block['phone_href'])
-                                            <a href="{{ $block['phone_href'] }}" class="text-[var(--site-preview-accent)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]">{{ $content['phone'] }}</a>
-                                        @else
-                                            <span class="text-[var(--site-preview-muted)]">{{ $content['phone'] }}</span>
-                                        @endif
-                                    @endif
-                                    @if ($block['address_text'] !== '')
-                                        <address class="text-[var(--site-preview-muted)] break-words whitespace-pre-line not-italic">{{ $block['address_text'] }}</address>
-                                        <a href="{{ $block['directions_href'] }}" target="_blank" rel="noopener noreferrer" class="text-[var(--site-preview-accent)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]">Get directions</a>
-                                    @endif
-                                   </div>
-                            @endif
+                                </div>
+                                @if ($block['map_links'] !== null)
+                                    <div class="min-w-0 w-full space-y-2">
+                                        <iframe src="{{ $block['map_links']['embed_url'] }}" title="Location map: {{ $block['heading'] }}" loading="lazy" class="aspect-video min-h-64 w-full rounded-xl border border-[var(--site-preview-border)]"></iframe>
+                                        <p class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-[var(--site-preview-muted)]">
+                                            <a href="{{ $block['map_links']['location_url'] }}" target="_blank" rel="noopener noreferrer" class="text-[var(--site-preview-accent)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]">View on OpenStreetMap</a>
+                                            <span>Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" class="underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]">OpenStreetMap contributors</a></span>
+                                        </p>
+                                    </div>
+                                @endif
+                            </div>
                             @break
 
                         @case('image')

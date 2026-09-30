@@ -2,6 +2,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import SiteMediaController from '@/actions/App/Http/Controllers/SiteMediaController';
+import SitePublishingController from '@/actions/App/Http/Controllers/SitePublishingController';
 import DeleteSite from '@/components/sites/DeleteSite.vue';
 import PageManager from '@/components/sites/PageManager.vue';
 import { dashboard } from '@/routes';
@@ -67,6 +68,9 @@ const siteThemes: { key: SiteTheme; label: string; description: string }[] = [
 const pagePending = ref(false);
 const deletionPending = ref(false);
 const pageNamesDirty = ref(false);
+const publishForm = useForm({});
+const publishError = ref('');
+const publishStatus = ref('');
 let ownVisit = false;
 function runOwnVisit(submit: () => void) {
     ownVisit = true;
@@ -176,7 +180,8 @@ const editorWriteInProgress = computed(
         nameForm.processing ||
         appearanceForm.processing ||
         logoAltTextForm.processing ||
-        logoClearForm.processing,
+        logoClearForm.processing ||
+        publishForm.processing,
 );
 const pendingFocus = ref<HTMLElement | null>(null);
 function queueFocus(element: HTMLElement | null) {
@@ -203,6 +208,51 @@ const hasUnsavedEditorChanges = computed(
 );
 const isLogoAltTextDirty = computed(
     () => logoDraftAltText.value !== (props.site.logo?.alt_text ?? ''),
+);
+
+function publishSite() {
+    if (editorWriteInProgress.value) return;
+    publishError.value = '';
+    publishStatus.value = '';
+    if (hasUnsavedEditorChanges.value) {
+        publishError.value =
+            'Save your settings and page names before publishing.';
+        return;
+    }
+    if (!props.site.slug) {
+        publishError.value =
+            'Choose and save a shareable address before publishing.';
+        queueFocus(siteSlugInput.value);
+        return;
+    }
+    runOwnVisit(() =>
+        publishForm.post(SitePublishingController.publish(props.site.id).url, {
+            preserveScroll: true,
+            onSuccess: () => {
+                publishStatus.value = 'Your saved site is now published.';
+            },
+            onError: (errors) => {
+                publishError.value =
+                    errors.slug ??
+                    errors.publish ??
+                    'We could not publish the site. Please review your saved pages and try again.';
+                if (errors.slug) queueFocus(siteSlugInput.value);
+            },
+            onNetworkError: () => {
+                publishError.value =
+                    'We could not reach the server. Please try publishing again.';
+                return false;
+            },
+        }),
+    );
+}
+
+watch(
+    [hasUnsavedEditorChanges, () => props.site.has_unpublished_changes],
+    ([unsaved, unpublished]) => {
+        publishError.value = '';
+        if (unsaved || unpublished) publishStatus.value = '';
+    },
 );
 
 watch(
@@ -438,7 +488,7 @@ function selectLogoFile(event: Event) {
 }
 
 function saveLogoAltText() {
-    if (uploadInProgress.value) return;
+    if (editorWriteInProgress.value) return;
     const logo = props.site.logo;
     if (
         !logo ||
@@ -486,7 +536,7 @@ function saveLogoAltText() {
 }
 
 function clearLogo() {
-    if (uploadInProgress.value) return;
+    if (editorWriteInProgress.value) return;
     if (
         !props.site.logo ||
         logoClearForm.processing ||
@@ -675,6 +725,19 @@ defineOptions({
                     {{ props.site.name }}
                 </h1>
                 <div class="flex flex-wrap items-center gap-3">
+                    <button
+                        type="button"
+                        :disabled="editorWriteInProgress"
+                        aria-describedby="settings-publish-help"
+                        class="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--workspace-line)] px-5 py-2 text-sm font-semibold text-[var(--workspace-green)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-50"
+                        @click="publishSite"
+                    >
+                        {{
+                            publishForm.processing
+                                ? 'Publishing...'
+                                : 'Publish site'
+                        }}
+                    </button>
                     <Link
                         :href="goLive(props.site.id)"
                         class="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg bg-[var(--workspace-green)] px-5 py-2 text-sm font-semibold text-white hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)]"
@@ -698,6 +761,43 @@ defineOptions({
                 Manage your pages and the settings they share. Open a page to
                 edit its content.
             </p>
+            <p class="mt-4 text-sm font-semibold" role="status">
+                {{
+                    !props.site.published_at
+                        ? 'Not published yet'
+                        : props.site.has_unpublished_changes
+                          ? 'Saved changes are not published'
+                          : 'Your published site is up to date'
+                }}
+            </p>
+            <p
+                id="settings-publish-help"
+                class="mt-1 text-sm text-[var(--workspace-muted)]"
+            >
+                Publish updates all saved pages and shared site settings.
+                <span v-if="hasUnsavedEditorChanges"
+                    >Save your settings and page names before publishing.</span
+                >
+                <span v-else-if="!props.site.slug"
+                    >Choose and save a shareable address before
+                    publishing.</span
+                >
+            </p>
+            <p
+                v-if="publishError"
+                role="alert"
+                class="mt-2 text-sm text-red-700 dark:text-red-300"
+            >
+                {{ publishError }}
+            </p>
+            <p
+                v-if="publishStatus"
+                role="status"
+                aria-live="polite"
+                class="mt-2 text-sm text-[var(--workspace-green)]"
+            >
+                {{ publishStatus }}
+            </p>
         </header>
         <PageManager
             :site-id="props.site.id"
@@ -710,7 +810,7 @@ defineOptions({
         />
         <h2 class="mb-4 font-serif text-2xl">Shared site settings</h2>
         <section
-            :inert="pagePending"
+            :inert="pagePending || publishForm.processing"
             aria-label="Shared site settings"
             class="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]"
         >

@@ -3,6 +3,7 @@
 use App\Actions\BuildSitePublicationSnapshot;
 use App\Models\Site;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -143,4 +144,47 @@ test('a failed publication preserves its previous snapshot and timestamp', funct
 
     expect($site->fresh()->published_snapshot)->toBe($oldSnapshot)
         ->and($site->published_at->equalTo($oldPublishedAt))->toBeTrue();
+});
+
+test('owners publish saved settings and uploaded branding directly from settings', function () {
+    Storage::fake('s3');
+    $site = Site::factory()->create(['slug' => 'settings-publish', 'footer' => ['text' => 'Original footer']]);
+    $settingsUrl = route('sites.show', $site);
+    $publicUrl = route('sites.published.show', $site->slug);
+    $this->actingAs($site->user)->from($settingsUrl)->post(route('sites.publish', $site))
+        ->assertRedirect($settingsUrl)->assertSessionHasNoErrors();
+    $original = $site->fresh()->published_snapshot;
+
+    $this->patch(route('sites.update', $site), ['footer' => ['text' => 'Updated footer']])
+        ->assertRedirect($settingsUrl)->assertSessionHasNoErrors();
+    $this->post(route('sites.logo.store', $site), [
+        'image' => UploadedFile::fake()->image('logo.png', 64, 64), 'alt_text' => 'New church logo',
+    ])->assertRedirect($settingsUrl)->assertSessionHasNoErrors();
+    $this->post(route('sites.favicon.store', $site), [
+        'image' => UploadedFile::fake()->image('icon.png', 32, 32),
+    ])->assertRedirect($settingsUrl)->assertSessionHasNoErrors();
+    $saved = $site->fresh();
+    expect($saved->published_snapshot)->toBe($original);
+    $this->get($publicUrl)->assertOk()->assertSee('Original footer')->assertDontSee('Updated footer')->assertDontSee('New church logo');
+    $this->get($settingsUrl)->assertInertia(fn (Assert $page) => $page
+        ->component('Sites/Settings')->where('site.has_unpublished_changes', true));
+
+    $this->from($settingsUrl)->post(route('sites.publish', $site))
+        ->assertRedirect($settingsUrl)->assertSessionHasNoErrors();
+    $snapshot = $site->fresh()->published_snapshot;
+    expect($snapshot['site']['footer']['text'])->toBe('Updated footer')
+        ->and($snapshot['site']['logo_media_asset_id'])->toBe($saved->logo_media_asset_id)
+        ->and($snapshot['site']['favicon_media_asset_id'])->toBe($saved->favicon_media_asset_id);
+    $this->get($settingsUrl)->assertInertia(fn (Assert $page) => $page
+        ->component('Sites/Settings')->where('site.has_unpublished_changes', false));
+    $this->get($publicUrl)->assertOk()->assertSee('Updated footer')->assertSee('New church logo')
+        ->assertSee(route('sites.published.media.show', [$site->slug, $saved->favicon_media_asset_id]), false);
+});
+
+test('settings publication failures return to settings without publishing incomplete content', function () {
+    $site = Site::factory()->create();
+    $settingsUrl = route('sites.show', $site);
+    $this->actingAs($site->user)->from($settingsUrl)->post(route('sites.publish', $site))
+        ->assertRedirect($settingsUrl)->assertSessionHasErrors('slug');
+    expect($site->fresh()->published_at)->toBeNull();
 });

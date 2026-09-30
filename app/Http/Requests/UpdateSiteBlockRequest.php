@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\SiteBlock;
+use App\Support\GoogleCalendarUrl;
 use App\Support\OpenStreetMapUrl;
 use App\Support\VideoEmbedUrl;
 use Closure;
@@ -53,6 +54,7 @@ class UpdateSiteBlockRequest extends FormRequest
             'image' => ['media_asset_id', 'caption'],
             'text_image' => ['heading', 'body', 'media_asset_id', 'caption'],
             'video' => ['url'],
+            'embed' => ['heading', 'url'],
             default => throw new LogicException('Unsupported block type.'),
         };
         if ($hasTextButton) {
@@ -106,6 +108,10 @@ class UpdateSiteBlockRequest extends FormRequest
             }
 
             $rules['content.'.$field] = ['present', 'string'];
+        }
+
+        if ($type === 'embed') {
+            $rules['content.url'][] = 'max:8192';
         }
 
         if ($type === 'hero') {
@@ -203,6 +209,13 @@ class UpdateSiteBlockRequest extends FormRequest
                 && array_key_exists('media_asset_id', $content)
                 && $content['media_asset_id'] === '') {
                 $validator->errors()->add('content.media_asset_id', 'Choose an image or clear the current image.');
+            }
+
+            if ($type === 'embed') {
+                $url = $this->input('content.url');
+                if (is_string($url) && $url !== '' && GoogleCalendarUrl::from($url) === null) {
+                    $validator->errors()->add('content.url', 'Paste the HTTPS src URL for one Google Calendar from its embed code, without the HTML.');
+                }
             }
 
             if ($type === 'video') {

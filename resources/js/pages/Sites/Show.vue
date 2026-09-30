@@ -11,6 +11,7 @@ import HeroOptions, {
 import PageSettings from '@/components/sites/PageSettings.vue';
 import { dashboard } from '@/routes';
 import { mountSiteMenu } from '@/lib/site-menu';
+import { googleCalendarUrl } from '@/lib/google-calendar';
 import { mountHeroMotion } from '@/lib/hero-motion';
 import { openStreetMapLinks } from '@/lib/open-street-map';
 const previewRoot = ref<HTMLElement | null>(null);
@@ -34,7 +35,8 @@ type BlockType =
     | 'contact'
     | 'image'
     | 'text_image'
-    | 'video';
+    | 'video'
+    | 'embed';
 type HeroLinkType = HeroButton['link_type'];
 type SiteTheme = 'warm' | 'clean' | 'bold';
 type BlockStyle = HeroStyle & {
@@ -176,6 +178,11 @@ const blockTypes: { type: BlockType; label: string; description: string }[] = [
         label: 'Video',
         description: 'Embed a YouTube or Vimeo video',
     },
+    {
+        type: 'embed',
+        label: 'Calendar',
+        description: 'Show a public Google Calendar',
+    },
 ];
 
 const weekdays = [
@@ -315,7 +322,7 @@ const isContentDirty = computed(
                     draftAddress.value !== savedAddress.value ||
                     draftMapEnabled.value !== savedMapEnabled.value ||
                     draftMapUrl.value !== savedMapUrl.value)) ||
-            (selectedBlock.value?.type === 'video' &&
+            (['video', 'embed'].includes(selectedBlock.value.type) &&
                 draftVideoUrl.value !== savedVideoUrl.value) ||
             JSON.stringify(draftBlockStyle.value) !==
                 JSON.stringify(savedBlockStyle.value) ||
@@ -362,6 +369,16 @@ const addressInput = ref<HTMLTextAreaElement | null>(null);
 const mapEnabledInput = ref<HTMLInputElement | null>(null);
 const mapUrlInput = ref<HTMLInputElement | null>(null);
 const videoUrlInput = ref<HTMLInputElement | null>(null);
+const calendarUrlInput = ref<HTMLInputElement | null>(null);
+const calendarUrlError = computed(() => {
+    if (selectedBlock.value?.type !== 'embed') return '';
+    return (
+        saveForm.errors['content.url'] ||
+        (draftVideoUrl.value.trim() && !googleCalendarUrl(draftVideoUrl.value)
+            ? 'Paste the HTTPS src URL for one Google Calendar, without the iframe HTML.'
+            : '')
+    );
+});
 let ownVisit = false;
 let stopBeforeListener: (() => void) | undefined;
 let stopNavigateListener: (() => void) | undefined;
@@ -889,6 +906,8 @@ function contentFor(block: SiteBlock): BlockContent {
                 : (block.content.media_asset_id ?? null),
             caption: draftCaption.value,
         };
+    } else if (block.type === 'embed') {
+        content = { heading: draftHeading.value, url: draftVideoUrl.value };
     } else if (block.type === 'video') {
         content = { url: draftVideoUrl.value };
     } else if (block.type === 'plain_text') {
@@ -1070,6 +1089,11 @@ function heroHref(block: SiteBlock, secondary = false): string | null {
     return null;
 }
 
+function calendarEmbedUrl(block: SiteBlock): string | null {
+    const source = contentFor(block).url;
+    return typeof source === 'string' ? googleCalendarUrl(source) : null;
+}
+
 function videoEmbedUrl(block: SiteBlock): string | null {
     const source = contentFor(block).url?.trim() ?? '';
     if (!source) return null;
@@ -1191,26 +1215,28 @@ function saveBlock() {
                           ...entry,
                       })),
                   }
-                : block.type === 'video'
-                  ? { url: draftVideoUrl.value }
-                  : block.type === 'image'
-                    ? {
-                          media_asset_id: mediaAssetId,
-                          caption: draftCaption.value,
-                      }
-                    : block.type === 'text_image'
+                : block.type === 'embed'
+                  ? { heading: draftHeading.value, url: draftVideoUrl.value }
+                  : block.type === 'video'
+                    ? { url: draftVideoUrl.value }
+                    : block.type === 'image'
                       ? {
-                            heading: draftHeading.value,
-                            body: draftBody.value,
                             media_asset_id: mediaAssetId,
                             caption: draftCaption.value,
                         }
-                      : block.type === 'plain_text'
-                        ? { body: draftBody.value }
-                        : {
+                      : block.type === 'text_image'
+                        ? {
                               heading: draftHeading.value,
                               body: draftBody.value,
-                          };
+                              media_asset_id: mediaAssetId,
+                              caption: draftCaption.value,
+                          }
+                        : block.type === 'plain_text'
+                          ? { body: draftBody.value }
+                          : {
+                                heading: draftHeading.value,
+                                body: draftBody.value,
+                            };
     if (blockHasTextButton(block)) {
         saveForm.content = {
             ...saveForm.content,
@@ -1244,6 +1270,8 @@ function saveBlock() {
                 draftMapUrl.value = draftMapUrl.value.trim();
                 savedMapEnabled.value = draftMapEnabled.value;
                 savedMapUrl.value = draftMapUrl.value;
+                if (block.type === 'embed')
+                    draftVideoUrl.value = draftVideoUrl.value.trim();
                 savedVideoUrl.value = draftVideoUrl.value;
                 savedBlockStyle.value = { ...draftBlockStyle.value };
                 if (clearImagePending.value) {
@@ -1330,7 +1358,10 @@ function saveBlock() {
                     else if (errors['content.map'] || errors['content.map.url'])
                         mapUrlInput.value?.focus();
                     else if (errors['content.url'])
-                        videoUrlInput.value?.focus();
+                        (block.type === 'embed'
+                            ? calendarUrlInput.value
+                            : videoUrlInput.value
+                        )?.focus();
                     else if (errors['content.style.layout'])
                         blockLayoutInput.value?.focus();
                     else if (errors['content.style.alignment'])
@@ -2782,6 +2813,57 @@ defineOptions({
                                         </div>
                                     </div>
                                 </template>
+                                <template v-else-if="block.type === 'embed'">
+                                    <h3
+                                        class="font-serif text-3xl font-semibold tracking-tight break-words"
+                                    >
+                                        {{ previewHeading(block, 'Calendar') }}
+                                    </h3>
+                                    <template v-if="calendarEmbedUrl(block)">
+                                        <iframe
+                                            :src="
+                                                calendarEmbedUrl(block) ??
+                                                undefined
+                                            "
+                                            :title="`Google Calendar: ${previewHeading(block, 'Calendar')}`"
+                                            sandbox="allow-scripts allow-same-origin"
+                                            referrerpolicy="no-referrer"
+                                            loading="lazy"
+                                            allow="
+                                                camera 'none';
+                                                microphone 'none';
+                                                geolocation 'none';
+                                                payment 'none';
+                                            "
+                                            class="mt-6 h-[600px] w-full rounded-xl border-0"
+                                        />
+                                        <a
+                                            :href="
+                                                calendarEmbedUrl(block) ??
+                                                undefined
+                                            "
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-[var(--site-preview-accent)] underline underline-offset-4"
+                                            :aria-label="`Open ${previewHeading(block, 'Calendar')} in Google Calendar`"
+                                            >Open calendar</a
+                                        >
+                                        <p
+                                            class="text-sm text-[var(--site-preview-muted)]"
+                                        >
+                                            If the calendar does not appear,
+                                            open it in Google Calendar.
+                                        </p>
+                                    </template>
+                                    <p
+                                        v-else
+                                        role="status"
+                                        class="mt-6 text-sm text-[var(--site-preview-muted)]"
+                                    >
+                                        Add a valid public Google Calendar embed
+                                        URL in the editor.
+                                    </p>
+                                </template>
                                 <p
                                     v-else-if="block.type === 'plain_text'"
                                     class="max-w-prose text-lg leading-relaxed whitespace-pre-line"
@@ -3245,7 +3327,8 @@ defineOptions({
                                             'service_times' &&
                                         selectedBlock.type !== 'contact' &&
                                         selectedBlock.type !== 'image' &&
-                                        selectedBlock.type !== 'video'
+                                        selectedBlock.type !== 'video' &&
+                                        selectedBlock.type !== 'embed'
                                     "
                                 >
                                     <label
@@ -3285,6 +3368,85 @@ defineOptions({
                                         class="mt-2 text-sm text-red-700 dark:text-red-300"
                                     >
                                         {{ saveForm.errors['content.body'] }}
+                                    </p>
+                                </div>
+                                <div v-if="selectedBlock.type === 'embed'">
+                                    <label
+                                        for="calendar-url"
+                                        class="mb-2 block text-sm font-semibold"
+                                        >Google Calendar embed URL</label
+                                    >
+                                    <input
+                                        id="calendar-url"
+                                        ref="calendarUrlInput"
+                                        v-model="draftVideoUrl"
+                                        type="url"
+                                        maxlength="8192"
+                                        :disabled="editorWriteInProgress"
+                                        :aria-invalid="
+                                            Boolean(calendarUrlError)
+                                        "
+                                        aria-describedby="calendar-url-help calendar-url-error"
+                                        class="min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-3 text-[var(--workspace-ink)]"
+                                        @input="clearContentError"
+                                    />
+                                    <div
+                                        id="calendar-url-help"
+                                        class="mt-3 space-y-2 text-sm text-[var(--workspace-muted)]"
+                                    >
+                                        <ol class="list-decimal space-y-1 pl-5">
+                                            <li>
+                                                Use a dedicated church-events
+                                                calendar and make it public in
+                                                Google Calendar settings.
+                                            </li>
+                                            <li>
+                                                On a computer, open Integrate
+                                                calendar. Copy only the HTTPS
+                                                URL inside the embed code's src
+                                                quotes.
+                                            </li>
+                                            <li>
+                                                Paste the URL here, save this
+                                                block, then Publish.
+                                            </li>
+                                        </ol>
+                                        <a
+                                            href="https://support.google.com/calendar/answer/41207"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="underline"
+                                            >Google Calendar setup instructions
+                                            (opens in a new tab)</a
+                                        >
+                                        <p>
+                                            Public calendars expose their shared
+                                            event details. Keep personal/private
+                                            calendars separate. Google supplies
+                                            the calendar and may use cookies.
+                                        </p>
+                                        <p>
+                                            Supports one calendar. View mode and
+                                            time zone are retained; other
+                                            display options use our defaults.
+                                            Events edited in Google can update
+                                            immediately; Publish controls this
+                                            block's settings.
+                                        </p>
+                                        <p>
+                                            If the calendar stays blank, check
+                                            its public sharing and use Open
+                                            calendar. We cannot confirm Google's
+                                            content loaded.
+                                        </p>
+                                    </div>
+                                    <p
+                                        v-if="calendarUrlError"
+                                        id="calendar-url-error"
+                                        role="alert"
+                                        class="mt-2 text-sm text-red-700 dark:text-red-300"
+                                    >
+                                        {{ calendarUrlError }}
                                     </p>
                                 </div>
                                 <div v-if="selectedBlock.type === 'video'">

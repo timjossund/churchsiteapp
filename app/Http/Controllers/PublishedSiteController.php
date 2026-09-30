@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Site;
 use App\Support\CustomerPagePath;
+use App\Support\EmbedFramePolicy;
+use App\Support\GoogleCalendarUrl;
 use App\Support\OpenStreetMapUrl;
 use App\Support\PublishedAssets;
 use App\Support\SiteAppearance;
@@ -52,6 +54,7 @@ class PublishedSiteController extends Controller
                 'contact' => 'Contact us',
                 'image' => 'Image',
                 'video' => 'Video',
+                'embed' => 'Calendar',
                 'plain_text' => 'Text',
                 default => 'Section',
             };
@@ -116,6 +119,7 @@ class PublishedSiteController extends Controller
                 'image_url' => $asset === null ? null : $mediaUrls->get((string) $asset['id']),
                 'image_alt' => $asset['alt_text'] ?? '',
                 'video_embed_url' => $videoUrl,
+                'calendar_embed_url' => $type === 'embed' && is_string($content['url'] ?? null) ? GoogleCalendarUrl::from($content['url']) : null,
             ];
         })->all();
         $siteData = $snapshot['site'];
@@ -150,6 +154,8 @@ class PublishedSiteController extends Controller
         if ($hostname === null) {
             $response->header('X-Robots-Tag', 'noindex, nofollow');
         }
+
+        EmbedFramePolicy::apply($response);
 
         return $response;
     }

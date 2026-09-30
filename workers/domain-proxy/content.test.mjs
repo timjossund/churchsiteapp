@@ -213,3 +213,31 @@ await test('customer queries are forwarded as metadata without changing the fixe
     );
     assert.equal(response.status, 200);
 });
+
+await test('HTML GET and HEAD preserve all intersecting origin CSP policies', async () => {
+    const policy =
+        "default-src 'none', frame-src https://calendar.google.com https://www.openstreetmap.org";
+    for (const method of ['GET', 'HEAD']) {
+        const response = await forwardRequest(
+            new Request(url, { method }),
+            env,
+            async () =>
+                content('html', 'text/html', {
+                    'Content-Security-Policy': policy,
+                }),
+        );
+        assert.equal(response.status, 200);
+        assert.equal(response.headers.get('Content-Security-Policy'), policy);
+        assert.equal(
+            await response.text(),
+            method === 'HEAD' ? '' : 'published body',
+        );
+    }
+    const asset = await forwardRequest(
+        new Request(url + '/build/assets/style-abc.css'),
+        env,
+        async () =>
+            content('asset', 'text/css', { 'Content-Security-Policy': policy }),
+    );
+    assert.equal(asset.headers.get('Content-Security-Policy'), null);
+});

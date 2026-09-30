@@ -75,6 +75,7 @@ The existing text blocks meet the simple builder's needs; a rich text editor is 
 - **Contact map:** an optional OpenStreetMap embed on contact blocks, off by default. Owners find their church on OpenStreetMap, choose Share and Include marker, and paste the full sharing link into the block. Show the map and pin in editor previews and published pages with attribution, retaining the existing address and directions link. No automatic address lookup or API key is required.
 - **Image:** an uploaded image displayed with rounded corners.
 - **Text and image:** editable text and an uploaded image, with a choice of which side shows the image.
+- **Embed block:** embed a public Google Calendar from a validated HTTPS embed URL. Support Google Calendar first, with fixed provider restrictions and matching draft previews and published output. Do not accept arbitrary HTML, scripts, or unrestricted iframe permissions. Other providers need a separate reviewed addition.
 - **Video embed:** a YouTube or Vimeo video added by URL and displayed as an embedded player.
 
 The site also has an editable header and footer, including a church name or logo and navigation links to page sections.

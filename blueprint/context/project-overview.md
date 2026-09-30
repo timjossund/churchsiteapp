@@ -1,6 +1,6 @@
 # Church Site App - Project Overview
 
-<!-- blueprint:source-hash e4fab69fe6d616d4b4fce5de2d2e2c6a5a52592ebdae09b11e66963c2bcdd7fc -->
+<!-- blueprint:source-hash 59787bc05526edb8e5d9ae71262075c63e7e4a12aba0d41d120548f18f7607d1 -->
 
 > A block-based church website builder with shareable multi-page previews and later paid custom domains.
 
@@ -43,6 +43,8 @@ Churches need modern websites, while the people responsible for them may have li
 - **17.** **Public homepage and branding** - One public homepage at `/` with builder-styled marketing sections and a shared Church Site App doorway/arch logo across homepage, dashboard, and auth pages.
 
 - **18.** **Contact map** - Optional OpenStreetMap embed on contact blocks, with an owner-selected pin, matching editor previews and published pages, attribution, and existing directions links.
+
+- **19.** **Embed block** - A provider-restricted Google Calendar block using a validated HTTPS embed URL, with matching draft preview and publication. Raw HTML, scripts, and user-controlled iframe permissions are excluded.
 
 ## Site deletion
 

@@ -33,6 +33,8 @@ Features 1-5 establish the editor and single-page publishing baseline. The next 
 
 - [x] 18. **Contact map** - Add an optional OpenStreetMap embed with an owner-selected location pin to contact blocks, matching editor previews and published pages while retaining directions links.
 
+- [x] 19. **Embed block** - Securely embed Google Calendar from a validated URL, with restricted iframe permissions and matching editor previews and published pages.
+
 ## Planning TODOs
 
 - Prove the Worker forwarding path in Feature 7a before rolling out self-service customer domains in Feature 7b.

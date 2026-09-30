@@ -239,6 +239,17 @@
                                </div>
                             @break
 
+                        @case('embed')
+                            <h2 class="font-serif text-3xl font-semibold tracking-tight break-words">{{ $block['heading'] }}</h2>
+                            @if ($block['calendar_embed_url'])
+                                <iframe src="{{ $block['calendar_embed_url'] }}" title="Google Calendar: {{ $block['heading'] }}" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer" loading="lazy" allow="camera 'none'; microphone 'none'; geolocation 'none'; payment 'none'" class="mt-6 h-[600px] w-full rounded-xl border-0"></iframe>
+                                <a href="{{ $block['calendar_embed_url'] }}" target="_blank" rel="noopener noreferrer" aria-label="Open {{ $block['heading'] }} in Google Calendar" class="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-[var(--site-preview-accent)] underline underline-offset-4">Open calendar</a>
+                                <p class="text-sm text-[var(--site-preview-muted)]">If the calendar does not appear, open it in Google Calendar.</p>
+                            @else
+                                <p class="mt-6 text-sm text-[var(--site-preview-muted)]">Calendar is not available.</p>
+                            @endif
+                            @break
+
                         @case('video')
                             @if ($block['video_embed_url'])
                                 <div class="{{ $alignment === 'center' ? 'mx-auto' : 'mr-auto' }} max-w-3xl overflow-hidden rounded-xl bg-[var(--site-preview-soft)]">

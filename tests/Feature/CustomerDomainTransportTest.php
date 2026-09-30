@@ -3,6 +3,7 @@
 use App\Actions\BuildSitePublicationSnapshot;
 use App\Actions\ReserveCustomHostname;
 use App\Models\Site;
+use App\Support\EmbedFramePolicy;
 use App\Support\PublishedAssets;
 use Illuminate\Support\Facades\Storage;
 
@@ -154,4 +155,14 @@ it('ignores sharing queries while keeping canonical same-host metadata', functio
         ->assertOk()->assertSee('property="og:url" content="https://www.example.org/about"', false)
         ->assertDontSee('utm_source')->assertDontSee('evil.example');
     customerRequest('/?')->assertOk();
+});
+
+it('serves frozen calendars with frame restrictions through the customer transport', function () {
+    $block = $this->site->homePage()->firstOrFail()->blocks()->create(['type' => 'embed', 'position' => 0,
+        'content' => ['heading' => 'Church calendar', 'url' => 'https://calendar.google.com/calendar/embed?src=events']]);
+    $this->site->update(['published_snapshot' => app(BuildSitePublicationSnapshot::class)($this->site)]);
+    $block->update(['content' => ['heading' => 'Private draft', 'url' => '']]);
+    customerRequest()->assertOk()->assertSee('Church calendar')->assertDontSee('Private draft')
+        ->assertSee('sandbox="allow-scripts allow-same-origin"', false)
+        ->assertHeader('Content-Security-Policy', EmbedFramePolicy::POLICY);
 });

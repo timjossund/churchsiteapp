@@ -40,6 +40,7 @@ const pending = ref(false);
 const polling = ref(false);
 const errors = ref<Record<string, string>>({});
 const feedback = ref('');
+const showDomainHelp = ref(false);
 const copiedField = ref('');
 let copyTimer: ReturnType<typeof setTimeout> | undefined;
 const hostnameInput = ref<HTMLInputElement | null>(null);
@@ -86,6 +87,12 @@ const labels: Record<string, string> = {
 };
 const label = computed(
     () => labels[props.domain.status] ?? 'Status unavailable',
+);
+const forwardingHostname = computed(
+    () => props.domain.hostname ?? 'www.example.org',
+);
+const rootHostname = computed(() =>
+    forwardingHostname.value.replace(/^www\./, ''),
 );
 const checkoutReturn = computed(() =>
     new URLSearchParams(page.url.split('?')[1] ?? '').get('billing'),
@@ -243,14 +250,144 @@ onUnmounted(() => {
         aria-labelledby="site-domain-title"
         class="min-w-0 rounded-[1.25rem] border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-5 shadow-[var(--workspace-shadow)]"
     >
-        <h2
-            id="site-domain-title"
-            ref="heading"
-            tabindex="-1"
-            class="font-serif text-2xl"
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2
+                id="site-domain-title"
+                ref="heading"
+                tabindex="-1"
+                class="font-serif text-2xl"
+            >
+                Custom domain
+            </h2>
+            <button
+                type="button"
+                class="min-h-11 rounded-lg border border-[var(--workspace-line)] px-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-4"
+                :aria-expanded="showDomainHelp"
+                aria-controls="site-domain-help"
+                @click="showDomainHelp = !showDomainHelp"
+            >
+                {{ showDomainHelp ? 'Hide help' : 'Domain help' }}
+            </button>
+        </div>
+        <div
+            id="site-domain-help"
+            v-show="showDomainHelp"
+            class="mt-4 space-y-3 rounded-xl bg-gray-100 p-4 dark:bg-gray-800"
         >
-            Custom domain
-        </h2>
+            <h3 class="font-semibold">Domain FAQ</h3>
+            <details
+                class="rounded-lg border border-[var(--workspace-line)] p-3 text-sm"
+            >
+                <summary
+                    class="cursor-pointer rounded font-semibold focus-visible:outline-2 focus-visible:outline-offset-4"
+                >
+                    How do I send visitors from my domain without www?
+                </summary>
+                <div class="mt-3 space-y-3">
+                    <p>
+                        Your site uses
+                        <strong class="break-all">{{
+                            forwardingHostname
+                        }}</strong
+                        >. To make
+                        <strong class="break-all">{{ rootHostname }}</strong>
+                        work too, set up forwarding with the company where you
+                        bought your domain. Church Site App does not set up this
+                        redirect automatically.
+                    </p>
+                    <ol class="list-decimal space-y-2 pl-5">
+                        <li>
+                            Sign in to your domain provider and open Domain
+                            forwarding or URL redirects.
+                        </li>
+                        <li>
+                            Forward
+                            <strong class="break-all">{{
+                                rootHostname
+                            }}</strong>
+                            to
+                            <strong class="break-all"
+                                >https://{{ forwardingHostname }}</strong
+                            >.
+                        </li>
+                        <li>
+                            Choose a permanent (301) redirect, without masking
+                            or framing. Enable HTTPS forwarding and keep page
+                            paths and query strings if available.
+                        </li>
+                        <li>
+                            Save, then test both http://{{ rootHostname }} and
+                            https://{{ rootHostname }}. Both should open your
+                            www site. Test a page address too if your site has
+                            multiple pages.
+                        </li>
+                    </ol>
+                    <p>
+                        Keep your www CNAME and verification records as shown
+                        above. If your provider does not support HTTPS
+                        forwarding, ask its support team for help or use the
+                        Cloudflare option below.
+                    </p>
+                </div>
+            </details>
+            <details
+                class="rounded-lg border border-[var(--workspace-line)] p-3 text-sm"
+            >
+                <summary
+                    class="cursor-pointer rounded font-semibold focus-visible:outline-2 focus-visible:outline-offset-4"
+                >
+                    Can I redirect my root domain with Cloudflare?
+                </summary>
+                <div class="mt-3 space-y-3">
+                    <p>
+                        If Cloudflare manages your domain's DNS, set up the
+                        redirect in your own domain's Cloudflare dashboard.
+                    </p>
+                    <ol class="list-decimal space-y-2 pl-5">
+                        <li>
+                            Select
+                            <strong class="break-all">{{
+                                rootHostname
+                            }}</strong>
+                            and make sure its root (@) DNS record is Proxied and
+                            its HTTPS certificate is active. Leave your www
+                            connection CNAME set to DNS only.
+                        </li>
+                        <li>
+                            Open Rules, then Redirect Rules, and create a Single
+                            Redirect.
+                        </li>
+                        <li>
+                            Match requests whose hostname equals
+                            <strong class="break-all">{{ rootHostname }}</strong
+                            >, for both HTTP and HTTPS.
+                        </li>
+                        <li>
+                            Set a permanent (301) redirect to
+                            <strong class="break-all"
+                                >https://{{ forwardingHostname }}</strong
+                            >, preserving the incoming path and query string.
+                        </li>
+                        <li>
+                            Deploy the rule, then test both HTTP and HTTPS root
+                            addresses and a page path.
+                        </li>
+                    </ol>
+                    <p>
+                        Follow
+                        <a
+                            href="https://developers.cloudflare.com/rules/url-forwarding/examples/redirect-root-to-www/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="font-semibold underline underline-offset-4"
+                            >Cloudflare's root-to-www guide (opens in a new
+                            tab)</a
+                        >. Its example covers HTTPS; include HTTP in your rule
+                        as well.
+                    </p>
+                </div>
+            </details>
+        </div>
         <p class="mt-2 font-semibold" role="status">{{ label }}</p>
         <p v-if="!domain.enabled" class="mt-2 text-sm">
             Domain setup is not available yet. Your shareable site remains

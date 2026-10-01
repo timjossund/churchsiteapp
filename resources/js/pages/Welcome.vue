@@ -1,14 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import {
-    ArrowRight,
-    Check,
-    Globe,
-    Layers,
-    MousePointer2,
-    Palette,
-    Plus,
-} from '@lucide/vue';
+import { ArrowRight, Check, Globe, Layers, Palette } from '@lucide/vue';
 import AppLogo from '@/components/AppLogo.vue';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import { dashboard, login, register } from '@/routes';
@@ -96,194 +88,105 @@ const steps = [
         </header>
 
         <main id="main">
-            <section
-                class="mx-auto grid max-w-7xl items-center gap-12 px-6 pt-12 pb-20 lg:grid-cols-[0.9fr_1.1fr] lg:gap-14 lg:px-10 lg:pt-20 lg:pb-28"
-            >
+            <section class="welcome-hero" aria-labelledby="hero-heading">
                 <div>
-                    <p class="marketing-eyebrow">
-                        A lot simpler. A lot more welcoming.
-                    </p>
-                    <h1
-                        class="mt-6 max-w-xl font-serif text-5xl leading-[1.06] tracking-tight sm:text-6xl lg:text-7xl"
-                    >
-                        Your church <br /><span
-                            class="text-[var(--workspace-green)]"
-                            >open Online.</span
-                        >
+                    <p class="eyebrow">A lot simpler. A lot more welcoming.</p>
+                    <h1 id="hero-heading">
+                        Your church.<br />A welcoming<br /><em>home online.</em>
                     </h1>
-                    <p class="mt-7 max-w-md text-lg leading-relaxed">
-                        A beautiful church website shouldn’t take you away from
-                        the people you serve. Build, update, and share yours
-                        with very simple tools that feel right at home.
+                    <p class="intro">
+                        Make your first hello a beautiful one. Build a website
+                        that feels like your church, with simple tools that
+                        leave more time for the people you serve.
                     </p>
-                    <div class="mt-8 flex flex-wrap items-center gap-5">
+                    <div class="actions">
                         <Link
                             :href="
                                 $page.props.auth.user ? dashboard() : register()
                             "
-                            class="marketing-button px-6 py-3"
+                            class="marketing-button hero-primary"
                             >{{
                                 $page.props.auth.user
                                     ? 'Open your dashboard'
                                     : 'Start building your site'
                             }}
-                            <ArrowRight class="size-4" aria-hidden="true"
-                        /></Link>
-                        <a
-                            href="#how-it-works"
-                            class="text-sm font-semibold underline decoration-[var(--workspace-line)] underline-offset-8"
+                            <ArrowRight class="size-4" aria-hidden="true" />
+                        </Link>
+                        <a class="secondary" href="#how-it-works"
                             >See how it works</a
                         >
                     </div>
-                    <p class="mt-5 flex items-center gap-2 text-sm">
-                        <Check
-                            class="size-4 text-[var(--workspace-green)]"
-                            aria-hidden="true"
-                        />
-                        Start building for free - no credit card required.
+                    <p class="free">
+                        <span aria-hidden="true">✓</span>Start building for
+                        free. No credit card required.
                     </p>
                 </div>
-
-                <figure class="min-w-0">
-                    <div
-                        class="relative rounded-[2rem] bg-[var(--workspace-green-soft)] p-4 sm:p-7"
-                    >
-                        <div
-                            class="overflow-hidden rounded-xl border border-[var(--workspace-line)] bg-[var(--workspace-surface)] shadow-xl shadow-black/5"
-                            aria-hidden="true"
-                        >
-                            <div
-                                class="flex items-center justify-between border-b border-[var(--workspace-line)] px-4 py-3 text-[10px] font-semibold sm:text-xs"
-                            >
-                                <span class="flex items-center gap-2"
-                                    ><AppLogoIcon
-                                        class="size-5 text-[var(--workspace-green)]"
-                                    />
-                                    Grace Church</span
-                                >
-                                <span
-                                    class="rounded-md bg-[var(--workspace-green)] px-3 py-1.5 text-white dark:text-[var(--workspace-surface)]"
-                                    >Publish</span
-                                >
-                            </div>
-                            <div
-                                class="grid grid-cols-[76px_1fr] sm:grid-cols-[112px_1fr]"
-                            >
-                                <div
-                                    class="border-r border-[var(--workspace-line)] bg-[var(--workspace-soft)] p-2 sm:p-3"
-                                >
-                                    <p
-                                        class="mb-4 text-[9px] font-bold tracking-widest uppercase"
-                                    >
-                                        Your blocks
-                                    </p>
-                                    <div
-                                        v-for="(block, index) in [
-                                            'Welcome',
-                                            'About us',
-                                            'Service times',
-                                            'Contact',
-                                        ]"
-                                        :key="block"
-                                        class="mb-2 flex items-center gap-1.5 rounded-md border p-2 text-[9px] sm:text-[10px]"
-                                        :class="
-                                            index === 0
-                                                ? 'border-[var(--workspace-green)] bg-[var(--workspace-green-soft)]'
-                                                : 'border-[var(--workspace-line)] bg-[var(--workspace-surface)]'
-                                        "
-                                    >
-                                        <span class="opacity-50">⠿</span
-                                        >{{ block }}
-                                    </div>
-                                    <span
-                                        class="mt-4 flex items-center justify-center gap-1 text-[9px] font-semibold"
-                                        ><Plus class="size-3" /> Add block</span
-                                    >
-                                </div>
-                                <div
-                                    class="min-w-0 bg-[#fffaf0] text-[#283d30]"
-                                >
-                                    <div
-                                        class="flex items-center justify-between px-4 py-3 text-[9px]"
-                                    >
-                                        <span class="font-serif font-bold"
-                                            >Grace Church</span
-                                        ><span>Welcome home</span>
-                                    </div>
-                                    <div
-                                        class="relative overflow-hidden bg-[#e5eddf] px-4 pt-7 pb-8 sm:px-6"
-                                    >
-                                        <div
-                                            class="absolute top-5 -right-5 h-48 w-28 rounded-t-full border-[18px] border-[#d0ddc6] sm:right-3 sm:w-36"
-                                        />
-                                        <div class="relative max-w-[220px]">
-                                            <p
-                                                class="text-[8px] font-bold tracking-[0.18em] uppercase"
-                                            >
-                                                There’s a place for you here
-                                            </p>
-                                            <p
-                                                class="mt-3 font-serif text-3xl leading-tight sm:text-4xl"
-                                            >
-                                                Life is better<br />together.
-                                            </p>
-                                            <p
-                                                class="mt-3 max-w-36 text-[10px] leading-relaxed"
-                                            >
-                                                Join us this Sunday. Come as you
-                                                are, and find your community.
-                                            </p>
-                                            <span
-                                                class="mt-4 inline-block rounded-md bg-[#2c6749] px-3 py-2 text-[9px] font-semibold text-white"
-                                                >Plan your visit</span
-                                            >
-                                        </div>
-                                    </div>
-                                    <div class="px-4 py-5 sm:px-6">
-                                        <p class="font-serif text-lg">
-                                            We’d love to meet you.
-                                        </p>
-                                        <div
-                                            class="mt-3 grid grid-cols-2 gap-3 text-[9px]"
-                                        >
-                                            <div
-                                                class="rounded-lg border border-[#d8dfcf] p-3"
-                                            >
-                                                <span
-                                                    class="block font-semibold"
-                                                    >Sunday worship</span
-                                                ><span class="mt-1 block"
-                                                    >10:00 AM</span
-                                                >
-                                            </div>
-                                            <div
-                                                class="rounded-lg border border-[#d8dfcf] p-3"
-                                            >
-                                                <span
-                                                    class="block font-semibold"
-                                                    >A place to belong</span
-                                                ><span class="mt-1 block"
-                                                    >Everyone is welcome.</span
-                                                >
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                <figure
+                    aria-label="Illustrative church website with a simple editing panel"
+                >
+                    <div class="backdrop" aria-hidden="true"></div>
+                    <div class="browser" aria-hidden="true">
+                        <div class="toolbar">
+                            <div class="dots"><i></i><i></i><i></i></div>
+                            <span class="address"
+                                >Grace Church · Site preview</span
+                            ><span class="live">Preview</span>
                         </div>
-                        <div
-                            aria-hidden="true"
-                            class="absolute -right-2 bottom-12 flex items-center gap-2 rounded-xl border border-[var(--workspace-line)] bg-[var(--workspace-surface)] px-4 py-3 text-xs font-semibold shadow-lg sm:right-0"
-                        >
-                            <MousePointer2
-                                class="size-4 text-[var(--workspace-green)]"
-                            />
-                            Make it yours.
+                        <div class="church">
+                            <div class="church-nav">
+                                <span class="church-brand">Grace Church</span>
+                                <div class="church-links">
+                                    <span>Our story</span><span>Sundays</span
+                                    ><span>Visit us ↗</span>
+                                </div>
+                            </div>
+                            <div class="church-hero">
+                                <div class="arch"></div>
+                                <div class="church-copy">
+                                    <p class="church-eyebrow">
+                                        There's a place for you here
+                                    </p>
+                                    <p class="church-title">
+                                        Life is better<br />together.
+                                    </p>
+                                    <p class="church-description">
+                                        Come as you are. Find your community.
+                                        We'd love to meet you this Sunday.
+                                    </p>
+                                    <span class="visit"
+                                        >Plan your visit &nbsp; →</span
+                                    >
+                                </div>
+                            </div>
+                            <div class="church-bottom">
+                                <p>A little hello. A new beginning.</p>
+                                <div class="church-details">
+                                    <div>
+                                        <strong>Join us on Sundays</strong>10:00
+                                        AM · Everyone welcome
+                                    </div>
+                                    <div>
+                                        <strong>Come find your people</strong>A
+                                        place to belong.
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <figcaption class="mt-4 text-center text-xs">
-                        An illustrative look inside the builder. Your story goes
-                        here.
+                    <div class="edit-card" aria-hidden="true">
+                        <div class="edit-label">
+                            <span>✣ &nbsp; Make it yours</span><span>•••</span>
+                        </div>
+                        <div class="field">
+                            Life is better together.<span class="caret"></span>
+                        </div>
+                        <div class="edit-footer">
+                            <div class="swatches"><i></i><i></i><i></i></div>
+                            <span>✓ Changes saved</span>
+                        </div>
+                    </div>
+                    <figcaption>
+                        Your words. Your welcome. Your website.
                     </figcaption>
                 </figure>
             </section>
@@ -497,5 +400,389 @@ const steps = [
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
+}
+.welcome-hero {
+    --surface: var(--workspace-surface);
+    --soft: var(--workspace-soft);
+    --border: var(--workspace-line);
+    --muted: var(--workspace-muted);
+    --accent: var(--workspace-green);
+    --accent-soft: var(--workspace-green-soft);
+    --preview-bg: #fffaf0;
+    --preview-text: #283d30;
+    --preview-soft: #e5eddf;
+    --preview-arch: #d0ddc6;
+    --preview-border: #d8dfcf;
+    --hero-serif: ui-serif, Georgia, Cambria, 'Times New Roman', serif;
+    --s1: 0.25rem;
+    --s2: 0.5rem;
+    --s3: 0.75rem;
+    --s4: 1rem;
+    --s5: 1.25rem;
+    --s6: 1.5rem;
+    --s8: 2rem;
+    --s10: 2.5rem;
+    --s12: 3rem;
+    --s16: 4rem;
+    --s20: 5rem;
+    --s24: 6rem;
+    --radius: 0.65rem;
+    --radius-lg: 1.5rem;
+    --pill: 999rem;
+    --shadow: 0 24px 60px rgb(31 50 35 / 10%);
+    --panel-shadow: 0 12px 32px rgb(31 50 35 / 12%);
+    width: min(calc(100% - 5rem), 1200px);
+    margin-inline: auto;
+    display: grid;
+    grid-template-columns: 1fr 1.15fr;
+    align-items: center;
+    gap: var(--s16);
+    padding-block: var(--s20) var(--s24);
+}
+.eyebrow {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    color: var(--accent);
+    font-size: 0.67rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+.eyebrow::before {
+    content: '';
+    width: 24px;
+    height: 1px;
+    background: var(--accent);
+}
+.welcome-hero h1 {
+    text-wrap: nowrap;
+    margin: var(--s6) 0;
+    font: 400 clamp(3.5rem, 5.2vw, 4.75rem)/1.04 var(--hero-serif);
+    letter-spacing: -0.055em;
+}
+.welcome-hero h1 em {
+    color: var(--accent);
+    font-weight: 400;
+}
+.intro {
+    max-width: 390px;
+    margin: 0;
+    color: var(--muted);
+    font-size: 1.03rem;
+    line-height: 1.85;
+}
+.actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--s6);
+    margin-top: var(--s8);
+}
+.secondary {
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+    padding-block: var(--s2);
+}
+.free {
+    color: var(--muted);
+    margin-top: var(--s5);
+    font-size: 0.73rem;
+}
+.free span {
+    color: var(--accent);
+    margin-right: var(--s2);
+}
+.welcome-hero figure {
+    position: relative;
+    min-width: 0;
+    margin: 0;
+    padding-block: var(--s6) var(--s10);
+}
+.backdrop {
+    position: absolute;
+    inset: 0 var(--s8) var(--s6) var(--s8);
+    border-radius: 48% 48% var(--radius-lg) var(--radius-lg);
+    background: var(--accent-soft);
+}
+.browser {
+    position: relative;
+    overflow: hidden;
+    margin-left: var(--s5);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+}
+.toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    padding: var(--s3) var(--s4);
+    border-bottom: 1px solid var(--border);
+    background: var(--soft);
+}
+.dots {
+    display: flex;
+    gap: var(--s1);
+}
+.dots i {
+    width: 5px;
+    height: 5px;
+    background: var(--border);
+    border-radius: var(--pill);
+}
+.address {
+    flex: 1;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.58rem;
+}
+.live {
+    display: flex;
+    align-items: center;
+    gap: var(--s1);
+    color: var(--accent);
+    font-size: 0.58rem;
+}
+.live::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: var(--pill);
+    background: var(--accent);
+}
+.church {
+    color: var(--preview-text);
+    background: var(--preview-bg);
+}
+.church-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--s5) var(--s6);
+}
+.church-brand {
+    font: 600 0.96rem var(--hero-serif);
+}
+.church-links {
+    display: flex;
+    gap: var(--s3);
+    font-size: 0.55rem;
+}
+.church-hero {
+    position: relative;
+    overflow: hidden;
+    background: var(--preview-soft);
+    padding: var(--s12) var(--s8) var(--s10);
+}
+.arch {
+    position: absolute;
+    width: 176px;
+    height: 274px;
+    right: -8px;
+    top: var(--s6);
+    border: 27px solid var(--preview-arch);
+    border-bottom: 0;
+    border-radius: var(--pill) var(--pill) 0 0;
+}
+.arch::after {
+    content: '';
+    position: absolute;
+    inset: var(--s4) var(--s4) 0;
+    border: 1px solid var(--preview-arch);
+    border-bottom: 0;
+    border-radius: var(--pill) var(--pill) 0 0;
+}
+.church-copy {
+    position: relative;
+    max-width: 280px;
+}
+.church-eyebrow {
+    margin: 0;
+    font-size: 0.54rem;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+}
+.church-title {
+    font: 400 2.9rem/1.08 var(--hero-serif);
+    letter-spacing: -0.035em;
+    margin: var(--s4) 0;
+}
+.church-description {
+    max-width: 175px;
+    font-size: 0.64rem;
+    line-height: 1.8;
+    margin-bottom: var(--s5);
+}
+.visit {
+    --accent: #2c6749;
+    --surface: #ffffff;
+    display: inline-block;
+    padding: var(--s3) var(--s4);
+    border-radius: var(--radius);
+    background: var(--accent);
+    color: var(--surface);
+    font-size: 0.62rem;
+    font-weight: 600;
+}
+.church-bottom {
+    padding: var(--s6) var(--s8) var(--s8);
+}
+.church-bottom p {
+    font: 400 1.25rem var(--hero-serif);
+    margin: 0 0 var(--s4);
+}
+.church-details {
+    display: flex;
+    gap: var(--s8);
+    font-size: 0.6rem;
+}
+.church-details strong {
+    display: block;
+    margin-bottom: var(--s1);
+}
+.edit-card {
+    position: absolute;
+    left: calc(-1 * var(--s8));
+    bottom: var(--s10);
+    width: 205px;
+    padding: var(--s4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: var(--panel-shadow);
+    transform: rotate(-3deg);
+}
+.edit-label {
+    display: flex;
+    justify-content: space-between;
+    color: var(--muted);
+    font-size: 0.56rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+.field {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: var(--s3);
+    margin-top: var(--s3);
+    font-size: 0.7rem;
+}
+.caret {
+    display: inline-block;
+    height: 0.85rem;
+    border-left: 1px solid var(--accent);
+    vertical-align: middle;
+}
+.edit-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: var(--s3);
+    font-size: 0.57rem;
+    color: var(--muted);
+}
+.swatches {
+    display: flex;
+    gap: var(--s1);
+}
+.swatches i {
+    width: 13px;
+    height: 13px;
+    border-radius: var(--pill);
+    border: 1px solid var(--preview-border);
+    background: var(--preview-bg);
+}
+.swatches i:first-child {
+    background: var(--accent);
+}
+.swatches i:last-child {
+    background: var(--preview-arch);
+}
+.welcome-hero figcaption {
+    position: absolute;
+    right: var(--s1);
+    bottom: 0;
+    color: var(--muted);
+    font-size: 0.67rem;
+}
+
+.hero-primary {
+    padding: 1rem 1.5rem;
+}
+@media (max-width: 1000px) {
+    .welcome-hero {
+        width: calc(100% - 3rem);
+        gap: 2rem;
+    }
+    .edit-card {
+        left: 0;
+    }
+    .church-title {
+        font-size: 2.5rem;
+    }
+    .arch {
+        right: -52px;
+    }
+}
+@media (max-width: 760px) {
+    .welcome-hero {
+        grid-template-columns: 1fr;
+        padding-block: 2.5rem 3rem;
+        gap: 2.5rem;
+    }
+    .welcome-hero h1 {
+        text-wrap: nowrap;
+        font-size: clamp(3.2rem, 9vw, 4.5rem);
+    }
+    .intro {
+        max-width: 480px;
+    }
+    .welcome-hero figure {
+        max-width: 540px;
+        width: 100%;
+        margin-inline: auto;
+    }
+    .arch {
+        right: 1rem;
+    }
+}
+@media (max-width: 420px) {
+    .welcome-hero {
+        width: calc(100% - 2rem);
+    }
+    .actions {
+        gap: 1.25rem;
+    }
+    .church-links {
+        display: none;
+    }
+    .church-hero {
+        padding: 2rem 1.25rem;
+    }
+    .church-title {
+        font-size: 2.45rem;
+    }
+    .arch {
+        right: -70px;
+    }
+    .church-bottom {
+        padding-inline: 1.25rem;
+        padding-bottom: 5rem;
+    }
+    .edit-card {
+        width: 185px;
+        bottom: 2.5rem;
+    }
+    .welcome-hero figcaption {
+        font-size: 0.6rem;
+    }
+    .church-details {
+        gap: 1.25rem;
+    }
 }
 </style>

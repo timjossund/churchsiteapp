@@ -228,6 +228,11 @@ export async function forwardRequest(
             'Cache-Control': 'no-store',
             'X-Content-Type-Options': 'nosniff',
         });
+        if (kind === 'html' && upstream.headers.has('Content-Security-Policy'))
+            safeHeaders.set(
+                'Content-Security-Policy',
+                upstream.headers.get('Content-Security-Policy'),
+            );
         if (kind !== 'html')
             safeHeaders.set('X-Robots-Tag', 'noindex, nofollow');
         if (request.method === 'HEAD')

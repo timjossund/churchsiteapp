@@ -98,7 +98,7 @@ test('appearance overrides save normalize reload and preserve on unrelated updat
         'appearance' => [...$appearance, 'accent_color' => ' #ABCDEF '],
     ])->assertRedirect();
     expect($site->fresh()->appearance)->toBe($appearance);
-    $this->get(route('sites.show', $site))->assertInertia(fn (Assert $page) => $page->where('site.appearance', $appearance));
+    $this->get(route('sites.show', $site))->assertInertia(fn (Assert $page) => $page->where('site.appearance', SiteAppearance::normalize($appearance)));
     $this->patch(route('sites.update', $site), ['theme_key' => 'clean'])->assertRedirect();
     expect($site->fresh()->appearance)->toBe($appearance);
     $this->patch(route('sites.update', $site), ['appearance' => [...$appearance, 'accent_color' => '  ']])->assertRedirect();
@@ -114,6 +114,8 @@ test('appearance rejects invalid data without changing saved settings', function
     expect($site->fresh()->appearance)->toBeNull();
 })->with([
     ['invalid', 'appearance'],
+    [['show_site_title' => 'false'], 'appearance.show_site_title'],
+    [['show_site_title' => 0], 'appearance.show_site_title'],
     [['font_pairing' => 'unknown'], 'appearance.font_pairing'],
     [['font_pairing' => ['modern']], 'appearance.font_pairing'],
     [['button_shape' => 'triangle'], 'appearance.button_shape'],
@@ -134,7 +136,7 @@ test('appearance is owner scoped and changes only in the next publication', func
     expect($site->fresh()->published_snapshot)->toBe($snapshot);
     $this->get(route('sites.show', $site))->assertInertia(fn (Assert $page) => $page->where('site.has_unpublished_changes', true));
     $this->get(route('sites.pages.show', [$site, $site->homePage()->firstOrFail()]))
-        ->assertInertia(fn (Assert $page) => $page->where('site.appearance', $appearance));
+        ->assertInertia(fn (Assert $page) => $page->where('site.appearance', SiteAppearance::normalize($appearance)));
     $this->post(route('sites.publish', $site))->assertRedirect();
     expect($site->fresh()->published_snapshot['site']['appearance'])->toBe($appearance);
     $this->get(route('sites.published.show', $site->slug))->assertOk();
@@ -188,4 +190,35 @@ test('preview and publication share readable derived colors without changing the
     $this->patch(route('sites.update', $site), ['appearance' => ['accent_color' => null]])->assertRedirect();
     $this->post(route('sites.publish', $site))->assertRedirect();
     $this->get(route('sites.published.show', $site->slug))->assertDontSee('--site-preview-accent:', false);
+});
+
+test('header title visibility persists and publishes with logo-only and no-logo fallback', function () {
+    $site = Site::factory()->create(['slug' => 'header-title', 'name' => 'Header Church']);
+    $asset = $site->mediaAssets()->create(['storage_key' => "sites/{$site->id}/logo", 'mime_type' => 'image/png', 'alt_text' => 'Church logo']);
+    $site->update(['logo_media_asset_id' => $asset->id]);
+    $this->actingAs($site->user)->post(route('sites.publish', $site))->assertRedirect();
+    $url = route('sites.published.show', $site->slug);
+    $this->get($url)->assertOk()->assertDontSee('<h1 class="sr-only">', false);
+
+    $this->patch(route('sites.update', $site), ['appearance' => ['show_site_title' => false]])
+        ->assertRedirect()->assertSessionHasNoErrors();
+    expect($site->fresh()->appearance['show_site_title'])->toBeFalse()
+        ->and($site->fresh()->name)->toBe('Header Church');
+    $this->get(route('sites.show', $site))->assertInertia(fn (Assert $page) => $page->where('site.appearance.show_site_title', false));
+    $this->get(route('sites.pages.show', [$site, $site->homePage()->firstOrFail()]))
+        ->assertInertia(fn (Assert $page) => $page->where('site.appearance.show_site_title', false));
+    $this->get($url)->assertOk()->assertDontSee('<h1 class="sr-only">', false);
+    $this->post(route('sites.publish', $site))->assertRedirect();
+    $this->get($url)->assertOk()->assertSee('<h1 class="sr-only">', false)
+        ->assertSee('Header Church')->assertSee('alt="Church logo"', false);
+
+    $site->update(['logo_media_asset_id' => null]);
+    $this->get($url)->assertOk()->assertSee('<h1 class="sr-only">', false);
+    $this->post(route('sites.publish', $site))->assertRedirect();
+    $this->get($url)->assertOk()->assertDontSee('<h1 class="sr-only">', false)->assertSee('Header Church');
+
+    $site->update(['logo_media_asset_id' => $asset->id]);
+    $this->patch(route('sites.update', $site), ['appearance' => ['show_site_title' => true]])->assertRedirect();
+    $this->post(route('sites.publish', $site))->assertRedirect();
+    $this->get($url)->assertOk()->assertDontSee('<h1 class="sr-only">', false);
 });

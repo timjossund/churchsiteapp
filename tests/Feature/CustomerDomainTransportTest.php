@@ -3,6 +3,7 @@
 use App\Actions\BuildSitePublicationSnapshot;
 use App\Actions\ReserveCustomHostname;
 use App\Models\Site;
+use App\Support\EmbedFramePolicy;
 use App\Support\PublishedAssets;
 use Illuminate\Support\Facades\Storage;
 
@@ -27,6 +28,21 @@ function customerRequest(string $path = '/', string $method = 'GET')
     return test()->withHeader('X-Churchsite-Original-Url', 'https://www.example.org'.$path)
         ->{strtolower($method)}('https://churchsite.app/_domain/request');
 }
+
+it('serves frozen contact maps through the customer domain transport', function () {
+    $block = $this->site->homePage()->firstOrFail()->blocks()->create([
+        'type' => 'contact', 'position' => 0,
+        'content' => ['heading' => 'Visit us', 'email' => '', 'phone' => '', 'address' => '123 Main St',
+            'map' => ['enabled' => true, 'url' => 'https://www.openstreetmap.org/?mlat=35.084491&mlon=-92.518695']],
+    ]);
+    $this->site->update(['published_snapshot' => app(BuildSitePublicationSnapshot::class)($this->site)]);
+    $block->update(['content' => ['heading' => 'Private draft', 'email' => '', 'phone' => '']]);
+    customerRequest()->assertOk()->assertSee('marker=35.084491%2C-92.518695', false)
+        ->assertSee('OpenStreetMap contributors')->assertSee('Get directions')->assertDontSee('Private draft')
+        ->assertHeader('X-Churchsite-Content', 'html')->assertHeaderMissing('Set-Cookie');
+    $this->domain->forceFill(['ssl_status' => 'pending'])->save();
+    customerRequest()->assertNotFound()->assertDontSee('export/embed.html', false);
+});
 
 it('renders frozen pages with same-host links and no session or preview noindex', function () {
     $this->site->update(['name' => 'Private draft']);
@@ -139,4 +155,43 @@ it('ignores sharing queries while keeping canonical same-host metadata', functio
         ->assertOk()->assertSee('property="og:url" content="https://www.example.org/about"', false)
         ->assertDontSee('utm_source')->assertDontSee('evil.example');
     customerRequest('/?')->assertOk();
+});
+
+it('serves frozen calendars with frame restrictions through the customer transport', function () {
+    $block = $this->site->homePage()->firstOrFail()->blocks()->create(['type' => 'embed', 'position' => 0,
+        'content' => ['heading' => 'Church calendar', 'url' => 'https://calendar.google.com/calendar/embed?src=events']]);
+    $this->site->update(['published_snapshot' => app(BuildSitePublicationSnapshot::class)($this->site)]);
+    $block->update(['content' => ['heading' => 'Private draft', 'url' => '']]);
+    customerRequest()->assertOk()->assertSee('Church calendar')->assertDontSee('Private draft')
+        ->assertSee('sandbox="allow-scripts allow-same-origin"', false)
+        ->assertHeader('Content-Security-Policy', EmbedFramePolicy::POLICY);
+});
+
+it('serves a frozen favicon on every customer page and through PNG GET HEAD transport', function () {
+    $icon = $this->site->mediaAssets()->create(['storage_key' => "sites/{$this->site->id}/favicon", 'mime_type' => 'image/png', 'alt_text' => '']);
+    $bytes = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6Z9kAAAAASUVORK5CYII=');
+    Storage::disk('s3')->put($icon->storage_key, $bytes);
+    $this->site->update(['favicon_media_asset_id' => $icon->id]);
+    $this->site->update(['published_snapshot' => app(BuildSitePublicationSnapshot::class)($this->site->fresh())]);
+    $this->site->update(['favicon_media_asset_id' => null]);
+    foreach (['/', '/about'] as $path) {
+        $html = customerRequest($path)->assertOk()->assertSee('type="image/png" href="https://www.example.org/_media/'.$icon->id.'"', false)
+            ->assertDontSee('/favicon.ico', false)->assertDontSee('/favicon.svg', false)->getContent();
+        expect(substr_count($html, 'rel="icon"'))->toBe(1);
+    }
+    customerRequest('/_media/'.$icon->id)->assertOk()->assertStreamedContent($bytes)->assertHeader('Content-Type', 'image/png')
+        ->assertHeader('X-Churchsite-Content', 'media')->assertHeaderMissing('Set-Cookie');
+    customerRequest('/_media/'.$icon->id, 'HEAD')->assertOk()->assertContent('')->assertHeader('Content-Type', 'image/png');
+    $this->site->update(['published_snapshot' => app(BuildSitePublicationSnapshot::class)($this->site->fresh())]);
+    customerRequest()->assertOk()->assertSee('href="https://churchsite.app/favicon.ico"', false)
+        ->assertSee('href="https://churchsite.app/favicon.svg"', false);
+    customerRequest('/_media/'.$icon->id)->assertNotFound();
+});
+
+it('keeps default customer favicon links on the trusted platform origin without adding worker root paths', function () {
+    customerRequest()->assertOk()->assertSee('href="https://churchsite.app/favicon.ico"', false)
+        ->assertSee('href="https://churchsite.app/favicon.svg"', false)->assertDontSee('href="/favicon.ico"', false);
+    expect(is_file(public_path('favicon.ico')))->toBeTrue()->and(is_file(public_path('favicon.svg')))->toBeTrue();
+    customerRequest('/favicon.ico')->assertNotFound();
+    customerRequest('/favicon.svg')->assertNotFound();
 });

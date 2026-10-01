@@ -20,7 +20,7 @@ class StoreSiteBlockRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'type' => ['required', 'string', Rule::in(['about', 'plain_text', 'heading_text', 'hero', 'service_times', 'contact', 'image', 'text_image', 'video'])],
+            'type' => ['required', 'string', Rule::in(['about', 'plain_text', 'heading_text', 'hero', 'service_times', 'contact', 'image', 'text_image', 'video', 'embed'])],
             'site_id' => ['prohibited'],
             'position' => ['prohibited'],
             'content' => ['prohibited'],

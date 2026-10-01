@@ -19,9 +19,13 @@
         <meta property="og:image" content="{{ $socialImageUrl }}">
     @endif
     <meta property="og:url" content="{{ $pageUrl }}">
+    @if ($faviconUrl)
+        <link rel="icon" type="image/png" href="{{ $faviconUrl }}">
+    @else
+        <link rel="icon" href="{{ $defaultIconBase }}/favicon.ico" sizes="any">
+        <link rel="icon" href="{{ $defaultIconBase }}/favicon.svg" type="image/svg+xml">
+    @endif
     @unless ($customDomain)
-    <link rel="icon" href="/favicon.ico" sizes="any">
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     @fonts
     @vite(['resources/css/app.css', 'resources/js/published.ts'])
@@ -46,7 +50,7 @@
                             class="h-[75px] w-auto max-w-full shrink-0 object-contain object-left"
                         >
                     @endif
-                    <h1 class="min-w-0 font-serif text-2xl font-semibold tracking-tight break-words">
+                    <h1 class="{{ $site['appearance']['show_site_title'] || empty($site['logo_media_asset_id']) || ! isset($mediaUrls[(string) $site['logo_media_asset_id']]) ? 'min-w-0 font-serif text-2xl font-semibold tracking-tight break-words' : 'sr-only' }}">
                         {{ $site['name'] }}
                     </h1>
                 </div>
@@ -97,7 +101,7 @@
             @php($imageRatio = in_array($style['image_ratio'] ?? null, ['landscape', 'square', 'portrait'], true) ? $style['image_ratio'] : 'original')
             @php($cropPosition = in_array($style['crop_position'] ?? null, ['top', 'bottom'], true) ? $style['crop_position'] : 'center')
             @php($cornerStyle = in_array($style['corner_style'] ?? null, ['square', 'rounded'], true) ? $style['corner_style'] : 'current')
-            <section id="block-{{ $block['id'] }}" data-block-type="{{ $block['type'] }}" data-spacing="{{ $spacing }}" data-content-width="{{ $contentWidth }}" data-heading-size="{{ $headingSize }}" data-background="{{ $background }}" @if ($block['type'] === 'hero') data-height="{{ $style['height'] ?? 'current' }}" data-overlay="{{ $style['overlay'] ?? 'medium' }}" data-motion="{{ $style['motion'] ?? 'normal' }}" @if ($block['image_url']) data-has-image="true" @endif @endif class="site-block {{ $block['type'] === 'hero' ? 'site-hero' : '' }} border-b border-[var(--site-preview-border)] px-6 py-12 last:border-b-0 sm:px-10 {{ $alignment === 'center' ? 'text-center' : '' }}">
+            <section id="block-{{ $block['id'] }}" data-block-type="{{ $block['type'] }}" data-spacing="{{ $spacing }}" data-content-width="{{ $contentWidth }}" data-heading-size="{{ $headingSize }}" data-background="{{ $background }}" @if ($block['type'] === 'hero') data-height="{{ $style['height'] ?? 'current' }}" data-overlay="{{ $style['overlay'] ?? 'medium' }}" data-motion="{{ $style['motion'] ?? 'normal' }}" data-text-background="{{ ($style['text_background'] ?? true) !== false ? 'true' : 'false' }}" @if ($block['image_url']) data-has-image="true" @endif @endif class="site-block {{ $block['type'] === 'hero' ? 'site-hero' : '' }} border-b border-[var(--site-preview-border)] px-6 py-12 last:border-b-0 sm:px-10 {{ $alignment === 'center' ? 'text-center' : '' }}">
                 @if ($block['type'] === 'hero' && $block['image_url'])
                     <img src="{{ $block['image_url'] }}" alt="" class="site-hero-image">
                 @endif
@@ -164,35 +168,48 @@
                             @break
 
                         @case('contact')
-                            <h2 class="font-serif text-2xl">{{ $block['heading'] }}</h2>
-                            @if (! empty($content['email']) || ! empty($content['phone']) || $block['address_text'] !== '')
-                                <div class="mt-5 flex flex-col gap-3 {{ $alignment === 'center' ? 'items-center' : 'items-start' }}">
-                                    @if (! empty($content['email']))
-                                        @if ($block['email_href'])
-                                            <a href="{{ $block['email_href'] }}" class="text-[var(--site-preview-accent)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]">{{ $content['email'] }}</a>
-                                        @else
-                                            <span class="text-[var(--site-preview-muted)]">{{ $content['email'] }}</span>
-                                        @endif
+                            <div class="{{ $block['map_links'] !== null ? 'grid items-start gap-6 md:grid-cols-2' : '' }}">
+                                <div class="min-w-0">
+                                    <h2 class="font-serif text-2xl">{{ $block['heading'] }}</h2>
+                                    @if (! empty($content['email']) || ! empty($content['phone']) || $block['address_text'] !== '')
+                                        <div class="mt-5 flex flex-col gap-3 {{ $alignment === 'center' ? 'items-center' : 'items-start' }}">
+                                            @if (! empty($content['email']))
+                                                @if ($block['email_href'])
+                                                    <a href="{{ $block['email_href'] }}" class="text-[var(--site-preview-accent)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]">{{ $content['email'] }}</a>
+                                                @else
+                                                    <span class="text-[var(--site-preview-muted)]">{{ $content['email'] }}</span>
+                                                @endif
+                                            @endif
+                                            @if (! empty($content['phone']))
+                                                @if ($block['phone_href'])
+                                                    <a href="{{ $block['phone_href'] }}" class="text-[var(--site-preview-accent)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]">{{ $content['phone'] }}</a>
+                                                @else
+                                                    <span class="text-[var(--site-preview-muted)]">{{ $content['phone'] }}</span>
+                                                @endif
+                                            @endif
+                                            @if ($block['address_text'] !== '')
+                                                <address class="text-[var(--site-preview-muted)] break-words whitespace-pre-line not-italic">{{ $block['address_text'] }}</address>
+                                                <a href="{{ $block['directions_href'] }}" target="_blank" rel="noopener noreferrer" class="text-[var(--site-preview-accent)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]">Get directions</a>
+                                            @endif
+                                           </div>
                                     @endif
-                                    @if (! empty($content['phone']))
-                                        @if ($block['phone_href'])
-                                            <a href="{{ $block['phone_href'] }}" class="text-[var(--site-preview-accent)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]">{{ $content['phone'] }}</a>
-                                        @else
-                                            <span class="text-[var(--site-preview-muted)]">{{ $content['phone'] }}</span>
-                                        @endif
-                                    @endif
-                                    @if ($block['address_text'] !== '')
-                                        <address class="text-[var(--site-preview-muted)] break-words whitespace-pre-line not-italic">{{ $block['address_text'] }}</address>
-                                        <a href="{{ $block['directions_href'] }}" target="_blank" rel="noopener noreferrer" class="text-[var(--site-preview-accent)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]">Get directions</a>
-                                    @endif
-                                   </div>
-                            @endif
+                                </div>
+                                @if ($block['map_links'] !== null)
+                                    <div class="min-w-0 w-full space-y-2">
+                                        <iframe src="{{ $block['map_links']['embed_url'] }}" title="Location map: {{ $block['heading'] }}" loading="lazy" class="aspect-video min-h-64 w-full rounded-xl border border-[var(--site-preview-border)]"></iframe>
+                                        <p class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-[var(--site-preview-muted)]">
+                                            <a href="{{ $block['map_links']['location_url'] }}" target="_blank" rel="noopener noreferrer" class="text-[var(--site-preview-accent)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]">View on OpenStreetMap</a>
+                                            <span>Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" class="underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-preview-accent)]">OpenStreetMap contributors</a></span>
+                                        </p>
+                                    </div>
+                                @endif
+                            </div>
                             @break
 
                         @case('image')
                             @if ($block['image_url'])
                                 <figure class="{{ $alignment === 'center' ? 'mx-auto max-w-3xl' : '' }}">
-                                    <div data-image-ratio="{{ $imageRatio }}" data-crop-position="{{ $cropPosition }}" data-corner-style="{{ $cornerStyle }}" class="site-image-frame overflow-hidden rounded-xl border border-[var(--site-preview-border)] bg-[var(--site-preview-soft)]">
+                                    <div data-image-ratio="{{ $imageRatio }}" data-crop-position="{{ $cropPosition }}" data-corner-style="{{ $cornerStyle }}" class="site-image-frame overflow-hidden rounded-xl border-0 bg-[var(--site-preview-soft)]">
                                         <img src="{{ $block['image_url'] }}" alt="{{ $block['image_alt'] }}" class="max-h-[32rem] w-full object-contain">
                                     </div>
                                     @if (is_string($content['caption'] ?? null) && $content['caption'] !== '')
@@ -215,7 +232,7 @@
                                    </div>
                                 @if ($block['image_url'])
                                     <figure class="{{ $imageOnLeft ? 'md:order-1' : 'md:order-2' }}">
-                                        <div data-image-ratio="{{ $imageRatio }}" data-crop-position="{{ $cropPosition }}" data-corner-style="{{ $cornerStyle }}" class="site-image-frame overflow-hidden rounded-xl border border-[var(--site-preview-border)] bg-[var(--site-preview-soft)]">
+                                        <div data-image-ratio="{{ $imageRatio }}" data-crop-position="{{ $cropPosition }}" data-corner-style="{{ $cornerStyle }}" class="site-image-frame overflow-hidden rounded-xl border-0 bg-[var(--site-preview-soft)]">
                                             <img src="{{ $block['image_url'] }}" alt="{{ $block['image_alt'] }}" class="max-h-[32rem] min-h-56 w-full object-contain">
                                         </div>
                                         @if (is_string($content['caption'] ?? null) && $content['caption'] !== '')
@@ -224,6 +241,17 @@
                                     </figure>
                                 @endif
                                </div>
+                            @break
+
+                        @case('embed')
+                            <h2 class="font-serif text-3xl font-semibold tracking-tight break-words">{{ $block['heading'] }}</h2>
+                            @if ($block['calendar_embed_url'])
+                                <iframe src="{{ $block['calendar_embed_url'] }}" title="Google Calendar: {{ $block['heading'] }}" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer" loading="lazy" allow="camera 'none'; microphone 'none'; geolocation 'none'; payment 'none'" class="mt-6 h-[600px] w-full rounded-xl border-0"></iframe>
+                                <a href="{{ $block['calendar_embed_url'] }}" target="_blank" rel="noopener noreferrer" aria-label="Open {{ $block['heading'] }} in Google Calendar" class="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-[var(--site-preview-accent)] underline underline-offset-4">Open calendar</a>
+                                <p class="text-sm text-[var(--site-preview-muted)]">If the calendar does not appear, open it in Google Calendar.</p>
+                            @else
+                                <p class="mt-6 text-sm text-[var(--site-preview-muted)]">Calendar is not available.</p>
+                            @endif
                             @break
 
                         @case('video')

@@ -30,10 +30,15 @@ Features 1-5 establish the editor and single-page publishing baseline. The next 
 - [x] 13. **Church information blocks** - Add service-time layout choices and contact addresses with directions links.
 - [x] 14. **Site-wide styling** - Add font pairings, an editable accent color, and consistent button styles across the site.
 - [x] 17. **Public homepage and branding** - Replace the starter welcome screen with a builder-styled public homepage and a doorway/arch Church Site App logo shared across the homepage, dashboard, and auth pages.
-- [ ] 15. **Rich text block** - Add a dedicated block for formatted text, bulleted and numbered lists, and nested outlines, with safe published rendering and matching editor previews.
+
+- [x] 18. **Contact map** - Add an optional OpenStreetMap embed with an owner-selected location pin to contact blocks, matching editor previews and published pages while retaining directions links.
+
+- [x] 19. **Embed block** - Securely embed Google Calendar from a validated URL, with restricted iframe permissions and matching editor previews and published pages.
+
+- [x] 20. **Custom site favicons** - Let owners upload, preview, replace, and remove a square PNG favicon in Site Settings; publish it across all pages and custom domains, retaining the default icon when unset.
 
 ## Planning TODOs
 
 - Prove the Worker forwarding path in Feature 7a before rolling out self-service customer domains in Feature 7b.
 - Choose the MySQL hosting arrangement and final deployment setup.
-- Define exact style presets and controls in each feature spec; define the rich text toolbar, nesting behavior, and stored document format before implementing Feature 15.
+- Define exact style presets and controls in any future feature specs.

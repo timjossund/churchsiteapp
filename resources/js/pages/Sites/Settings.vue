@@ -2,11 +2,13 @@
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import SiteMediaController from '@/actions/App/Http/Controllers/SiteMediaController';
+import SitePublishingController from '@/actions/App/Http/Controllers/SitePublishingController';
 import DeleteSite from '@/components/sites/DeleteSite.vue';
 import PageManager from '@/components/sites/PageManager.vue';
 import { dashboard } from '@/routes';
 import { goLive } from '@/routes/sites';
 type SiteAppearance = {
+    show_site_title: boolean;
     font_pairing: 'theme' | 'traditional' | 'modern' | 'editorial' | 'classy';
     accent_color: string | null;
     button_shape: 'theme' | 'rounded' | 'pill' | 'square';
@@ -15,6 +17,7 @@ function appearanceDefaults(
     value: Partial<SiteAppearance> | null,
 ): SiteAppearance {
     return {
+        show_site_title: true,
         font_pairing: 'theme',
         accent_color: null,
         button_shape: 'theme',
@@ -32,7 +35,9 @@ const props = defineProps<{
         slug: string | null;
         published_at: string | null;
         published_url: string | null;
+        live_url: string | null;
         has_unpublished_changes: boolean;
+        favicon: { media_asset_id: number; url: string } | null;
         logo: {
             media_asset_id: number;
             url: string;
@@ -63,6 +68,9 @@ const siteThemes: { key: SiteTheme; label: string; description: string }[] = [
 const pagePending = ref(false);
 const deletionPending = ref(false);
 const pageNamesDirty = ref(false);
+const publishForm = useForm({});
+const publishError = ref('');
+const publishStatus = ref('');
 let ownVisit = false;
 function runOwnVisit(submit: () => void) {
     ownVisit = true;
@@ -135,6 +143,7 @@ const footerTextInput = ref<HTMLInputElement | null>(null);
 const siteSlugInput = ref<HTMLInputElement | null>(null);
 const nameSaved = ref(false);
 const nameError = ref('');
+const siteTitleInput = ref<HTMLInputElement | null>(null);
 const appearanceSaved = ref(false);
 const appearanceError = ref('');
 const logoDraftAltText = ref(props.site.logo?.alt_text ?? '');
@@ -151,7 +160,18 @@ const logoUploadForm = useForm<{ image: File | null; alt_text: string }>({
 });
 const logoAltTextForm = useForm<{ alt_text: string }>({ alt_text: '' });
 const logoClearForm = useForm({});
-const uploadInProgress = computed(() => logoUploadForm.processing);
+const faviconFileInput = ref<HTMLInputElement | null>(null);
+const faviconUploadPreviewUrl = ref<string | null>(null);
+const faviconStatus = ref('');
+const faviconError = ref('');
+const faviconUploadForm = useForm<{ image: File | null }>({ image: null });
+const faviconClearForm = useForm({});
+const uploadInProgress = computed(
+    () =>
+        logoUploadForm.processing ||
+        faviconUploadForm.processing ||
+        faviconClearForm.processing,
+);
 const editorWriteInProgress = computed(
     () =>
         deletionPending.value ||
@@ -160,7 +180,8 @@ const editorWriteInProgress = computed(
         nameForm.processing ||
         appearanceForm.processing ||
         logoAltTextForm.processing ||
-        logoClearForm.processing,
+        logoClearForm.processing ||
+        publishForm.processing,
 );
 const pendingFocus = ref<HTMLElement | null>(null);
 function queueFocus(element: HTMLElement | null) {
@@ -187,6 +208,51 @@ const hasUnsavedEditorChanges = computed(
 );
 const isLogoAltTextDirty = computed(
     () => logoDraftAltText.value !== (props.site.logo?.alt_text ?? ''),
+);
+
+function publishSite() {
+    if (editorWriteInProgress.value) return;
+    publishError.value = '';
+    publishStatus.value = '';
+    if (hasUnsavedEditorChanges.value) {
+        publishError.value =
+            'Save your settings and page names before publishing.';
+        return;
+    }
+    if (!props.site.slug) {
+        publishError.value =
+            'Choose and save a shareable address before publishing.';
+        queueFocus(siteSlugInput.value);
+        return;
+    }
+    runOwnVisit(() =>
+        publishForm.post(SitePublishingController.publish(props.site.id).url, {
+            preserveScroll: true,
+            onSuccess: () => {
+                publishStatus.value = 'Your saved site is now published.';
+            },
+            onError: (errors) => {
+                publishError.value =
+                    errors.slug ??
+                    errors.publish ??
+                    'We could not publish the site. Please review your saved pages and try again.';
+                if (errors.slug) queueFocus(siteSlugInput.value);
+            },
+            onNetworkError: () => {
+                publishError.value =
+                    'We could not reach the server. Please try publishing again.';
+                return false;
+            },
+        }),
+    );
+}
+
+watch(
+    [hasUnsavedEditorChanges, () => props.site.has_unpublished_changes],
+    ([unsaved, unpublished]) => {
+        publishError.value = '';
+        if (unsaved || unpublished) publishStatus.value = '';
+    },
 );
 
 watch(
@@ -283,6 +349,7 @@ function saveAppearance() {
                     !fieldErrors['appearance.font_pairing'] &&
                     !fieldErrors['appearance.accent_color'] &&
                     !fieldErrors['appearance.button_shape'] &&
+                    !fieldErrors['appearance.show_site_title'] &&
                     !fieldErrors.theme_key &&
                     !fieldErrors['footer.text'] &&
                     !fieldErrors.slug
@@ -300,6 +367,8 @@ function saveAppearance() {
                         queueFocus(accentInput.value);
                     else if (fieldErrors['appearance.button_shape'])
                         queueFocus(shapeInput.value);
+                    else if (fieldErrors['appearance.show_site_title'])
+                        queueFocus(siteTitleInput.value);
                     else if (fieldErrors.theme_key)
                         queueFocus(themeInput.value);
                     else if (fieldErrors['footer.text'])
@@ -419,7 +488,7 @@ function selectLogoFile(event: Event) {
 }
 
 function saveLogoAltText() {
-    if (uploadInProgress.value) return;
+    if (editorWriteInProgress.value) return;
     const logo = props.site.logo;
     if (
         !logo ||
@@ -467,7 +536,7 @@ function saveLogoAltText() {
 }
 
 function clearLogo() {
-    if (uploadInProgress.value) return;
+    if (editorWriteInProgress.value) return;
     if (
         !props.site.logo ||
         logoClearForm.processing ||
@@ -511,7 +580,123 @@ function clearLogo() {
     );
 }
 
-onUnmounted(() => releaseLogoUploadPreview());
+function resetFaviconUpload() {
+    if (faviconUploadPreviewUrl.value)
+        URL.revokeObjectURL(faviconUploadPreviewUrl.value);
+    faviconUploadPreviewUrl.value = null;
+    faviconUploadForm.image = null;
+    faviconUploadForm.progress = null;
+    if (faviconFileInput.value) faviconFileInput.value.value = '';
+}
+
+function clearFaviconFeedback() {
+    faviconUploadForm.clearErrors();
+    faviconClearForm.clearErrors();
+    faviconError.value = '';
+    faviconStatus.value = '';
+}
+
+function selectFaviconFile(event: Event) {
+    if (editorWriteInProgress.value) return;
+    const input = event.currentTarget;
+    const file =
+        input instanceof HTMLInputElement ? input.files?.[0] : undefined;
+    if (!file) return;
+    resetFaviconUpload();
+    clearFaviconFeedback();
+    if (file.size > 5 * 1024 * 1024) {
+        faviconError.value = 'Choose a square PNG that is 5 MB or smaller.';
+        nextTick(() => queueFocus(faviconFileInput.value));
+        return;
+    }
+    faviconUploadForm.image = file;
+    faviconUploadPreviewUrl.value = URL.createObjectURL(file);
+    faviconStatus.value = 'Uploading favicon...';
+    runOwnVisit(() =>
+        faviconUploadForm.post(
+            SiteMediaController.uploadFavicon({ site: props.site.id }).url,
+            {
+                forceFormData: true,
+                preserveState: true,
+                preserveScroll: true,
+                only: ['site'],
+                onSuccess: () => {
+                    faviconStatus.value =
+                        'Favicon uploaded. Publish to update your site.';
+                },
+                onError: (errors) => {
+                    faviconStatus.value = '';
+                    faviconError.value =
+                        errors.image ??
+                        'We could not upload this favicon. Please try again.';
+                    nextTick(() => queueFocus(faviconFileInput.value));
+                },
+                onCancel: () => {
+                    faviconStatus.value = '';
+                },
+                onHttpException: () => {
+                    faviconStatus.value = '';
+                    faviconError.value =
+                        'We could not upload this favicon. Please try again.';
+                    return false;
+                },
+                onNetworkError: () => {
+                    faviconStatus.value = '';
+                    faviconError.value =
+                        'We could not upload this favicon. Please try again.';
+                    return false;
+                },
+                onFinish: resetFaviconUpload,
+            },
+        ),
+    );
+}
+
+function clearFavicon() {
+    if (editorWriteInProgress.value || !props.site.favicon) return;
+    clearFaviconFeedback();
+    runOwnVisit(() =>
+        faviconClearForm.delete(
+            SiteMediaController.clearFavicon({ site: props.site.id }).url,
+            {
+                preserveState: true,
+                preserveScroll: true,
+                only: ['site'],
+                onSuccess: () => {
+                    faviconStatus.value =
+                        'Favicon removed. Publish to restore the default icon.';
+                },
+                onError: () => {
+                    faviconError.value =
+                        'We could not remove this favicon. Please try again.';
+                    nextTick(() => queueFocus(faviconFileInput.value));
+                },
+                onHttpException: () => {
+                    faviconError.value =
+                        'We could not remove this favicon. Please try again.';
+                    return false;
+                },
+                onNetworkError: () => {
+                    faviconError.value =
+                        'We could not remove this favicon. Please try again.';
+                    return false;
+                },
+            },
+        ),
+    );
+}
+
+watch(
+    () => props.site.id,
+    () => {
+        resetFaviconUpload();
+        clearFaviconFeedback();
+    },
+);
+onUnmounted(() => {
+    releaseLogoUploadPreview();
+    resetFaviconUpload();
+});
 
 defineOptions({
     layout: { breadcrumbs: [{ title: 'My sites', href: dashboard() }] },
@@ -539,15 +724,79 @@ defineOptions({
                 >
                     {{ props.site.name }}
                 </h1>
-                <Link
-                    :href="goLive(props.site.id)"
-                    class="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg bg-[var(--workspace-green)] px-5 py-2 text-sm font-semibold text-white hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)]"
-                    >Go Live</Link
-                >
+                <div class="flex flex-wrap items-center gap-3">
+                    <button
+                        type="button"
+                        :disabled="editorWriteInProgress"
+                        aria-describedby="settings-publish-help"
+                        class="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--workspace-line)] px-5 py-2 text-sm font-semibold text-[var(--workspace-green)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-50"
+                        @click="publishSite"
+                    >
+                        {{
+                            publishForm.processing
+                                ? 'Publishing...'
+                                : 'Publish site'
+                        }}
+                    </button>
+                    <Link
+                        :href="goLive(props.site.id)"
+                        class="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg bg-[var(--workspace-green)] px-5 py-2 text-sm font-semibold text-white hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)]"
+                    >
+                        {{ props.site.live_url ? 'Live settings' : 'Go Live' }}
+                    </Link>
+                    <a
+                        v-if="props.site.live_url"
+                        :href="props.site.live_url"
+                        target="_blank"
+                        rel="noreferrer"
+                        class="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--workspace-line)] px-5 py-2 text-sm font-semibold text-[var(--workspace-green)] hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)]"
+                    >
+                        See live site
+                        <span aria-hidden="true" class="ms-2">→</span>
+                        <span class="sr-only">(opens in a new tab)</span>
+                    </a>
+                </div>
             </div>
             <p class="mt-3 text-[var(--workspace-muted)]">
                 Manage your pages and the settings they share. Open a page to
                 edit its content.
+            </p>
+            <p class="mt-4 text-sm font-semibold" role="status">
+                {{
+                    !props.site.published_at
+                        ? 'Not published yet'
+                        : props.site.has_unpublished_changes
+                          ? 'Saved changes are not published'
+                          : 'Your published site is up to date'
+                }}
+            </p>
+            <p
+                id="settings-publish-help"
+                class="mt-1 text-sm text-[var(--workspace-muted)]"
+            >
+                Publish updates all saved pages and shared site settings.
+                <span v-if="hasUnsavedEditorChanges"
+                    >Save your settings and page names before publishing.</span
+                >
+                <span v-else-if="!props.site.slug"
+                    >Choose and save a shareable address before
+                    publishing.</span
+                >
+            </p>
+            <p
+                v-if="publishError"
+                role="alert"
+                class="mt-2 text-sm text-red-700 dark:text-red-300"
+            >
+                {{ publishError }}
+            </p>
+            <p
+                v-if="publishStatus"
+                role="status"
+                aria-live="polite"
+                class="mt-2 text-sm text-[var(--workspace-green)]"
+            >
+                {{ publishStatus }}
             </p>
         </header>
         <PageManager
@@ -561,7 +810,7 @@ defineOptions({
         />
         <h2 class="mb-4 font-serif text-2xl">Shared site settings</h2>
         <section
-            :inert="pagePending"
+            :inert="pagePending || publishForm.processing"
             aria-label="Shared site settings"
             class="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]"
         >
@@ -665,6 +914,7 @@ defineOptions({
                                     accept=".jpg,.jpeg,.png,image/jpeg,image/png"
                                     :disabled="
                                         editorWriteInProgress ||
+                                        uploadInProgress ||
                                         logoUploadForm.processing ||
                                         logoAltTextForm.processing ||
                                         logoClearForm.processing
@@ -838,6 +1088,115 @@ defineOptions({
                         </div>
                     </div>
                 </div>
+                <div
+                    class="rounded-[1.25rem] border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-5 shadow-[var(--workspace-shadow)]"
+                >
+                    <h3 class="text-base font-semibold">Favicon</h3>
+                    <div
+                        class="mt-4 space-y-4 border-t border-[var(--workspace-line)] pt-4"
+                    >
+                        <div>
+                            <label
+                                for="site-favicon-file"
+                                class="mb-2 block text-sm font-semibold"
+                            >
+                                {{
+                                    props.site.favicon
+                                        ? 'Replace favicon'
+                                        : 'Choose favicon'
+                                }}
+                            </label>
+                            <input
+                                id="site-favicon-file"
+                                ref="faviconFileInput"
+                                type="file"
+                                accept="image/png,.png"
+                                :disabled="editorWriteInProgress"
+                                :aria-invalid="
+                                    Boolean(
+                                        faviconError ||
+                                        faviconUploadForm.errors.image,
+                                    )
+                                "
+                                :aria-describedby="
+                                    faviconError ||
+                                    faviconUploadForm.errors.image
+                                        ? 'site-favicon-help site-favicon-error'
+                                        : 'site-favicon-help'
+                                "
+                                class="block min-h-11 w-full rounded-lg border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-2 text-sm text-[var(--workspace-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] disabled:opacity-60"
+                                @change="selectFaviconFile"
+                            />
+                            <p
+                                id="site-favicon-help"
+                                class="mt-2 text-xs text-[var(--workspace-muted)]"
+                            >
+                                Square PNG, up to 5 MB. Recommended: 512 x 512
+                                pixels. Uploads save immediately as a draft.
+                                Publish from a page to update the icon on every
+                                public page.
+                            </p>
+                        </div>
+                        <img
+                            v-if="faviconUploadPreviewUrl || props.site.favicon"
+                            :src="
+                                faviconUploadPreviewUrl ??
+                                props.site.favicon?.url
+                            "
+                            alt=""
+                            width="48"
+                            height="48"
+                            class="h-12 w-12 rounded-lg object-contain"
+                        />
+                        <p v-else class="text-sm text-[var(--workspace-muted)]">
+                            No favicon selected. Publish to use the default
+                            icon.
+                        </p>
+                        <p
+                            v-if="
+                                faviconUploadForm.processing &&
+                                faviconUploadForm.progress
+                            "
+                            role="status"
+                            aria-live="polite"
+                            class="text-sm text-[var(--workspace-muted)]"
+                        >
+                            Uploading favicon:
+                            {{ faviconUploadForm.progress.percentage }}%
+                        </p>
+                        <p
+                            v-else-if="faviconStatus"
+                            role="status"
+                            aria-live="polite"
+                            class="text-sm text-[var(--workspace-muted)]"
+                        >
+                            {{ faviconStatus }}
+                        </p>
+                        <p
+                            v-if="
+                                faviconError || faviconUploadForm.errors.image
+                            "
+                            id="site-favicon-error"
+                            role="alert"
+                            class="text-sm text-red-700 dark:text-red-300"
+                        >
+                            {{ faviconError || faviconUploadForm.errors.image }}
+                        </p>
+                        <button
+                            v-if="props.site.favicon"
+                            type="button"
+                            :disabled="editorWriteInProgress"
+                            class="min-h-10 rounded-lg border border-red-300 px-3 text-sm font-semibold text-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:opacity-50 dark:text-red-300"
+                            @click="clearFavicon"
+                        >
+                            {{
+                                faviconClearForm.processing
+                                    ? 'Removing...'
+                                    : 'Remove favicon'
+                            }}
+                        </button>
+                    </div>
+                </div>
             </div>
             <div
                 class="rounded-[1.25rem] border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-5 shadow-[var(--workspace-shadow)]"
@@ -856,6 +1215,56 @@ defineOptions({
                             These settings apply to every page. Edit search and
                             sharing details inside each page.
                         </p>
+                        <div class="sm:col-span-2">
+                            <label
+                                for="site-show-title"
+                                class="flex items-center gap-2 text-sm font-semibold"
+                            >
+                                <input
+                                    id="site-show-title"
+                                    ref="siteTitleInput"
+                                    v-model="
+                                        appearanceForm.appearance
+                                            .show_site_title
+                                    "
+                                    type="checkbox"
+                                    :disabled="editorWriteInProgress"
+                                    :aria-invalid="
+                                        Boolean(
+                                            appearanceForm.errors[
+                                                'appearance.show_site_title'
+                                            ],
+                                        )
+                                    "
+                                    aria-describedby="site-show-title-help site-show-title-error"
+                                    @change="clearAppearanceError"
+                                />
+                                Show site title
+                            </label>
+                            <p
+                                id="site-show-title-help"
+                                class="mt-2 text-sm text-[var(--workspace-muted)]"
+                            >
+                                Turn off for a logo-only header. Without a logo,
+                                your site title stays visible.
+                            </p>
+                            <p
+                                v-if="
+                                    appearanceForm.errors[
+                                        'appearance.show_site_title'
+                                    ]
+                                "
+                                id="site-show-title-error"
+                                role="alert"
+                                class="mt-2 text-sm text-red-600"
+                            >
+                                {{
+                                    appearanceForm.errors[
+                                        'appearance.show_site_title'
+                                    ]
+                                }}
+                            </p>
+                        </div>
                         <div>
                             <label
                                 for="site-theme"

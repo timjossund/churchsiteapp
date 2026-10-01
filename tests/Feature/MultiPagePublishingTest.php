@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\ReserveCustomHostname;
 use App\Models\Site;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -35,12 +36,24 @@ test('publishing from another editor captures ordered pages and independent meta
     }
 });
 
-test('draft paths names and deletion leave old public pages intact until republished without redirects', function () {
+test('draft paths names and deletion leave old public pages intact until republished without redirects', function (bool $live) {
+    config(['customer-domains.enabled' => $live]);
     $site = Site::factory()->create(['name' => 'Original Church', 'slug' => 'stable-pages']);
     $about = $site->pages()->create(['name' => 'About', 'position' => 1]);
     $visit = $site->pages()->create(['name' => 'Visit', 'position' => 2]);
     $about->blocks()->create(['type' => 'plain_text', 'position' => 0, 'content' => ['body' => 'Published about content']]);
     $this->actingAs($site->user)->post(route('sites.publish', $site))->assertSessionHasNoErrors();
+    if ($live) {
+        $domain = app(ReserveCustomHostname::class)->handle($site->user, $site->id, 'www.example.org');
+        $domain->forceFill([
+            'state' => 'ready', 'cloudflare_id' => 'provider-id', 'verified_at' => now(),
+            'cname_matches' => true, 'hostname_status' => 'active', 'ssl_status' => 'active',
+        ])->save();
+        $site->subscriptions()->create([
+            'type' => 'default', 'stripe_id' => 'sub_page_links',
+            'stripe_status' => 'active', 'paid_until' => now()->addMonth(),
+        ]);
+    }
     $snapshot = $site->fresh()->published_snapshot;
     $oldUrl = route('sites.published.pages.show', [$site->slug, 'about']);
     $newUrl = route('sites.published.pages.show', [$site->slug, 'our-story']);
@@ -55,17 +68,17 @@ test('draft paths names and deletion leave old public pages intact until republi
     $this->get($visitUrl)->assertOk();
     expect($site->fresh()->published_snapshot)->toBe($snapshot);
     $this->get(route('sites.pages.show', [$site, $about]))->assertInertia(fn (Assert $result) => $result
-        ->where('selected_page.published_url', $oldUrl)->where('site.has_unpublished_changes', true));
+        ->where('selected_page.published_url', $live ? 'https://www.example.org/about' : $oldUrl)->where('site.has_unpublished_changes', true));
     $this->get(route('sites.pages.show', [$site, $newPage]))->assertInertia(fn (Assert $result) => $result->where('selected_page.published_url', null));
     $this->post(route('sites.publish', $site).'?editor_page='.$about->id)->assertRedirect(route('sites.pages.show', [$site, $about]));
     $this->get($oldUrl)->assertNotFound()->assertHeaderMissing('Location');
     $this->get($visitUrl)->assertNotFound();
     $this->get($newUrl)->assertOk()->assertSee('<title>Our Story | Changed Church</title>', false)->assertSee('Published about content');
-    $this->get(route('sites.pages.show', [$site, $about]))->assertInertia(fn (Assert $result) => $result->where('selected_page.published_url', $newUrl));
+    $this->get(route('sites.pages.show', [$site, $about]))->assertInertia(fn (Assert $result) => $result->where('selected_page.published_url', $live ? 'https://www.example.org/our-story' : $newUrl));
     $this->patch(route('sites.pages.settings.update', [$site, $newPage]), ['path' => 'about'])->assertSessionHasNoErrors();
     $this->post(route('sites.publish', $site))->assertSessionHasNoErrors();
     $this->get($oldUrl)->assertOk()->assertSee('<title>New Page | Changed Church</title>', false)->assertDontSee('Published about content');
-});
+})->with([false, true]);
 
 test('legacy publications keep frozen Home metadata blocks and media until explicit whole-site publication', function (bool $additionalPage) {
     Storage::fake('s3');

@@ -155,11 +155,24 @@ it('prevents cascade deletion from losing remote cleanup identity', function () 
     expect(fn () => $this->owner->delete())->toThrow(QueryException::class);
 });
 
-it('accepts the DNS length boundaries', function () {
-    $hostname = 'www.'.str_repeat('a', 63).'.'.str_repeat('b', 63).'.'.str_repeat('c', 63).'.'.str_repeat('d', 57);
-    expect(strlen($hostname))->toBe(253);
-    expect(reserveTestHostname($this->owner, $this->site, $hostname)->hostname)->toBe($hostname);
+it('accepts the ownership DNS name length boundary', function () {
+    $hostname = 'www.'.str_repeat('a', 63).'.'.str_repeat('b', 63).'.'.str_repeat('c', 63).'.'.str_repeat('d', 45);
+    expect(strlen($hostname))->toBe(241);
+    $domain = reserveTestHostname($this->owner, $this->site, $hostname);
+    expect($domain->hostname)->toBe($hostname)
+        ->and(strlen($domain->ownershipRecordName()))->toBe(253)
+        ->and(filter_var($domain->ownershipRecordName(), FILTER_VALIDATE_DOMAIN))->toBe($domain->ownershipRecordName());
 });
+
+it('rejects hostnames whose ownership record exceeds the DNS limit before reservation', function (int $length) {
+    $hostname = 'www.'.str_repeat('a', 63).'.'.str_repeat('b', 63).'.'.str_repeat('c', 63).'.'.str_repeat('d', $length - 196);
+    expect(strlen($hostname))->toBe($length)
+        ->and(filter_var($hostname, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME))->toBe($hostname);
+    expect(fn () => reserveTestHostname($this->owner, $this->site, $hostname))
+        ->toThrow(ValidationException::class);
+    expect($this->site->customHostname()->exists())->toBeFalse();
+    Http::assertNothingSent();
+})->with([242, 253]);
 
 it('uses a fresh challenge after confirmed local removal and ignores the previous generation', function () {
     $old = reserveTestHostname($this->owner, $this->site);

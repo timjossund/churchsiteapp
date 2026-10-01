@@ -35,6 +35,7 @@ class SiteBlockController extends Controller
                     'image' => ['media_asset_id' => null],
                     'text_image' => ['heading' => '', 'body' => '', 'media_asset_id' => null],
                     'video' => ['url' => ''],
+                    'embed' => ['heading' => '', 'url' => ''],
                     default => throw new LogicException('Unsupported validated block type.'),
                 },
             ]);

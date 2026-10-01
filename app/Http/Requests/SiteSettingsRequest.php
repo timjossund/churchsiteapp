@@ -57,7 +57,8 @@ class SiteSettingsRequest extends FormRequest
 
         return [
             'name' => ['sometimes', 'required', 'string', 'max:255'],
-            'appearance' => ['sometimes', 'nullable', 'array:font_pairing,accent_color,button_shape'],
+            'appearance' => ['sometimes', 'nullable', 'array:font_pairing,accent_color,button_shape,show_site_title'],
+            'appearance.show_site_title' => ['sometimes', 'boolean:strict'],
             'appearance.font_pairing' => ['sometimes', 'required', 'string', 'in:theme,traditional,modern,editorial,classy'],
             'appearance.accent_color' => ['sometimes', 'nullable', 'string', 'regex:/\A#[0-9a-f]{6}\z/'],
             'appearance.button_shape' => ['sometimes', 'required', 'string', 'in:theme,rounded,pill,square'],

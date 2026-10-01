@@ -129,3 +129,44 @@ it('returns domain changes and status refreshes to Go Live', function () {
     expect($this->site->customHostname()->exists())->toBeFalse();
     Http::assertNothingSent();
 });
+
+it('offers live links only when the custom domain is fully live', function (string $state) {
+    $this->site->update(['slug' => 'live-links']);
+    $home = $this->site->homePage()->firstOrFail();
+    $about = $this->site->pages()->create(['name' => 'About', 'position' => 1]);
+    $this->actingAs($this->owner)->post(route('sites.publish', $this->site))->assertSessionHasNoErrors();
+    if ($state !== 'missing') {
+        $domain = app(ReserveCustomHostname::class)->handle($this->owner, $this->site->id, 'www.example.org');
+        $domain->forceFill([
+            'state' => 'ready', 'cloudflare_id' => 'provider-id', 'verified_at' => now(),
+            'cname_matches' => true, 'hostname_status' => 'active', 'ssl_status' => 'active',
+        ])->save();
+        match ($state) {
+            'pending' => $domain->forceFill(['hostname_status' => 'pending'])->save(),
+            'ssl pending' => $domain->forceFill(['ssl_status' => 'pending'])->save(),
+            'removing' => $domain->forceFill(['state' => 'removing'])->save(),
+            'error' => $domain->forceFill(['error_category' => 'provider_timeout'])->save(),
+            'disabled' => config(['customer-domains.enabled' => false]),
+            'unpublished' => $this->site->forceFill(['published_at' => null])->save(),
+            default => null,
+        };
+    }
+    if ($state !== 'unpaid') {
+        $this->site->subscriptions()->create([
+            'type' => 'default', 'stripe_id' => 'sub_live_links',
+            'stripe_status' => 'active', 'paid_until' => now()->addMonth(),
+        ]);
+    }
+    $liveUrl = $state === 'live' ? 'https://www.example.org/' : null;
+    $this->get(route('sites.show', $this->site))->assertInertia(fn (Assert $page) => $page
+        ->where('site.live_url', $liveUrl)->missing('domain')->missing('billing')->missing('site.cloudflare_id'));
+    foreach ([$home, $about] as $editorPage) {
+        $url = $state === 'unpublished' ? null : ($liveUrl === null
+            ? ($editorPage->is_home ? route('sites.published.show', $this->site->slug)
+                : route('sites.published.pages.show', [$this->site->slug, 'about']))
+            : $liveUrl.($editorPage->is_home ? '' : 'about'));
+        $this->get(route('sites.pages.show', [$this->site, $editorPage]))->assertInertia(fn (Assert $page) => $page
+            ->where('selected_page.published_url', $url));
+    }
+    Http::assertNothingSent();
+})->with(['live', 'missing', 'pending', 'ssl pending', 'unpaid', 'disabled', 'removing', 'unpublished', 'error']);

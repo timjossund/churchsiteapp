@@ -18,7 +18,7 @@ class BuildSitePublicationSnapshot
         if ($pages->where('is_home', true)->count() !== 1) {
             throw ValidationException::withMessages(['publish' => 'The site must have exactly one Home page.']);
         }
-        $mediaIds = collect([$site->logo_media_asset_id]);
+        $mediaIds = collect([$site->logo_media_asset_id, $site->favicon_media_asset_id]);
         foreach ($pages as $page) {
             if ($page->is_home ? $page->path !== null : ! is_string($page->path)
                 || ! CustomerPagePath::valid($page->path)) {
@@ -45,10 +45,19 @@ class BuildSitePublicationSnapshot
             throw ValidationException::withMessages(['publish' => 'A page image is no longer available. Review the draft and try again.']);
         }
 
+        if ($site->favicon_media_asset_id !== null) {
+            $favicon = $mediaAssets->firstWhere('id', $site->favicon_media_asset_id);
+            if ($site->favicon_media_asset_id < 1 || $favicon === null || $favicon->mime_type !== 'image/png'
+                || preg_match('#(?:^|/)\.\.?(?:/|$)|[\\\\\x00-\x1f]#', $favicon->storage_key) === 1) {
+                throw ValidationException::withMessages(['publish' => 'The favicon is no longer available. Review the draft and try again.']);
+            }
+        }
+
         return [
             'version' => 2,
             'site' => array_merge($site->only('name', 'slug', 'theme_key', 'footer', 'logo_media_asset_id'),
-                $site->appearance === null ? [] : ['appearance' => $site->appearance]),
+                $site->appearance === null ? [] : ['appearance' => $site->appearance],
+                $site->favicon_media_asset_id === null ? [] : ['favicon_media_asset_id' => $site->favicon_media_asset_id]),
             'pages' => $pages->map(fn (SitePage $page): array => array_merge(
                 $page->only('id', 'name', 'position', 'is_home', 'path', 'seo_title', 'seo_description', 'social_image_id'),
                 ['blocks' => $page->blocks->map(fn (SiteBlock $block): array => $block->only('id', 'type', 'position', 'content'))->all()],

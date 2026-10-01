@@ -3,7 +3,10 @@
 namespace App\Http\Requests;
 
 use App\Models\SiteBlock;
+use App\Support\GoogleCalendarUrl;
+use App\Support\OpenStreetMapUrl;
 use App\Support\VideoEmbedUrl;
+use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -25,8 +28,13 @@ class UpdateSiteBlockRequest extends FormRequest
     {
         $content = $this->input('content');
 
-        if (is_array($content) && is_string($content['url'] ?? null)) {
-            $content['url'] = trim($content['url']);
+        if (is_array($content)) {
+            if (is_string($content['url'] ?? null)) {
+                $content['url'] = trim($content['url']);
+            }
+            if (is_array($content['map'] ?? null) && is_string($content['map']['url'] ?? null)) {
+                $content['map']['url'] = trim($content['map']['url']);
+            }
             $this->merge(['content' => $content]);
         }
     }
@@ -42,10 +50,11 @@ class UpdateSiteBlockRequest extends FormRequest
             'about', 'heading_text' => ['heading', 'body'],
             'hero' => ['heading', 'body', 'button_label', 'link_type', 'target_block_id', 'external_url', 'welcome_label', 'media_asset_id', 'target_page_id', 'secondary_button'],
             'service_times' => ['heading', 'entries'],
-            'contact' => ['heading', 'email', 'phone', 'address'],
+            'contact' => ['heading', 'email', 'phone', 'address', 'map'],
             'image' => ['media_asset_id', 'caption'],
             'text_image' => ['heading', 'body', 'media_asset_id', 'caption'],
             'video' => ['url'],
+            'embed' => ['heading', 'url'],
             default => throw new LogicException('Unsupported block type.'),
         };
         if ($hasTextButton) {
@@ -58,7 +67,7 @@ class UpdateSiteBlockRequest extends FormRequest
             'position' => ['prohibited'],
             'content' => ['required', 'array:'.implode(',', [...$fields, 'style'])],
             'content.style' => ['sometimes', $type === 'hero'
-                ? 'array:alignment,background,layout,spacing,content_width,heading_size,height,overlay,motion'
+                ? 'array:alignment,background,layout,spacing,content_width,heading_size,height,overlay,motion,text_background'
                 : 'array:alignment,background,layout,spacing,content_width,heading_size'.($hasImagePresentation ? ',image_ratio,crop_position,corner_style' : '')],
             'content.style.alignment' => ['sometimes', 'string', Rule::in(['left', 'center'])],
             'content.style.background' => ['sometimes', 'string', Rule::in(['theme', 'soft', 'accent', 'contrast'])],
@@ -87,10 +96,13 @@ class UpdateSiteBlockRequest extends FormRequest
             'content.address' => $type === 'contact'
                 ? ['sometimes', 'string']
                 : ['prohibited'],
+            'content.map' => $type === 'contact'
+                ? ['sometimes', 'required', 'array:enabled,url']
+                : ['prohibited'],
         ];
 
         foreach ($fields as $field) {
-            if (in_array($field, ['entries', 'target_block_id', 'media_asset_id', 'caption', 'address', 'welcome_label', 'target_page_id', 'secondary_button'], true)
+            if (in_array($field, ['entries', 'target_block_id', 'media_asset_id', 'caption', 'address', 'map', 'welcome_label', 'target_page_id', 'secondary_button'], true)
                 || ($hasTextButton && in_array($field, ['button_label', 'link_type', 'external_url'], true))) {
                 continue;
             }
@@ -98,10 +110,15 @@ class UpdateSiteBlockRequest extends FormRequest
             $rules['content.'.$field] = ['present', 'string'];
         }
 
+        if ($type === 'embed') {
+            $rules['content.url'][] = 'max:8192';
+        }
+
         if ($type === 'hero') {
             $rules['content.welcome_label'] = ['sometimes', 'string'];
             $rules['content.style.height'] = ['sometimes', 'string', Rule::in(['current', 'medium', 'full'])];
             $rules['content.style.overlay'] = ['sometimes', 'string', Rule::in(['light', 'medium', 'dark'])];
+            $rules['content.style.text_background'] = ['sometimes', 'boolean:strict'];
             $rules['content.style.motion'] = ['sometimes', 'string', Rule::in(['normal', 'fixed', 'half'])];
             $rules = array_merge($rules, $this->buttonRules('content', false));
             $rules['content.secondary_button'] = ['sometimes', 'array:button_label,link_type,target_block_id,target_page_id,external_url'];
@@ -129,6 +146,14 @@ class UpdateSiteBlockRequest extends FormRequest
             $rules['content.email'][] = 'email:rfc';
             $rules['content.phone'][] = 'regex:/\A\+?[0-9().\- ]+\z/';
             $rules['content.phone'][] = 'regex:/[0-9]/';
+            if ($this->has('content.map')) {
+                $rules['content.map.enabled'] = ['required', function (string $attribute, mixed $value, Closure $fail): void {
+                    if (! is_bool($value)) {
+                        $fail('Choose whether to show the map.');
+                    }
+                }];
+                $rules['content.map.url'] = ['present', 'string'];
+            }
         }
 
         if (in_array($type, ['image', 'text_image', 'hero'], true)) {
@@ -186,11 +211,30 @@ class UpdateSiteBlockRequest extends FormRequest
                 $validator->errors()->add('content.media_asset_id', 'Choose an image or clear the current image.');
             }
 
+            if ($type === 'embed') {
+                $url = $this->input('content.url');
+                if (is_string($url) && $url !== '' && GoogleCalendarUrl::from($url) === null) {
+                    $validator->errors()->add('content.url', 'Paste the HTTPS src URL for one Google Calendar from its embed code, without the HTML.');
+                }
+            }
+
             if ($type === 'video') {
                 $url = $this->input('content.url');
 
                 if (is_string($url) && $url !== '' && ! $this->isSupportedVideoUrl($url)) {
                     $validator->errors()->add('content.url', 'Enter an HTTPS link to a single YouTube or Vimeo video.');
+                }
+            }
+            if ($type === 'contact') {
+                $map = $this->input('content.map');
+                if (is_array($map) && is_string($map['url'] ?? null)) {
+                    $url = $map['url'];
+                    if (($url === '' && ($map['enabled'] ?? false) === true)
+                        || ($url !== '' && OpenStreetMapUrl::from($url) === null)) {
+                        $validator->errors()->add('content.map.url', $url === ''
+                            ? 'Add an OpenStreetMap marker link to show the map.'
+                            : 'This link is not a valid OpenStreetMap marker link. Check Include marker in Share, then copy the full Link URL.');
+                    }
                 }
             }
         }];

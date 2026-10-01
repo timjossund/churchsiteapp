@@ -32,7 +32,6 @@ A typical user:
 - Include a hero with an illustrative builder preview, signup/login actions, feature highlights, how it works, and pricing consistent with the existing business model.
 - Design a simple doorway/arch SVG mark with a wordmark and reuse it on the homepage, dashboard, and authentication pages.
 - Preserve existing authentication behavior and keep product branding separate from customer church logos.
-- Deliver this work before the rich text block.
 
 ### Site editor
 
@@ -68,10 +67,15 @@ A typical user:
 - **About:** an editable introduction to the church.
 - **Plain text:** text without a heading.
 - **Heading and text:** a heading with supporting text.
+
+The existing text blocks meet the simple builder's needs; a rich text editor is not planned.
+
 - **Service times:** structured entries with a day and time; an optional label can distinguish services.
 - **Contact us:** email and phone details that produce `mailto:` and `tel:` links. No visitor contact form is planned for the first release.
+- **Contact map:** an optional OpenStreetMap embed on contact blocks, off by default. Owners find their church on OpenStreetMap, choose Share and Include marker, and paste the full sharing link into the block. Show the map and pin in editor previews and published pages with attribution, retaining the existing address and directions link. No automatic address lookup or API key is required.
 - **Image:** an uploaded image displayed with rounded corners.
 - **Text and image:** editable text and an uploaded image, with a choice of which side shows the image.
+- **Embed block:** embed a public Google Calendar from a validated HTTPS embed URL. Support Google Calendar first, with fixed provider restrictions and matching draft previews and published output. Do not accept arbitrary HTML, scripts, or unrestricted iframe permissions. Other providers need a separate reviewed addition.
 - **Video embed:** a YouTube or Vimeo video added by URL and displayed as an embedded player.
 
 The site also has an editable header and footer, including a church name or logo and navigation links to page sections.
@@ -82,6 +86,7 @@ The site also has an editable header and footer, including a church name or logo
 - Switching themes changes colors, fonts, and styling. It preserves content and block order.
 - Add block-specific styling and configurable block options beyond the initial theme choices.
 - Users upload images from their devices. Store uploads in the owner's IONOS buckets.
+- Owners can upload, preview, replace, or remove a square PNG favicon beside the logo in Site Settings. Use the existing default icon when unset; Publish applies the chosen favicon to every public page, including custom domains. Reuse existing owned upload storage.
 - Public pages should work on mobile and desktop and provide accessible text, links, and image descriptions.
 
 ### Publishing and search
@@ -108,7 +113,6 @@ Deliver these improvements after the existing launch features, in the order list
 - **Image and text blocks:** image proportions, crop position, corner styles, captions, and optional buttons on text-bearing blocks.
 - **Church information blocks:** service-time layout choices, plus contact addresses and directions links.
 - **Site-wide styling:** font pairings, an editable accent color, and consistent button styles.
-- **Rich text block:** a new dedicated block where users can compose formatted text, bulleted and numbered lists, and nested outlines. Preserve the existing plain text and heading-and-text blocks. Choose the exact toolbar, nesting behavior, editor dependency if needed, and stored document format during its feature spec. Render supported formatting safely rather than trusting arbitrary user HTML.
 
 Keep existing sites' appearance unchanged until owners select the new options. All new content and styling follow the existing draft/Publish boundary and must match between the editor preview and published Blade pages. Exact presets belong in each feature spec, not this roadmap.
 

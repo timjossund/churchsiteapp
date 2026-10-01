@@ -699,7 +699,7 @@ onUnmounted(() => {
 });
 
 defineOptions({
-    layout: { breadcrumbs: [{ title: 'My sites', href: dashboard() }] },
+    layout: { breadcrumbs: [{ title: 'Your sites', href: dashboard() }] },
 });
 </script>
 <template>

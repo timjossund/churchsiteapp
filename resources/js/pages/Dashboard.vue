@@ -56,7 +56,7 @@ defineProps<{
 
 defineOptions({
     layout: {
-        breadcrumbs: [{ title: 'My sites', href: dashboard() }],
+        breadcrumbs: [{ title: 'Your sites', href: dashboard() }],
     },
 });
 
@@ -94,24 +94,22 @@ function createSite() {
 </script>
 
 <template>
-    <Head title="My sites" />
+    <Head title="Your sites" />
 
     <main
         class="mx-auto w-full max-w-[76rem] space-y-10 px-5 py-8 sm:px-8 lg:px-12 lg:py-12"
     >
         <header class="space-y-3">
-            <p
-                class="text-xs font-bold tracking-[0.14em] text-[var(--workspace-green)] uppercase"
-            >
-                Your workspace
+            <p class="text-sm font-semibold text-[var(--workspace-green)]">
+                Welcome, {{ $page.props.auth.user.name }}
             </p>
             <div
                 class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
             >
                 <h1
-                    class="font-serif text-4xl tracking-tight text-[var(--workspace-ink)] sm:text-[2.5rem]"
+                    class="font-serif text-3xl tracking-tight text-[var(--workspace-ink)] sm:text-4xl"
                 >
-                    Your church sites
+                    Your workspace
                 </h1>
                 <PopoverRoot>
                     <PopoverTrigger as-child>
@@ -221,11 +219,11 @@ function createSite() {
                     : 'Deletion requested. Your site is offline. Billing and cleanup are being reconciled automatically; renewal cancellation is not yet confirmed here.'
             }}
         </p>
-        <section aria-label="My sites">
+        <section aria-label="Your sites">
             <div class="space-y-5">
                 <div class="flex items-baseline justify-between gap-4">
                     <h2 class="text-lg font-semibold tracking-tight">
-                        My sites
+                        Your sites
                     </h2>
                     <span class="text-sm text-[var(--workspace-muted)]"
                         >{{ sites.length }}

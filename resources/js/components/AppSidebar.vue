@@ -18,7 +18,7 @@ import type { NavItem } from '@/types';
 
 const mainNavItems: NavItem[] = [
     {
-        title: 'My sites',
+        title: 'Your sites',
         href: dashboard(),
         icon: LayoutGrid,
     },

@@ -39,7 +39,7 @@ function setOpen(value: boolean) {
 }
 function failed() {
     error.value =
-        'We could not confirm the result. Your request may have been saved. Retry or check My sites for its status.';
+        'We could not confirm the result. Your request may have been saved. Retry or check Your sites for its status.';
     focusAfterSubmit = true;
     return false;
 }

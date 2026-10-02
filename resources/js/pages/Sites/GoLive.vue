@@ -74,7 +74,7 @@ onUnmounted(() => {
     window.removeEventListener('beforeunload', guardUnload);
 });
 defineOptions({
-    layout: { breadcrumbs: [{ title: 'My sites', href: dashboard() }] },
+    layout: { breadcrumbs: [{ title: 'Your sites', href: dashboard() }] },
 });
 </script>
 

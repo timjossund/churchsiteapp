@@ -10,7 +10,44 @@ import {
 import { nextTick, ref } from 'vue';
 import { dashboard } from '@/routes';
 
-type Site = { id: number; name: string; deletion_requested_at: string | null };
+type Site = {
+    id: number;
+    name: string;
+    deletion_requested_at: string | null;
+    published_at: string | null;
+    has_blocks: boolean;
+    published_url: string | null;
+};
+
+function cardCopy(site: Site) {
+    if (site.deletion_requested_at) {
+        return {
+            badge: 'Deletion pending',
+            top: 'This site is offline',
+            description:
+                'Cleanup retries automatically. The site will disappear when billing, domain, and file cleanup are complete.',
+        };
+    }
+    if (site.published_at) {
+        return {
+            badge: 'Published',
+            top: 'Your site is published',
+            description: 'Your published site is ready to view',
+        };
+    }
+    if (site.has_blocks) {
+        return {
+            badge: 'Draft',
+            top: 'Your site is taking shape',
+            description: 'Keep building, then publish when you are ready',
+        };
+    }
+    return {
+        badge: 'Getting started',
+        top: 'Blank site, ready for your story',
+        description: 'Your workspace is ready',
+    };
+}
 
 defineProps<{
     sites: Site[];
@@ -19,7 +56,7 @@ defineProps<{
 
 defineOptions({
     layout: {
-        breadcrumbs: [{ title: 'My sites', href: dashboard() }],
+        breadcrumbs: [{ title: 'Your sites', href: dashboard() }],
     },
 });
 
@@ -57,24 +94,22 @@ function createSite() {
 </script>
 
 <template>
-    <Head title="My sites" />
+    <Head title="Your sites" />
 
     <main
         class="mx-auto w-full max-w-[76rem] space-y-10 px-5 py-8 sm:px-8 lg:px-12 lg:py-12"
     >
         <header class="space-y-3">
-            <p
-                class="text-xs font-bold tracking-[0.14em] text-[var(--workspace-green)] uppercase"
-            >
-                Your workspace
+            <p class="text-sm font-semibold text-[var(--workspace-green)]">
+                Welcome, {{ $page.props.auth.user.name }}
             </p>
             <div
                 class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
             >
                 <h1
-                    class="font-serif text-4xl tracking-tight text-[var(--workspace-ink)] sm:text-[2.5rem]"
+                    class="font-serif text-3xl tracking-tight text-[var(--workspace-ink)] sm:text-4xl"
                 >
-                    Your church sites
+                    Your workspace
                 </h1>
                 <PopoverRoot>
                     <PopoverTrigger as-child>
@@ -184,11 +219,11 @@ function createSite() {
                     : 'Deletion requested. Your site is offline. Billing and cleanup are being reconciled automatically; renewal cancellation is not yet confirmed here.'
             }}
         </p>
-        <section aria-label="My sites">
+        <section aria-label="Your sites">
             <div class="space-y-5">
                 <div class="flex items-baseline justify-between gap-4">
                     <h2 class="text-lg font-semibold tracking-tight">
-                        My sites
+                        Your sites
                     </h2>
                     <span class="text-sm text-[var(--workspace-muted)]"
                         >{{ sites.length }}
@@ -225,21 +260,13 @@ function createSite() {
                         <div
                             class="grid h-40 place-items-center border-b border-[var(--workspace-line)] bg-[var(--workspace-soft)] px-6 text-center text-sm text-[var(--workspace-muted)]"
                         >
-                            {{
-                                site.deletion_requested_at
-                                    ? 'This site is offline'
-                                    : 'Blank site, ready for your story'
-                            }}
+                            {{ cardCopy(site).top }}
                         </div>
                         <div class="space-y-5 p-5">
                             <div>
                                 <span
                                     class="inline-flex rounded-full bg-[var(--workspace-green-soft)] px-3 py-1 text-xs font-semibold text-[var(--workspace-green-ink)]"
-                                    >{{
-                                        site.deletion_requested_at
-                                            ? 'Deletion pending'
-                                            : 'Getting started'
-                                    }}</span
+                                    >{{ cardCopy(site).badge }}</span
                                 >
                                 <h3
                                     class="mt-3 truncate text-lg font-semibold tracking-tight"
@@ -250,22 +277,41 @@ function createSite() {
                                 <p
                                     class="mt-1 text-sm text-[var(--workspace-muted)]"
                                 >
-                                    {{
-                                        site.deletion_requested_at
-                                            ? 'Cleanup retries automatically. The site will disappear when billing, domain, and file cleanup are complete.'
-                                            : 'Your workspace is ready'
-                                    }}
+                                    {{ cardCopy(site).description }}
                                 </p>
                             </div>
-                            <Link
-                                v-if="!site.deletion_requested_at"
-                                :href="`/sites/${site.id}`"
-                                class="inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-[var(--workspace-green)] hover:underline focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)]"
+                            <div
+                                class="flex flex-wrap items-center justify-between gap-3"
                             >
-                                Open site
-                                <ArrowRight class="size-4" aria-hidden="true" />
-                                <span class="sr-only">{{ site.name }}</span>
-                            </Link>
+                                <a
+                                    v-if="
+                                        !site.deletion_requested_at &&
+                                        site.published_url
+                                    "
+                                    :href="site.published_url"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="inline-flex min-h-10 items-center justify-center rounded-lg bg-[var(--workspace-green)] px-3 text-sm font-semibold text-white hover:bg-[var(--workspace-green-dark)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)] dark:text-[var(--workspace-surface)]"
+                                >
+                                    View published
+                                    <span class="sr-only"
+                                        >{{ site.name }} (opens in a new
+                                        tab)</span
+                                    >
+                                </a>
+                                <Link
+                                    v-if="!site.deletion_requested_at"
+                                    :href="`/sites/${site.id}`"
+                                    class="ml-auto inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-[var(--workspace-green)] hover:underline focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--workspace-green)]"
+                                >
+                                    Open site
+                                    <ArrowRight
+                                        class="size-4"
+                                        aria-hidden="true"
+                                    />
+                                    <span class="sr-only">{{ site.name }}</span>
+                                </Link>
+                            </div>
                         </div>
                     </article>
                 </div>

@@ -1680,7 +1680,7 @@ function publishSite() {
 defineOptions({
     layout: {
         fullWidth: true,
-        breadcrumbs: [{ title: 'My sites', href: dashboard() }],
+        breadcrumbs: [{ title: 'Your sites', href: dashboard() }],
     },
 });
 </script>

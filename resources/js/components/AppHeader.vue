@@ -48,7 +48,7 @@ const activeItemStyles =
 
 const mainNavItems: NavItem[] = [
     {
-        title: 'My sites',
+        title: 'Your sites',
         href: dashboard(),
         icon: LayoutGrid,
     },

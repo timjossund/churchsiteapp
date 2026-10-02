@@ -30,7 +30,29 @@ class SiteController extends Controller
             'deletionStatus' => $request->session()->get('site_deletion_status'),
             'sites' => $request->user()->sites()
                 ->orderByDesc('id')
-                ->get(['id', 'name', 'deletion_requested_at']),
+                ->with('customHostname')
+                ->select(['id', 'name', 'deletion_requested_at', 'published_at', 'slug'])
+                ->withExists('blocks')
+                ->get()
+                ->map(function (Site $site): array {
+                    $publishedUrl = null;
+                    if ($site->deletion_requested_at === null && $site->published_at !== null && $site->slug !== null) {
+                        $domain = $site->customHostname;
+                        $domain?->setRelation('site', $site);
+                        $publishedUrl = config('customer-domains.enabled') === true && $domain?->isReadyToServe()
+                            ? 'https://'.$domain->hostname.'/'
+                            : route('sites.published.show', $site->slug);
+                    }
+
+                    return [
+                        'id' => $site->id,
+                        'name' => $site->name,
+                        'deletion_requested_at' => $site->deletion_requested_at,
+                        'published_at' => $site->published_at,
+                        'has_blocks' => (bool) $site->getAttribute('blocks_exists'),
+                        'published_url' => $publishedUrl,
+                    ];
+                }),
         ]);
     }
 

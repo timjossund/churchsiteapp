@@ -58,17 +58,34 @@ test('embed creation and updates remain scoped to owner site and page', function
 });
 
 test('builder document and Inertia responses restrict frame navigation to approved providers', function (bool $runningHot) {
-    Vite::partialMock()->shouldReceive('isRunningHot')->andReturn($runningHot);
-    $policy = EmbedFramePolicy::POLICY;
-    foreach ([route('dashboard'), route('sites.show', $this->site), route('sites.pages.show', [$this->site, $this->page])] as $url) {
-        $this->get($url)->assertOk()->assertHeader('Content-Security-Policy', $policy);
+    $originalHotFile = Vite::hotFile();
+    $hotFile = tempnam(sys_get_temp_dir(), 'churchsite-embed-vite-');
+    expect($hotFile)->not->toBeFalse();
+
+    try {
+        if ($runningHot) {
+            file_put_contents($hotFile, 'http://localhost:5173');
+        } else {
+            unlink($hotFile);
+        }
+        Vite::useHotFile($hotFile);
+
+        $policy = EmbedFramePolicy::POLICY;
+        foreach ([route('dashboard'), route('sites.show', $this->site), route('sites.pages.show', [$this->site, $this->page])] as $url) {
+            $this->get($url)->assertOk()->assertHeader('Content-Security-Policy', $policy);
+        }
+        $this->get(route('sites.pages.show', [$this->site, $this->page]), [
+            'X-Inertia' => 'true',
+            'X-Inertia-Version' => app(HandleInertiaRequests::class)->version(Request::create(route('sites.pages.show', [$this->site, $this->page]))) ?? '',
+        ])
+            ->assertOk()->assertHeader('Content-Security-Policy', $policy);
+        $this->get('/')->assertOk()->assertHeader('Content-Security-Policy', $policy);
+    } finally {
+        Vite::useHotFile($originalHotFile);
+        if (is_file($hotFile)) {
+            unlink($hotFile);
+        }
     }
-    $this->get(route('sites.pages.show', [$this->site, $this->page]), [
-        'X-Inertia' => 'true',
-        'X-Inertia-Version' => app(HandleInertiaRequests::class)->version(Request::create(route('sites.pages.show', [$this->site, $this->page]))) ?? '',
-    ])
-        ->assertOk()->assertHeader('Content-Security-Policy', $policy);
-    $this->get('/')->assertOk()->assertHeader('Content-Security-Policy', $policy);
 })->with(['development assets' => true, 'built assets' => false]);
 
 test('frame policy retains an existing stricter policy', function () {
